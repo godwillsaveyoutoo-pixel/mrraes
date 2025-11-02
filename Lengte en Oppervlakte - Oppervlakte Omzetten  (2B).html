@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mr Raes: Oppervlakte omzetten</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#f7f9fc; --card:#fff; --ink:#0b132b; --muted:#6b7280; --ring:#e6ecf8; --ring2:#dfe6f6;
+    --good:#10b981; --bad:#ef4444; --accent:#111827; --shadow:0 10px 28px rgba(15,23,42,.06);
+    --radius:20px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 800px at 10% -10%, #eef3ff, transparent 60%),
+      radial-gradient(1000px 700px at 110% 20%, #f7ecff, transparent 50%),
+      var(--bg);
+    color:var(--ink);
+    font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  }
+
+  /* === Topbar === */
+  .topbar-rail{
+    position: sticky; top: 0; z-index: 100;
+    background:linear-gradient(#fff,#fbfdff);
+    border-bottom:1px solid var(--ring);
+    box-shadow:0 8px 18px rgba(13,21,41,.06);
+  }
+  .topbar{
+    display:flex; align-items:center; gap:.6rem; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:thin;
+    padding:.5cap; margin:0 auto 1rem; width:min(1200px,96vw);
+  }
+  .chip{
+    background:#fff; border:1px solid var(--ring2); border-radius:999px;
+    padding:.35rem .7rem; box-shadow:var(--shadow);
+    display:inline-flex; gap:.5rem; align-items:center; font-weight:800; white-space:nowrap;
+  }
+  .chip.btn{cursor:pointer}
+  .chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+  .chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+  .chip.btn.small{padding:.22rem .55rem; font-weight:900}
+  .spacer{flex:1}
+
+  /* Task headline */
+  .taskbar{grid-area:task; background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:.9rem; box-shadow:var(--shadow); width:min(1200px,96vw); margin:0 auto;}
+  .task{font-weight:900; line-height:1.1; font-size:clamp(36px,5.6vw,72px); text-align:center; margin:.2rem 0 0;}
+
+  /* === Board layout === */
+  .board{
+    width:min(1200px,96vw);
+    margin:14px auto;
+    padding:14px;
+    display:grid; grid-template-columns:1.1fr .9fr; gap:14px;
+    min-height:calc(100vh - 150px);
+  }
+  @media (max-width:900px){ .board{grid-template-columns:1fr;} }
+
+  .card{
+    background:linear-gradient(#fff,#fcfdff); border:1px solid var(--ring2);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:18px; position:relative;
+  }
+  .left{display:flex; flex-direction:column; gap:12px}
+  .right{display:flex; flex-direction:column; gap:12px}
+
+  /* ToolBar in kaart (links) */
+  .toolBar{position:absolute; top:10px; right:10px; display:flex; gap:.35rem;}
+  .toolBtn{border:1px solid var(--ring2); background:#fff; border-radius:999px; padding:.2rem .6rem; font-weight:900; cursor:pointer; box-shadow:var(--shadow)}
+  .toolBtn.disabled{opacity:.45; cursor:not-allowed}
+
+  /* Floating panels */
+  .floatingPanel{
+    position:absolute; top:48px; right:10px; z-index:5;
+    background:#fff; border:1px solid var(--ring2); border-radius:12px; box-shadow:var(--shadow);
+    padding:.75rem .9rem; display:none; font-weight:800; color:#374151; max-width:min(520px, 96vw);
+  }
+  .floatingPanel h4{ margin:.2rem 0 .6rem; font-weight:900; }
+
+  /* Conversietabel (per 100) */
+  .ladder{display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; line-height:1.8}
+  .ladder .u{display:inline-flex; align-items:center; justify-content:center; padding:.18rem .5rem; border:1px solid var(--ring2); border-radius:999px; background:#fff; box-shadow:var(--shadow); font-weight:900}
+  .ladder .arr{font-weight:900; color:#1f2937}
+  .mini{font-weight:700; color:#6b7280; margin-top:.35rem}
+
+  /* Left column content */
+  .field{background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:.9rem; box-shadow:var(--shadow);}
+  .label{font-weight:800; margin-bottom:.35rem;}
+  .lcd{
+    min-height:84px; display:flex; align-items:center; justify-content:center;
+    background:#f8fbff; border:1px solid var(--ring); border-radius:14px;
+    font-weight:900; font-size:clamp(32px,5vw,44px); color:#1f2937; padding:.2rem .6rem;
+  }
+  .lcd.good{ box-shadow:0 0 0 6px rgba(16,185,129,.18) inset; }
+  .lcd.bad{  box-shadow:0 0 0 6px rgba(239,68,68,.15) inset; }
+
+  .sub{color:var(--muted); font-size:.92rem; margin-top:.45rem; display:flex; align-items:center; justify-content:space-between; gap:.6rem}
+  .streakbar{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-top:.6rem;}
+  .streakcell{height:10px; border-radius:999px; background:#eef3ff; border:1px solid var(--ring2);}
+  .streakcell.fill{background:#cde9ff; border-color:#b7dbff;}
+
+  .hint{margin-top:.2rem; color:#374151; text-align:center; font-weight:700}
+
+  /* Right keypad */
+  .padwrap{background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:.9rem; box-shadow:var(--shadow);}
+  .keypad{display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem;}
+  .key{
+    user-select:none; cursor:pointer; text-align:center; font-weight:900; font-size:clamp(18px,3.2vw,22px);
+    padding:1rem 0; border-radius:14px; background:#f7faff; border:1px solid var(--ring2);
+    box-shadow:0 6px 16px rgba(15,23,42,.06); transition:transform .06s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .key:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+  .key.ok{background:#eafaf4; border-color:#c4eedc}
+
+  /* Overlays (popup naam + einde) */
+  .overlay{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(15,23,42,.45); padding:20px; z-index:1000}
+  .dialog{width:min(560px,94vw); background:#fff; border:1px solid var(--ring2); border-radius:16px; box-shadow:0 24px 80px rgba(0,0,0,.18); padding:16px}
+  .dialog h2{margin:0 0 8px 0; font-size:20px}
+  .nameField{width:100%; padding:10px 12px; border:1px solid var(--ring2); border-radius:10px; font:inherit; font-weight:800}
+  .row{display:flex; gap:.6rem; justify-content:flex-end; margin-top:.9rem}
+  .flagline{display:flex; align-items:center; gap:.5rem; margin-top:.6rem; font-weight:800; color:#374151}
+  .flagline input{transform:translateY(1px)}
+</style>
+
+<link rel="stylesheet" href="mrraes-shared.css">
+<script src="mrraes-shared.js"></script>
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar-rail">
+    <div class="topbar">
+      <button id="startTaak" class="chip btn">📝 Start taak (30)</button>
+      <button id="startToets" class="chip btn">🧪 Start toets (30 / 10 min)</button>
+      <button id="fullBtn"  class="chip btn">⤢ Volledig scherm</button>
+
+      <span class="chip">📐 <span id="levelText">Level 1</span></span>
+
+      <!-- Oefenlevel-knoppen (alleen zichtbaar in oefenmodus) -->
+      <div id="practiceLevel" class="chip" style="display:none; gap:.4rem;">
+        🎯 Oefenlevel:
+        <button class="chip btn small lvlBtn" data-lvl="1">1</button>
+        <button class="chip btn small lvlBtn" data-lvl="2">2</button>
+        <button class="chip btn small lvlBtn" data-lvl="3">3</button>
+        <button class="chip btn small lvlBtn" data-lvl="4">4</button>
+      </div>
+
+      <div class="spacer"></div>
+      <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+      <span class="chip" id="progressChip" style="display:none">Vraag <strong id="qNow">1</strong>/<strong id="qTotal">30</strong></span>
+      <span class="chip ok">✅ Juist: <span id="right">0</span></span>
+      <span class="chip bad">❌ Fout: <span id="wrong">0</span></span>
+    </div>
+  </div>
+
+  <!-- OPGAVE-HEADLINE -->
+  <div class="taskbar">
+    <div class="task">
+      <span id="val">2</span> <span id="uFrom">m²</span>
+      &nbsp;=&nbsp; <span class="dots">………</span> &nbsp;<span id="uTo">dm²</span>
+    </div>
+  </div>
+
+  <!-- BOARD -->
+  <main class="board">
+    <!-- LINKS -->
+    <section class="card left">
+      <!-- ToolBar: Tabel + Hulp -->
+      <div class="toolBar">
+        <button id="tableBtn" class="toolBtn">📊 Tabel</button>
+        <button id="helpBtn"  class="toolBtn">❔ Hulp</button>
+      </div>
+
+      <!-- Conversietabel (per 100) -->
+      <div id="tablePanel" class="floatingPanel" aria-live="polite">
+        <h4>Conversietabel (per stap ×100)</h4>
+        <div class="ladder" aria-label="eenhedenladder">
+          <span class="u">km²</span><span class="arr">→ ×100</span>
+          <span class="u">hm²</span><span class="arr">→ ×100</span>
+          <span class="u">dam²</span><span class="arr">→ ×100</span>
+          <span class="u">m² <span class="mini">(= ca)</span></span><span class="arr">→ ×100</span>
+          <span class="u">dm²</span><span class="arr">→ ×100</span>
+          <span class="u">cm²</span><span class="arr">→ ×100</span>
+          <span class="u">mm²</span>
+        </div>
+        <div class="mini">Tip: elke stap groter ↔ kleiner is ×100 ↔ ÷100. <strong>ha</strong> = hm², <strong>a</strong> = dam², <strong>ca</strong> = m².</div>
+      </div>
+
+      <!-- Hulptekst -->
+      <div id="helpPanel" class="floatingPanel" aria-live="polite">
+        <h4>Hulp</h4>
+        <div class="mini">Zet om door per stap ×100 (naar kleiner) of ÷100 (naar groter). Voorbeeld:
+          <div style="margin-top:.35rem; font-weight:900">
+            3,5 m² = 350 dm² = 35 000 cm²
+          </div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:22px">
+        <div class="label" id="labelQ">Hoeveel dm²?</div>
+        <div class="lcd" id="lcd"><span id="buffer">0</span></div>
+        <div class="sub">
+          <span id="levelInfo">Eenheden: m², dm², cm²</span>
+          <span></span>
+        </div>
+        <div class="streakbar" id="streakbar">
+          <div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div>
+        </div>
+      </div>
+
+      <div class="hint" id="hint">5 keer juist = level omhoog. Enter of OK om te controleren.</div>
+
+      <div style="display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.6rem">
+        <button id="proofBtn" class="chip btn">📷 Bewijs (PNG)</button>
+      </div>
+
+      <canvas id="exportCanvas" width="1200" height="800" style="display:none"></canvas>
+    </section>
+
+    <!-- RECHTS -->
+    <section class="card right">
+      <div class="padwrap">
+        <div class="keypad" id="keypad">
+          <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key" data-k="back">⌫</div>
+          <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key" data-k="comma">,</div>
+          <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key" data-k="00">00</div>
+          <div class="key">0</div><div class="key ok" style="grid-column: span 3" data-k="ok">OK</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Overlay: naam (fallback, incl. dyscalculie) -->
+  <div class="overlay" id="nameOverlay" role="dialog" aria-modal="true">
+    <div class="dialog">
+      <h2 id="dlgTitle">Start</h2>
+      <p style="margin:.2rem 0 .6rem; color:#374151">Vul je naam in en klik <strong>Start</strong>.</p>
+      <input id="nameField" class="nameField" placeholder="Voornaam + familienaam" />
+      <label class="flagline" id="dysRow" style="display:none;">
+        <input type="checkbox" id="dysChk" />
+        <span>Ik heb <strong>dyscalculie</strong>.</span>
+      </label>
+      <div class="row">
+        <button id="dlgCancel" class="chip btn">Annuleren</button>
+        <button id="dlgStart"  class="chip btn">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay: einde melding -->
+  <div class="overlay" id="endOverlay" role="dialog" aria-modal="true">
+    <div class="dialog">
+      <h2>Einde</h2>
+      <p>Bewijsje gedownload. Je kan de taak/toets nu in de <strong>uploadzone</strong> plaatsen.</p>
+      <div class="row">
+        <button id="endOk" class="chip btn">OK</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ====== UTIL ====== */
+const $ = s => document.querySelector(s);
+function pad2(n){return (n<10?'0':'')+n}
+function rint(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a||1}
+
+/* ====== STATE & DOM ====== */
+const State = {
+  mode:'practice', // 'practice' | 'taak' | 'toets'
+  studentName:'',
+  dyscalculie:false,
+  right:0, wrong:0, level:1,
+  asked:0, total:30,
+  tStart:null, tTick:null, timeLimitMs: 10*60*1000,
+  qThisRun:0,
+  lastPair:null,
+  cur:null, buf:'',
+  history:[]
+};
+
+const startTaak=$('#startTaak'), startToets=$('#startToets'), fullBtn=$('#fullBtn');
+const timeDisp=$('#timeDisp'), progressChip=$('#progressChip'), qNowEl=$('#qNow'), qTotalEl=$('#qTotal');
+const rightEl=$('#right'), wrongEl=$('#wrong');
+const levelText=$('#levelText'), levelInfo=$('#levelInfo'), hint=$('#hint');
+const valEl=$('#val'), uFromEl=$('#uFrom'), uToEl=$('#uTo'), labelQ=$('#labelQ');
+const lcd=$('#lcd'), bufEl=$('#buffer'), streakbar=$('#streakbar');
+const proofBtn=$('#proofBtn'), exportCanvas=$('#exportCanvas');
+
+// Hulp/tabel UI
+const helpBtn = $('#helpBtn'), tableBtn = $('#tableBtn');
+const helpPanel = $('#helpPanel'), tablePanel = $('#tablePanel');
+
+// Oefenlevel UI
+const practiceLevel = $('#practiceLevel');
+
+/* ====== NAME & END OVERLAYS (fallback) ====== */
+const nameOverlay=$('#nameOverlay'), nameField=$('#nameField'), dlgStart=$('#dlgStart'), dlgCancel=$('#dlgCancel'), dlgTitle=$('#dlgTitle');
+const dysRow = $('#dysRow'), dysChk = $('#dysChk');
+const endOverlay=$('#endOverlay'), endOk=$('#endOk');
+
+function setAssistUIEnabled(enabled){
+  const toggle = (btn) => {
+    btn.classList.toggle('disabled', !enabled);
+    btn.setAttribute('aria-disabled', String(!enabled));
+    btn.title = enabled ? '' : 'In toets geblokkeerd';
+  };
+  toggle(helpBtn); toggle(tableBtn);
+  if(!enabled){ helpPanel.style.display='none'; tablePanel.style.display='none'; }
+}
+
+function helpAllowed(){
+  if(State.mode==='toets') return !!State.dyscalculie; // toets: enkel bij dyscalculie
+  return true; // taak/practice: altijd
+}
+
+helpBtn.addEventListener('click', ()=>{
+  if(!helpAllowed()) return;
+  const s = helpPanel.style.display==='block';
+  helpPanel.style.display = s?'none':'block';
+  if(!s){ tablePanel.style.display='none'; }
+});
+tableBtn.addEventListener('click', ()=>{
+  if(!helpAllowed()) return;
+  const s = tablePanel.style.display==='block';
+  tablePanel.style.display = s?'none':'block';
+  if(!s){ helpPanel.style.display='none'; }
+});
+document.addEventListener('click', (e)=>{
+  if (!e.target.closest('.toolBtn') && !e.target.closest('.floatingPanel')) {
+    helpPanel.style.display='none'; tablePanel.style.display='none';
+  }
+});
+
+/* ====== UNITS & CONVERT ====== */
+const MM2 = {
+  mm2: 1,
+  cm2: 100,
+  dm2: 10_000,
+  m2: 1_000_000,
+  dam2: 100_000_000,
+  hm2: 10_000_000_000,
+  km2: 1_000_000_000_000,
+  ca: 1_000_000,          // = m²
+  a: 100_000_000,         // = dam²
+  ha: 10_000_000_000      // = hm²
+};
+const CANON = { ca:'m2', a:'dam2', ha:'hm2' };
+const LABEL = { km2:'km²', hm2:'hm²', dam2:'dam²', m2:'m²', dm2:'dm²', cm2:'cm²', mm2:'mm²', ha:'ha', a:'a', ca:'ca' };
+const LONG  = {
+  km2:"vierkante kilometer", hm2:"vierkante hectometer", dam2:"vierkante decameter",
+  m2:"vierkante meter", dm2:"vierkante decimeter", cm2:"vierkante centimeter", mm2:"vierkante millimeter",
+  ha:"hectare", a:"are", ca:"centiare"
+};
+const viewLabel = u=>LABEL[u]||u;
+const unitLong  = u=>LONG[u]||u;
+
+/* ====== LEVELS ====== */
+const MAX_LEVEL=4, PROGRESS_PER_LEVEL=5;
+function unitsForLevel(l){
+  if(l===1) return ['m2','dm2','cm2'];
+  if(l===2) return ['dam2','a','m2','ca','dm2','cm2'];
+  if(l===3) return ['km2','hm2','ha','dam2','a','m2','ca','dm2','cm2'];
+  return ['km2','hm2','ha','dam2','a','m2','ca','dm2','cm2','mm2'];
+}
+const ALIAS_UNITS=new Set(['ca','a','ha']);
+const isAlias=u=>ALIAS_UNITS.has(u);
+
+function allowedPairsForLevel(lvl){
+  const P=[]; const add=(pair,w)=>P.push({pair,w});
+  if(lvl===1){
+    add(['m2','dm2'],4); add(['dm2','m2'],4);
+    add(['dm2','cm2'],3); add(['cm2','dm2'],3);
+    add(['m2','cm2'],2);  add(['cm2','m2'],2);
+  } else if(lvl===2){
+    add(['dam2','m2'],3); add(['m2','dam2'],3);
+    add(['m2','dm2'],3);  add(['dm2','m2'],3);
+    add(['dm2','cm2'],3); add(['cm2','dm2'],3);
+    add(['m2','cm2'],2);  add(['cm2','m2'],2);
+    add(['a','m2'],2);    add(['m2','a'],2);
+    add(['dam2','a'],1);  add(['a','dam2'],1);
+    add(['m2','ca'],1);   add(['ca','m2'],1);
+  } else if(lvl===3){
+    add(['km2','hm2'],4); add(['hm2','km2'],4);
+    add(['hm2','dam2'],3); add(['dam2','hm2'],3);
+    add(['dam2','m2'],4); add(['m2','dam2'],4);
+    add(['m2','dm2'],3);  add(['dm2','m2'],3);
+    add(['dm2','cm2'],2); add(['cm2','dm2'],2);
+    add(['ha','hm2'],1);  add(['hm2','ha'],1);
+    add(['dam2','a'],1);  add(['a','dam2'],1);
+    add(['m2','ca'],1);   add(['ca','m2'],1);
+  } else {
+    add(['km2','hm2'],4); add(['hm2','km2'],4);
+    add(['hm2','dam2'],3); add(['dam2','hm2'],3);
+    add(['dam2','m2'],4); add(['m2','dam2'],4);
+    add(['m2','dm2'],3);  add(['dm2','m2'],3);
+    add(['dm2','cm2'],3); add(['cm2','dm2'],3);
+    add(['cm2','mm2'],3); add(['mm2','cm2'],3);
+    add(['ha','hm2'],1);  add(['hm2','ha'],1);
+    add(['dam2','a'],1);  add(['a','dam2'],1);
+    add(['m2','ca'],1);   add(['ca','m2'],1);
+  }
+  const allowed = new Set(unitsForLevel(lvl));
+  return P.filter(({pair:[u,v]})=>allowed.has(u)&&allowed.has(v));
+}
+
+function updateLevelUI(){
+  levelText.textContent = `Level ${State.level}`;
+  levelInfo.textContent = `Eenheden: ${unitsForLevel(State.level).map(viewLabel).join(', ')}`;
+}
+function updateStreakBar(){
+  const k = State.right % PROGRESS_PER_LEVEL;
+  Array.from(streakbar.children).forEach((c,i)=>c.classList.toggle('fill', i<k));
+}
+function maybeLevelUp(){
+  // In oefenmodus behouden we het gekozen level (geen adaptief)
+  if(State.mode==='practice'){ updateStreakBar(); return; }
+  const newLevel = Math.min(MAX_LEVEL, 1 + Math.floor(State.right/PROGRESS_PER_LEVEL));
+  if(newLevel!==State.level){
+    State.level = newLevel;
+    updateLevelUI();
+    hint.textContent = `🎉 Proficiat! Je gaat naar Level ${State.level}.`;
+  }
+  updateStreakBar();
+}
+
+/* ====== TIMER ====== */
+function startTimerUp(){
+  stopTimer(); State.tStart = Date.now();
+  State.tTick = setInterval(()=> {
+    const s = Math.floor((Date.now()-State.tStart)/1000);
+    timeDisp.textContent = pad2(Math.floor(s/60))+':'+pad2(s%60);
+  }, 250);
+}
+function startTimerDown(seconds){
+  stopTimer(); State.tStart = Date.now(); State.timeLimitMs = seconds*1000;
+  function tick(){
+    const left = Math.max(0, State.timeLimitMs - (Date.now()-State.tStart));
+    const s = Math.floor(left/1000);
+    timeDisp.textContent = pad2(Math.floor(s/60))+':'+pad2(s%60);
+    if(left<=0){ stopTimer(); finishRun(); }
+  }
+  tick(); State.tTick = setInterval(tick, 250);
+}
+function stopTimer(){ if(State.tTick){ clearInterval(State.tTick); State.tTick=null; } }
+function secondsUsed(){
+  const m = /^(\d+):(\d+)$/.exec(timeDisp.textContent || '');
+  const val = m ? (parseInt(m[1],10)*60 + parseInt(m[2],10)) : 0;
+  if(State.mode==='toets'){
+    const limitSec = Math.round((State.timeLimitMs||10*60*1000)/1000);
+    return Math.max(0, limitSec - val);
+  }
+  return val;
+}
+
+/* ====== SESSION ====== */
+let levelLock = 1; // oefenlevel-keuze
+
+function startRun(mode){
+  State.mode = mode;
+  State.right=0; State.wrong=0; State.asked=0; State.qThisRun=0; State.history.length=0;
+  State.buf=''; State.cur=null; State.lastPair=null;
+  rightEl.textContent='0'; wrongEl.textContent='0';
+  helpPanel.style.display='none'; tablePanel.style.display='none';
+
+  // Oefenlevel UI zichtbaar in practice
+  practiceLevel.style.display = (mode==='practice') ? 'inline-flex' : 'none';
+
+  if(mode==='practice'){
+    State.level = levelLock || 1; // vast
+    updateLevelUI(); updateStreakBar();
+    progressChip.style.display='none';
+    stopTimer(); timeDisp.textContent='—';
+  }else{
+    State.level = 1; updateLevelUI(); updateStreakBar();
+    progressChip.style.display='inline-flex'; qTotalEl.textContent='30'; qNowEl.textContent='1';
+    if(mode==='taak') startTimerUp();
+    if(mode==='toets') startTimerDown(10*60);
+  }
+
+  // Hulp/tabel toestaan?
+  setAssistUIEnabled(helpAllowed());
+
+  newTask();
+}
+
+function markPracticeLevel(){
+  practiceLevel.querySelectorAll('.lvlBtn').forEach(el=>{
+    el.classList.toggle('ok', Number(el.dataset.lvl) === Number(levelLock));
+  });
+}
+practiceLevel.addEventListener('click', (e)=>{
+  const b = e.target.closest('.lvlBtn'); if(!b) return;
+  const L = Math.min(4, Math.max(1, Number(b.dataset.lvl||1)));
+  levelLock = L;
+  if(State.mode==='practice'){ State.level = levelLock; updateLevelUI(); newTask(); }
+  markPracticeLevel();
+});
+
+/* ====== PROBLEM GEN ====== */
+function fmt(n,{min=0,max=2}={}){ let frac=Math.min(max,(String(n).split('.')[1]||'').length); frac=Math.max(frac,min); let s=Number(n).toFixed(frac); return s.replace('.',','); }
+const NICE=[1,2,3,4,5,10,20,25,50,100];
+function niceCandidatesInRange(min,max,decimals){
+  const out=[]; const divs = decimals>=2? [1,10,100] : (decimals===1? [1,10] : [1]);
+  for(const d of divs){
+    for(let k=-3;k<=6;k++){
+      const p = Math.pow(10,k);
+      for(const c of NICE){
+        const v = (c*p)/d; if(v>=min && v<=max) out.push(v);
+      }
+    }
+  }
+  return Array.from(new Set(out)).sort((a,b)=>a-b);
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+
+function pickSmartPair(options, lvl, qIndex, prevKey){
+  let pool = options.slice();
+  if(qIndex<4){
+    const noAlias = pool.filter(({pair:[u,v]})=>!ALIAS_UNITS.has(u)&&!ALIAS_UNITS.has(v));
+    if(noAlias.length) pool = noAlias;
+  }
+  if(prevKey){
+    const alt = pool.filter(o => (o.pair[0] + '>' + o.pair[1]) !== prevKey);
+    if(alt.length) pool = alt;
+  }
+  const tot = pool.reduce((s,o)=>s+o.w,0);
+  let r = Math.random()*tot;
+  for(const o of pool){ r-=o.w; if(r<=0) return o.pair; }
+  return pool[pool.length-1].pair;
+}
+
+function boundsForLevel(lvl){
+  if(lvl>=3) return { min:0.01, max:100000, scaleShow:100, scaleAns:100, maxDecShow:2, maxDecAns:2 };
+  return { min:0.1,  max:10000,  scaleShow:10,  scaleAns:10,  maxDecShow:1, maxDecAns:1 };
+}
+
+function newTask(){
+  lcd.classList.remove('good','bad'); State.buf=''; renderBuf();
+
+  const {min,max,scaleShow,scaleAns,maxDecShow,maxDecAns} = boundsForLevel(State.level);
+  const weighted = allowedPairsForLevel(State.level);
+
+  let from,to,baseUnits,valueMM2,ans;
+  let tries=0;
+  const modeRand=Math.random();
+  const genMode = modeRand<0.6? 'niceShown' : (modeRand<0.8? 'niceAnswer' : 'generic');
+
+  while(true){
+    tries++; if(tries>8000){ console.warn('generator retry overflow'); break; }
+    [from,to] = pickSmartPair(weighted, State.level, State.qThisRun, State.lastPair);
+    State.lastPair = from + '>' + to;
+
+    const fromC = CANON[from]||from;
+    const toC   = CANON[to]||to;
+
+    if(genMode==='niceShown'){
+      const cand = niceCandidatesInRange(min,max,maxDecShow); shuffle(cand);
+      let ok=false;
+      for(const shown of cand){
+        const bu = Math.round(shown*scaleShow);
+        if((bu * MM2[fromC]) % scaleShow !== 0) continue;
+        const val = (bu*MM2[fromC]) / scaleShow; // integer mm²
+        if((val * scaleAns) % MM2[toC] !== 0) continue;
+        const answer = val / MM2[toC];
+        if(answer<min || answer>max) continue;
+        baseUnits=bu; valueMM2=val; ans=answer; ok=true; break;
+      }
+      if(ok) break; else continue;
+    }
+
+    if(genMode==='niceAnswer'){
+      const cand = niceCandidatesInRange(min,max,maxDecAns); shuffle(cand);
+      let ok=false;
+      for(const target of cand){
+        const vali = Math.round(target * MM2[toC]);
+        if((vali*scaleShow) % MM2[fromC] !== 0) continue;
+        const bu = (vali*scaleShow)/MM2[fromC];
+        const shown = bu/scaleShow;
+        if(shown<min || shown>max) continue;
+        baseUnits=bu; valueMM2=vali; ans=target; ok=true; break;
+      }
+      if(ok) break; else continue;
+    }
+
+    // generic
+    const baseMax = Math.min(1_000_000_000, Math.floor(max*scaleShow));
+    const baseMin = Math.max(1, Math.ceil(min*scaleShow));
+    const g = gcd(scaleShow, MM2[fromC]); const step = scaleShow / g;
+    const kMin = Math.ceil(baseMin/step), kMax = Math.floor(baseMax/step);
+    if(kMax<kMin) continue;
+    const k = rint(kMin,kMax);
+    const bu = k*step;
+    const val = (bu*MM2[fromC]) / scaleShow;
+    const answer = val / MM2[toC];
+
+    if((val*scaleAns) % MM2[toC] !== 0) continue;
+    const shown = bu/scaleShow;
+    if(shown<min || shown>max) continue;
+    if(answer<min || answer>max) continue;
+
+    baseUnits=bu; valueMM2=val; ans=answer; break;
+  }
+
+  State.cur = { from, to, baseUnits, scaleShow, valueMM2, ans };
+  const baseShown = State.cur.baseUnits/State.cur.scaleShow;
+
+  valEl.textContent = fmt(baseShown, {max: (String(baseShown).includes('.')?2:0)});
+  uFromEl.textContent = viewLabel(from);
+  uToEl.textContent = viewLabel(to);
+  labelQ.textContent = `Hoeveel ${unitLong(to)}?`;
+  hint.textContent = (State.mode==='toets') ? (State.dyscalculie ? 'Toets (dyscalculie): hulp/tabel toegestaan.' : 'Toets bezig…') : (State.mode==='taak' ? 'Taak bezig…' : 'Zet om naar de juiste eenheid.');
+  updateLevelUI(); updateStreakBar();
+}
+
+/* ====== INPUT/KEYPAD ====== */
+function normBuf(){ let s=State.buf.replace(/^0+(?=\d)/,''); if(s.startsWith(',')) s='0'+s; return s; }
+function renderBuf(){ bufEl.textContent = normBuf() || '0'; }
+function pushDigit(d){ if(State.buf.length<18){ State.buf+=d; renderBuf(); } }
+function pushComma(){ if(!State.buf.includes(',')){ State.buf = State.buf.length? (State.buf+',') : '0,'; renderBuf(); } }
+function push00(){ State.buf = State.buf.length? (State.buf+'00') : '0'; renderBuf(); }
+function back(){ State.buf = State.buf.slice(0,-1); renderBuf(); }
+
+$('#keypad').addEventListener('click', e=>{
+  const el = e.target.closest('.key'); if(!el) return;
+  const v = el.dataset.k || el.textContent.trim();
+  if(v==='ok') check();
+  else if(v==='back') back();
+  else if(v==='comma') pushComma();
+  else if(v==='00') push00();
+  else if(/^\d$/.test(v)) pushDigit(v);
+});
+window.addEventListener('keydown', e=>{
+  if(e.key>='0' && e.key<='9') pushDigit(e.key);
+  else if(e.key===',' || e.key==='.') { e.preventDefault(); pushComma(); }
+  else if(e.key==='Backspace') back();
+  else if(e.key==='Enter'){ e.preventDefault(); check(); }
+});
+
+/* ====== CHECK ====== */
+function aliasPair(u){
+  if(u==='m2') return 'ca (centiare)';
+  if(u==='ca') return 'm²';
+  if(u==='dam2') return 'a (are)';
+  if(u==='a') return 'dam²';
+  if(u==='hm2') return 'ha (hectare)';
+  if(u==='ha') return 'hm²';
+  return null;
+}
+
+function check(){
+  if(!State.cur) return;
+  const s = normBuf(); if(!s) return;
+  const num = Number(s.replace(',','.'));
+  const toC = CANON[State.cur.to]||State.cur.to;
+  const guess = Math.round(num * MM2[toC]);
+  const ok = (guess === State.cur.valueMM2);
+
+  const shownVal = fmt(State.cur.baseUnits/State.cur.scaleShow,{max:2}) + ' ' + viewLabel(State.cur.from);
+  const correctView = fmt(State.cur.ans,{max:2}) + ' ' + viewLabel(State.cur.to);
+  const userView = s + ' ' + viewLabel(State.cur.to);
+
+  const aliasTo = aliasPair(State.cur.to);
+  const aliasFrom = aliasPair(State.cur.from);
+  const correctWithAlias = aliasTo ? `${correctView}  (= ${fmt(State.cur.ans,{max:2})} ${aliasTo})` : correctView;
+  const shownWithAlias = aliasFrom ? `${shownVal}  (= ${fmt(State.cur.baseUnits/State.cur.scaleShow,{max:2})} ${aliasFrom})` : shownVal;
+
+  State.history.push({ idx:State.history.length+1, level:State.level, from:State.cur.from, to:State.cur.to,
+    shownValue:shownWithAlias, user:userView, correct:ok, correctView:correctWithAlias });
+
+  if(ok){
+    State.right++; rightEl.textContent=State.right; maybeLevelUp();
+    lcd.classList.add('good'); hint.textContent=`✅ Juist! ${correctWithAlias}`;
+    setTimeout(()=>{ lcd.classList.remove('good'); afterCheckMove(true); },650);
+  }else{
+    State.wrong++; wrongEl.textContent=State.wrong;
+    lcd.classList.add('bad'); hint.textContent=`❌ Antwoord: ${correctWithAlias}`;
+    setTimeout(()=>{ lcd.classList.remove('bad'); afterCheckMove(false); },800);
+  }
+}
+
+function afterCheckMove(ok){
+  if(State.mode==='practice'){
+    if(ok) setTimeout(newTask, 500);
+  }else{
+    State.asked++; State.qThisRun++;
+    if(State.asked < State.total) qNowEl.textContent = String(State.asked+1);
+    setTimeout(()=>{ if(State.asked>=State.total){ finishRun(); } else { newTask(); } }, 500);
+  }
+}
+
+/* ====== PROOF / FINISH ====== */
+function trySharedProof(summary){
+  try{
+    if(window.MR_SHARED){
+      MR_SHARED.finishSession(summary);
+      return true;
+    }
+  }catch(e){ console.error('shared bewijs failed', e); }
+  return false;
+}
+
+function buildSummary(){
+  return {
+    title:'Oppervlakte omzetten',
+    gameId:'opp-omzetten',
+    mode: (State.mode==='toets'?'toets':(State.mode==='taak'?'taak':'vrij')),
+    name:(State.studentName||''),
+    ok:(State.right||0),
+    err:(State.wrong||0),
+    total:((State.right||0)+(State.wrong||0)),
+    score:(State.right||0),
+    seconds: secondsUsed(),
+    flags: { dyscalculie: !!State.dyscalculie },
+    accommodations: State.dyscalculie ? ['dyscalculie'] : undefined,
+    questions: (State.history||[]).map(h=>({
+      q: `${h.shownValue} → ${h.correctView}`,
+      a: h.user,
+      given: h.user,
+      correct: h.correctView,
+      ok: !!h.correct
+    })),
+    goals:['BV1_06.06','06.06.05','06.06.06']
+  };
+}
+
+function renderProofPNG(){
+  const list = State.history || [];
+  const W=1200;
+  const margins={top:160,bottom:100,left:40,right:40};
+  const headerH=140;
+  const listTop=margins.top+headerH;
+  const H=Math.min(5200, listTop + 26*(list.length+2) + margins.bottom);
+
+  const ctx=exportCanvas.getContext('2d');
+  exportCanvas.width=W; exportCanvas.height=H;
+
+  function msToMinSec(s){ const m=Math.floor(s/60), r=s%60; return `${m}m ${String(r).padStart(2,'0')}s`; }
+  function roundRect(ctx,x,y,w,h,r,fill,stroke){
+    if(w<2*r) r=w/2; if(h<2*r) r=h/2;
+    ctx.beginPath(); ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y, x+w,y+h, r);
+    ctx.arcTo(x+w,y+h, x,y+h, r);
+    ctx.arcTo(x,y+h, x,y, r);
+    ctx.arcTo(x,y, x+w,y, r);
+    ctx.closePath(); if(fill) ctx.fill(); if(stroke) ctx.stroke();
+  }
+  function checksum(str){ let h=5381; for(let i=0;i<str.length;i++){ h=((h<<5)+h)+str.charCodeAt(i); h|=0; } return (h>>>0).toString(16).toUpperCase().padStart(8,'0'); }
+
+  const now = new Date();
+  const seconds = secondsUsed();
+  const workedLabel = seconds>0? msToMinSec(seconds) : '—';
+  const sessionId = Math.random().toString(36).slice(2,10).toUpperCase();
+  const sig = checksum(JSON.stringify({sessionId, right:State.right, wrong:State.wrong, items:list.length})+"area_task_test_v2_levels4_fast5");
+
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,"#f3f7ff"); grad.addColorStop(1,"#ffffff");
+  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle="#dfe6f6"; ctx.lineWidth=2; ctx.strokeRect(20,20,W-40,H-40);
+
+  ctx.fillStyle="#0b132b"; ctx.font="900 42px Inter, system-ui, Arial";
+  const title=`Oppervlakte omzetten — Bewijs van resultaat${State.mode==='toets'?" (TOETS)":(State.mode==='taak'?" (TAAK)":"")}`;
+  ctx.fillText(title,40,80);
+  ctx.font="600 20px Inter, system-ui, Arial"; ctx.fillStyle="#374151";
+  ctx.fillText(`Datum: ${now.toLocaleString('nl-BE')}   •   Sessie: ${sessionId}`,40,112);
+  if(State.studentName) ctx.fillText(`Naam: ${State.studentName}${State.dyscalculie?' (dyscalculie)':''}`,40,136);
+
+  roundRect(ctx,40,160,W-80,120,16,true,true);
+  ctx.fillStyle="#0b132b"; ctx.font="700 22px Inter, system-ui, Arial";
+  const modeStr = State.mode==='toets' ? 'Toets' : (State.mode==='taak'?'Taak':'Vrij');
+  ctx.fillText(`${modeStr}  •  Juist: ${State.right}   Fout: ${State.wrong}   Huidig niveau: ${State.level}`,60,196);
+  ctx.fillStyle="#6b7280"; ctx.font="600 18px Inter, system-ui, Arial";
+  ctx.fillText(`Vragen in huidige run: ${State.qThisRun} / ${State.total}  •  Werktijd: ${workedLabel}`,60,226);
+  ctx.fillText(`Aanpassingen: ${State.dyscalculie ? 'dyscalculie' : '—'}`,60,254);
+
+  ctx.fillStyle="#0b132b"; ctx.font="800 22px Inter, system-ui, Arial";
+  ctx.fillText("Oefeningen",60,300);
+
+  ctx.font="600 18px Inter, system-ui, Arial"; ctx.fillStyle="#374151";
+  let y=330;
+  list.forEach(it=>{
+    const row=`[lvl ${it.level}] ${it.shownValue} → ${it.correctView}   |   jouw: ${it.user}   |   ${it.correct?'✅':'❌'}`;
+    ctx.fillText(row,60,y); y+=26;
+  });
+
+  const url = exportCanvas.toDataURL("image/png");
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`bewijs_oppervlakte_${State.mode==='toets'?'toets':(State.mode==='taak'?'taak':'vrij')}_${sessionId}.png`;
+  a.click();
+}
+
+function finishRun(){
+  const summary = buildSummary();
+  if(!trySharedProof(summary)){ renderProofPNG(); }
+  endOverlay.style.display='flex';
+}
+
+/* ====== PROOF BUTTON ====== */
+proofBtn.addEventListener('click', ()=>{
+  const summary = buildSummary();
+  if(!trySharedProof(summary)){ renderProofPNG(); }
+});
+
+/* ====== ASKNAME / START ====== */
+function openNameAndStart(mode){
+  const wantDys = (mode==='toets');
+  dysRow.style.display = wantDys ? 'flex' : 'none';
+  dysChk.checked = false;
+  dlgTitle.textContent = mode==='toets' ? 'Start Toets' : 'Start Taak';
+  nameField.value=''; nameOverlay.style.display='flex';
+  setTimeout(()=> nameField.focus(), 0);
+
+  const onStart = ()=>{
+    const v = (nameField.value||'').trim();
+    if(!v){ nameField.style.borderColor='#ef4444'; nameField.focus(); return; }
+    nameField.style.borderColor='';
+    State.studentName = v;
+    State.dyscalculie = wantDys ? !!dysChk.checked : false;
+    nameOverlay.style.display='none';
+    startRun(mode);
+  };
+  dlgStart.onclick = onStart;
+}
+dlgCancel.addEventListener('click', ()=>{ nameOverlay.style.display='none'; });
+endOk.addEventListener('click', ()=>{ endOverlay.style.display='none'; startRun('practice'); });
+
+startTaak.onclick  = ()=>{
+  if (window.MR_SHARED?.askName){
+    MR_SHARED.askName('taak').then(res=>{
+      if(!res) return;
+      State.studentName = (typeof res==='string') ? res.trim() : String(res.name||'').trim();
+      State.dyscalculie = false;
+      startRun('taak');
+    }).catch(()=>{});
+  } else {
+    openNameAndStart('taak');
+  }
+};
+
+startToets.onclick = ()=>{
+  if (window.MR_SHARED?.askName){
+    MR_SHARED.askName('toets', { extraFlags:[{id:'dyscalculie', label:'Ik heb dyscalculie'}] }).then(res=>{
+      if(!res) return;
+      if(typeof res === 'string'){
+        State.studentName = res.trim();
+        State.dyscalculie = false;
+      } else {
+        State.studentName = String(res.name||'').trim();
+        State.dyscalculie = !!(res.flags && res.flags.dyscalculie);
+      }
+      setAssistUIEnabled(helpAllowed());
+      startRun('toets');
+    }).catch(()=>{});
+  } else {
+    openNameAndStart('toets');
+  }
+};
+
+fullBtn.addEventListener('click', ()=>{ if(!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.(); });
+
+/* ====== INIT ====== */
+function renderBuf(){ bufEl.textContent = normBuf() || '0'; }
+function init(){
+  timeDisp.textContent='—';
+  markPracticeLevel();
+  startRun('practice');
+}
+init();
+</script>
+</body>
+</html>

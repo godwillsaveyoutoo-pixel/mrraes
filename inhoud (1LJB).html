@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mr Raes: Inhoudsmaten — BV1_06.xx</title>
+
+  <!-- Game-ID voor bewijsje/platform -->
+  <meta name="x-game-id" content="Inhoudsmaten (2B)">
+  <script>window.GAME_ID = 'inhoudsmaten_2b';</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="mrraes-shared.css">
+
+  <style>
+    :root{
+      --bg:#f7f9fc; --card:#fff; --ink:#0b132b; --muted:#6b7280;
+      --ring:#e6ecf8; --ring2:#dfe6f6; --shadow:0 10px 28px rgba(15,23,42,.06);
+      --good:#10b981; --bad:#ef4444; --accent:#2563eb;
+      --radius-board:24px; --radius-chip:999px;
+      --control-h:56px; --control-h-lg:64px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      font-family:Inter,system-ui,Arial,sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, #eef3ff 0%, #f7f9fc 50%, #fbfdff 100%);
+    }
+    .wrap{width:min(1200px,96vw); padding:1rem; margin:0 auto}
+
+    /* TOPBAR */
+    .topbar{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem}
+    .chip{
+      background:#fff; border:1px solid var(--ring2); border-radius:var(--radius-chip);
+      padding:.35rem .7rem; box-shadow:var(--shadow); display:inline-flex; gap:.5rem; align-items:center;
+      font-weight:800; white-space:nowrap;
+    }
+    .chip.btn{cursor:pointer}
+    .chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+    .chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+    .topbar .chip select{
+      border:none; outline:none; background:transparent; font:inherit; font-weight:900; cursor:pointer; appearance:auto;
+    }
+    .spacer{flex:1}
+
+    /* BOARD */
+    .board{
+      background:#fff; border:1px solid var(--ring); border-radius:var(--radius-board); box-shadow:var(--shadow);
+      padding:1rem; display:grid; grid-template-columns:420px 1fr; gap:1rem; align-items:stretch;
+      min-height:clamp(560px,78vh,920px);
+    }
+    .board.single{grid-template-columns:1fr; min-height:calc(100vh - 160px)}
+    .board.flash-ok{background:#f4fdf8!important; border-color:#c4eedc!important; transition:background .25s,border-color .25s}
+    .board.flash-err{background:#fff6f6!important; border-color:#ffd7d7!important; transition:background .25s,border-color .25s}
+
+    .leftCol{
+      background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem;
+      box-shadow:var(--shadow); display:flex; flex-direction:column; height:100%;
+    }
+    .imgbox{position:relative; flex:1; display:flex}
+    .imgbox>.svgwrap,.imgbox>img{width:100%; height:100%}
+    .imgbox>img{object-fit:contain}
+    .svgwrap{display:none}
+
+    .meta{display:flex; justify-content:center; align-items:center; gap:.5rem; flex-wrap:wrap; margin-top:.6rem; color:#374151; font-weight:800}
+    .meta .badge{border:1px solid var(--ring2); border-radius:999px; padding:.2rem .6rem; background:#fff; box-shadow:var(--shadow)}
+
+    .rightCol{display:grid; grid-template-rows:1fr auto; gap:.75rem; min-height:0}
+    .qCard{
+      position:relative; background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow);
+      display:grid; grid-template-rows:auto 1fr auto; min-height:0;
+    }
+    .toolBar{position:absolute; top:8px; right:8px; display:flex; gap:.35rem}
+    .toolBtn{border:1px solid var(--ring2); background:#fff; border-radius:999px; padding:.2rem .6rem; font-weight:900; cursor:pointer; box-shadow:var(--shadow)}
+    .toolBtn[disabled]{opacity:.45; cursor:not-allowed; pointer-events:none; filter:grayscale(1)}
+
+    .qText{
+      white-space:pre-line; align-self:end; justify-self:center; text-align:center; font-weight:900;
+      font-size:clamp(18px,2.2vw,22px); line-height:1.35; min-height:3.2em; padding:2.2rem .4rem;
+    }
+
+    .row{display:flex; align-items:center; justify-content:center; gap:.8rem; flex-wrap:wrap}
+    .status{min-height:28px; font-weight:800; text-align:center}
+    .okTxt{color:var(--good)} .errTxt{color:var(--bad)}
+
+    .ibox{
+      height:var(--control-h); min-width:300px; padding:0 16px; font:900 20px Inter,sans-serif; text-align:center;
+      border-radius:12px; background:#fff; border:1px solid var(--ring2); color:var(--ink); outline:none;
+    }
+    #checkBtn.key{height:var(--control-h-lg); padding:0 28px; font-size:20px; border-radius:14px}
+
+    .padwrap{align-self:auto; background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow)}
+    .padwrap.hidden{display:none!important}
+
+    .keypad{display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem}
+    .key{
+      user-select:none; cursor:pointer; text-align:center; font-weight:900; font-size:clamp(18px,3.2vw,22px);
+      padding:1rem 0; border-radius:14px; background:#f7faff; border:1px solid var(--ring2);
+      box-shadow:0 6px 16px rgba(15,23,42,.06); transition:transform .06s, box-shadow .12s, background .12s;
+    }
+    .key:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+    .key.wide{grid-column:1 / -1}
+    .key.ok{background:#eafaf4; border-color:#c4eedc}
+
+    .choicebar{display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center; margin-top:.6rem}
+    .choice{
+      cursor:pointer; user-select:none; border:1px solid var(--ring2); border-radius:12px;
+      padding:.6rem 1rem; font-weight:900; background:#fff; box-shadow:var(--shadow);
+      display:inline-flex; align-items:center; justify-content:center; height:44px; line-height:1;
+      transition:transform .06s, box-shadow .12s, background .12s, border-color .12s;
+    }
+    .choice:hover{ transform:translateY(-1px); box-shadow:0 8px 20px rgba(15,23,42,.08) }
+    .choice.sel{background:#eef5ff; border-color:#cfe2ff}
+
+    .hidden{display:none}
+
+    /* TABEL (recept) */
+    table.recipe{table-layout:fixed; width:min(560px,100%); border-collapse:separate; border-spacing:0}
+    .recipe th,.recipe td{border:1px solid var(--ring2); padding:.5rem .6rem; text-align:center}
+    .recipe thead th{background:#f3f7ff; font-weight:800; position:sticky; top:0}
+    .recipe tbody th{background:#f9fbff; font-weight:800; text-align:left}
+    .recipe .ibox{width:7ch; min-width:0; height:44px; padding:0 .6rem; font:900 18px Inter,sans-serif;}
+
+    .unitChip{
+      display:inline-flex; align-items:center; justify-content:center; height:var(--control-h);
+      padding:0 .9rem; margin-left:.25rem; border:1px solid var(--ring2); border-radius:12px; background:#fff;
+      font:900 18px Inter,sans-serif; box-shadow:var(--shadow); color:#0b132b;
+    }
+    .unitChip.hidden{display:none}
+
+    /* Panels */
+    .helpPanel,.calcPanel,.convPanel{
+      position:absolute; top:46px; right:8px; z-index:5; background:#fff; border:1px solid var(--ring2);
+      border-radius:12px; box-shadow:var(--shadow); padding:.75rem .9rem; display:none; font-weight:800; color:#374151;
+    }
+    .helpPanel{width:min(360px,90%)} .calcPanel{width:min(420px,96%); padding:1rem} .convPanel{width:min(520px,96%)}
+
+    /* Rekenpaneel */
+    .calcDisplayWrap{border:1px solid var(--ring2);border-radius:12px;box-shadow:var(--shadow);background:#fff;padding:.4rem;margin-bottom:.7rem}
+    .calcDisplay{width:100%;border:none;outline:none;background:transparent;font:900 24px Inter,system-ui,sans-serif;text-align:right;padding:.3rem .4rem;color:var(--ink)}
+    .calcKeys{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem}
+    .ckey{
+      user-select:none;cursor:pointer;height:56px;border-radius:14px;border:1px solid var(--ring2);
+      background:#f7faff;box-shadow:0 6px 16px rgba(15,23,42,.06);font:900 20px Inter,system-ui,sans-serif;
+      transition:transform .06s, box-shadow .12s, background .12s, border-color .12s;
+    }
+    .ckey:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+    .ckey.c-op{background:#eef5ff; border-color:#cfe2ff}
+    .ckey.c-func{background:#fff7ea; border-color:#ffe2b8}
+    .ckey.c-eq{background:#eafaf4; border-color:#c4eedc}
+
+    /* Omzettingstabel */
+    .convTable{display:grid; grid-template-columns:repeat(7,1fr); gap:.4rem; margin:.4rem 0 .6rem 0}
+    .convHead{font-size:13px; text-align:center; color:#6b7280}
+    .convCell input{
+      width:100%; height:42px; border:1px solid var(--ring2); border-radius:10px; text-align:center; font:900 18px Inter,sans-serif; outline:none; background:#fff
+    }
+    .convCell input:focus{border-color:#b9cdfa; box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+    .key.mini{padding:.6rem 0; font-size:18px}
+    .convPad{display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; margin:.6rem 0}
+
+    @media (max-width:980px){
+      .board{grid-template-columns:1fr; min-height:unset}
+      .leftCol{height:auto}
+    }
+
+    /* ===== Naam/dyscalculie modal ===== */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(2,6,23,.55); display:none; align-items:center; justify-content:center; z-index:1000; backdrop-filter:blur(3px)}
+    .modal-backdrop.open{display:flex}
+    .modal{width:min(520px,92vw); background:#fff; border:1px solid var(--ring2); border-radius:18px; box-shadow:0 20px 60px rgba(2,6,23,.25); padding:1.2rem}
+    .modal h3{margin:.2rem 0 .6rem; font-size:1.35rem}
+    .modal p{margin:.2rem 0 .8rem; color:#374151}
+    .row{display:flex; gap:.6rem; align-items:center; margin:.4rem 0 .2rem}
+    .modal input{flex:1; padding:.8rem .9rem; border-radius:12px; border:1px solid var(--ring2); font:600 1rem Inter,system-ui,Arial; outline:none}
+    .modal .actions{display:flex; gap:.6rem; justify-content:flex-end; margin-top:.8rem}
+    .btn{border:1px solid var(--ring2); background:#f7faff; padding:.6rem .9rem; border-radius:12px; font:800 .98rem Inter,system-ui,Arial; cursor:pointer}
+    .btn.primary{background:#2563eb; color:#fff; border-color:#215bd9}
+    .btn.ghost{background:#fff}
+    .flagline{display:flex; align-items:center; gap:.5rem; margin-top:.6rem; font-weight:800; color:#374151}
+    .flagline input{transform:translateY(1px)}
+  </style>
+
+  <script src="mrraes-shared.js"></script>
+</head>
+<body>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button id="startTaak" class="chip btn">📝 Start taak (30)</button>
+    <button id="startToets" class="chip btn">🧪 Start toets (30 / 15 min)</button>
+    <button id="fullBtn" class="chip btn">⤢ Volledig scherm</button>
+
+    <span class="chip btn">Soort:
+      <select id="typeSel" aria-label="Kies soort">
+        <option value="mix" selected>Mix</option>
+        <option value="aflezen">Aflezen</option>
+        <option value="recept">Recept schalen</option>
+        <option value="vraagstuk">Vraagstukken</option>
+        <option value="groterkleiner">groter/kleiner</option>
+        <option value="kieseenheid">Kies de eenheid</option>
+      </select>
+    </span>
+
+    <span class="chip btn" id="levelWrap">Level:
+      <select id="levelSel" aria-label="Kies level">
+        <option value="1" selected>1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
+    </span>
+
+    <div class="spacer"></div>
+    <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+    <span class="chip" id="progressChip" style="display:none">Vraag <strong id="qNow">1</strong>/<strong id="qTotal">30</strong></span>
+    <span class="chip ok">✅ Juist: <span id="okCount">0</span></span>
+    <span class="chip bad">❌ Fout: <span id="errCount">0</span></span>
+  </div>
+
+  <!-- BOARD -->
+  <div class="wrap">
+    <div class="board" id="board">
+      <!-- LINKS -->
+      <div class="leftCol" id="leftCol">
+        <div class="imgbox" id="imgbox">
+          <div id="svgWrap" class="svgwrap" aria-hidden="true"></div>
+          <img id="img" alt="Illustratie / maatbeker" style="display:none" />
+        </div>
+        <div class="meta">
+          <span class="badge" id="imgHint">Aflezen: typ enkel het getal — eenheid staat ernaast.</span>
+        </div>
+      </div>
+
+      <!-- RECHTS -->
+      <div class="rightCol">
+        <div class="qCard">
+          <div class="toolBar">
+            <button id="helpBtn" class="toolBtn">❔ Hulp</button>
+            <button id="convBtn" class="toolBtn">📊 Tabel</button>
+            <button id="calcBtn" class="toolBtn">🧮 Reken</button>
+          </div>
+
+          <!-- HELP -->
+          <div id="helpPanel" class="helpPanel" aria-label="Hulppaneel inhoudsmaten">
+            <h4>Inhoudsmaten (×10 per stap)</h4>
+            <div style="margin:.25rem 0 .4rem 0; font-weight:900"><strong>l</strong> – dl – cl – ml</div>
+            <div style="font-weight:700; color:#6b7280">1 l = 10 dl = 100 cl = 1000 ml</div>
+            <hr style="border:none; border-top:1px solid var(--ring2); margin:.7rem 0">
+            <div style="font-weight:700">Tip: elke stap naar rechts = ×10, naar links = ÷10. Bij “aflezen” is de <strong>eenheid gegeven</strong>; jij noteert enkel het <strong>getal</strong>.</div>
+          </div>
+
+          <!-- REKENPANEEL -->
+          <div id="calcPanel" class="calcPanel" aria-label="Rekentoestel">
+            <h4>Rekentoestel</h4>
+            <div class="calcDisplayWrap"><input id="calcDisplay" class="calcDisplay" type="text" inputmode="decimal" placeholder="0" /></div>
+            <div class="calcKeys" id="calcKeys">
+              <button class="ckey c-func" data-act="ac">AC</button>
+              <button class="ckey c-func" data-act="bksp">←</button>
+              <button class="ckey c-func" data-k="π">π</button>
+              <button class="ckey c-op" data-k="÷">÷</button>
+              <button class="ckey" data-k="7">7</button><button class="ckey" data-k="8">8</button><button class="ckey" data-k="9">9</button>
+              <button class="ckey c-op" data-k="×">×</button>
+              <button class="ckey" data-k="4">4</button><button class="ckey" data-k="5">5</button><button class="ckey" data-k="6">6</button>
+              <button class="ckey c-op" data-k="−">−</button>
+              <button class="ckey" data-k="1">1</button><button class="ckey" data-k="2">2</button><button class="ckey" data-k="3">3</button>
+              <button class="ckey c-op" data-k="+">+</button>
+              <button class="ckey" data-k="0">0</button><button class="ckey" data-k=",">,</button>
+              <button class="ckey c-eq" data-act="eq">=</button>
+              <button class="ckey c-func" id="calcPaste" title="Plak resultaat in antwoord">⤓</button>
+            </div>
+          </div>
+
+          <!-- OMZETTINGSTABEL -->
+          <div id="convPanel" class="convPanel" aria-label="Omzettingstabel">
+            <h4>Omzettingstabel (inhoud)</h4>
+            <div class="convTable">
+              <div class="convHead"></div><div class="convHead"></div><div class="convHead"></div>
+              <div class="convHead"><strong>l</strong></div><div class="convHead">dl</div><div class="convHead">cl</div><div class="convHead">ml</div>
+              <div class="convCell"><input maxlength="1" id="cell-lA"></div>
+              <div class="convCell"><input maxlength="1" id="cell-lB"></div>
+              <div class="convCell"><input maxlength="1" id="cell-lC"></div>
+              <div class="convCell"><input maxlength="1" id="cell-l"></div>
+              <div class="convCell"><input maxlength="1" id="cell-dl"></div>
+              <div class="convCell"><input maxlength="1" id="cell-cl"></div>
+              <div class="convCell"><input maxlength="1" id="cell-ml"></div>
+            </div>
+            <div class="convPad" id="convPad" aria-label="Cijferpad">
+              <div class="key mini" data-k="7">7</div><div class="key mini" data-k="8">8</div><div class="key mini" data-k="9">9</div><div class="key mini" data-act="bksp">←</div>
+              <div class="key mini" data-k="4">4</div><div class="key mini" data-k="5">5</div><div class="key mini" data-k="6">6</div><div class="key mini" data-act="left">◀</div>
+              <div class="key mini" data-k="1">1</div><div class="key mini" data-k="2">2</div><div class="key mini" data-k="3">3</div><div class="key mini" data-act="right">▶</div>
+              <div class="key mini" data-act="ac">AC</div><div class="key mini" data-k="0">0</div><div class="key mini" data-act="noop">•</div><div class="key mini" data-act="noop">•</div>
+            </div>
+            <div style="font-size:12px; color:#6b7280; text-align:center">Tip: vul cijfers per kolom; pijltoetsen verplaatsen.</div>
+          </div>
+
+          <div class="qText" id="qText">Kies een soort of klik op Start.</div>
+
+          <!-- Antwoordzone -->
+          <div id="answerZone" class="row">
+            <input id="answer" class="ibox" type="text" placeholder="typ enkel het getal…" inputmode="decimal" aria-label="Antwoordveld" />
+            <span id="unitChip" class="unitChip hidden">ml</span>
+            <button id="checkBtn" class="key" data-act="enter">OK</button>
+          </div>
+
+          <div id="choiceZone" class="choicebar hidden"></div>
+
+          <div id="tableZone" class="hidden" style="display:flex; justify-content:center">
+            <table class="recipe" id="recipeTbl" aria-label="Recept schalen">
+              <thead><tr><th>Ingrediënt</th><th id="thBase">voor 2 p.</th><th id="thTarget">voor 6 p.</th></tr></thead>
+              <tbody id="recipeBody"></tbody>
+            </table>
+          </div>
+
+          <div id="status" class="status"></div>
+        </div>
+
+        <div class="padwrap">
+          <div class="keypad" id="pad" aria-label="Numpad">
+            <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key" data-act="bksp">←</div>
+            <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">,</div>
+            <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">0</div>
+            <div class="key wide" id="okKey" data-act="enter">OK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Naam + dyscalculie modal (fallback als MR_SHARED.askName ontbreekt) -->
+  <div id="nameModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="nmTitle">
+    <div class="modal">
+      <h3 id="nmTitle">Start</h3>
+      <p>Vul je naam in om te beginnen.</p>
+      <div class="row"><input id="nameInput" type="text" placeholder="Naam…" autocomplete="off" /></div>
+      <label class="flagline" id="dysRow" style="display:none;">
+        <input type="checkbox" id="dysChk" />
+        <span>Ik heb <strong>dyscalculie</strong>.</span>
+      </label>
+      <div class="actions">
+        <button class="btn ghost" id="cancelModal">Annuleren</button>
+        <button class="btn primary" id="startModal">Starten</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  ;(() => {
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+    // --- DOM ---
+    const board = $('#board');
+    const leftCol = $('#leftCol');
+    const img = $('#img');
+    const svgWrap = $('#svgWrap');
+    const imgHint = $('#imgHint');
+    const qText = $('#qText');
+    const answerZone = $('#answerZone');
+    const choiceZone = $('#choiceZone');
+    const tableZone = $('#tableZone');
+    const recipeBody = $('#recipeBody');
+    const thBase = $('#thBase');
+    const thTarget = $('#thTarget');
+
+    const answer = $('#answer');
+    const checkBtn = $('#checkBtn');
+    const status = $('#status');
+
+    const startTaak = $('#startTaak');
+    const startToets = $('#startToets');
+    const fullBtn = $('#fullBtn');
+    const typeSel = $('#typeSel');
+    const levelWrap = $('#levelWrap');
+    const levelSel = $('#levelSel');
+    const helpBtn = $('#helpBtn');
+    const convBtn = $('#convBtn');
+    const calcBtn = $('#calcBtn');
+
+    const timeDisp = $('#timeDisp');
+    const qNow = $('#qNow');
+    const qTotal = $('#qTotal');
+    const progressChip = $('#progressChip');
+    const okCount = $('#okCount');
+    const errCount = $('#errCount');
+
+    const pad = $('#pad');
+    const okKey = $('#okKey');
+    const padwrap = document.querySelector('.padwrap');
+    const unitChip = $('#unitChip');
+
+    // Modal
+    const nameModal = $('#nameModal');
+    const nameInput = $('#nameInput');
+    const startModalBtn = $('#startModal');
+    const cancelModalBtn = $('#cancelModal');
+    const dysRow = $('#dysRow');
+    const dysChk = $('#dysChk');
+
+    // --- CONFIG/STATE ---
+    const GOALS = ['BV1_06.02','BV1_06.06'];
+    const UNITS_VOL = ['l','dl','cl','ml'];
+    const UNIT_TO_ML = { l:1000, dl:100, cl:10, ml:1 };
+    const UNIT_ORDER = ['l','dl','cl','ml'];
+
+    const MODES = { VRIJ:'vrij', TAAK:'taak', TOETS:'toets' };
+    let state = {
+      mode: MODES.VRIJ, running:false, total:0, asked:0, right:0, wrong:0,
+      startAt:0, secsLeft:0, timer:null, kind:'mix', level:1, cur:null, questions:[],
+      awaitingNext:false, dys:false, pendingMode: MODES.TAAK, name:'', klas:''
+    };
+
+    function unitIdx(u){ return UNIT_ORDER.indexOf(u); }
+    function neighbors(u){ const i=unitIdx(u); return [UNIT_ORDER[i-1], UNIT_ORDER[i+1]].filter(Boolean); }
+    const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+    const choice = arr => arr[Math.floor(Math.random()*arr.length)];
+    const clamp = (x,a,b)=> Math.max(a, Math.min(b,x));
+    const fmt = x => Number.isInteger(x) ? String(x) : (Math.round(x*1000)/1000).toString().replace('.',',');
+    const parseNum = s => { if (typeof s==='number') return s; s=String(s||'').trim().replace(/\s+/g,'').replace(',','.'); return s? Number(s): NaN; };
+    const eqNum = (a,b)=> Math.abs(a-b) <= 1e-3;
+
+    function flash(ok){
+      board.classList.remove('flash-ok','flash-err'); void board.offsetWidth;
+      board.classList.add(ok?'flash-ok':'flash-err');
+      setTimeout(()=>board.classList.remove('flash-ok','flash-err'), 350);
+    }
+
+    function setVisualSVG(svgStr){
+      svgWrap.innerHTML = svgStr || '';
+      svgWrap.style.display = svgStr ? 'block' : 'none';
+      img.style.display = 'none';
+      img.removeAttribute('src'); img.alt = '';
+    }
+    function setImg(src, alt='Illustratie', opts={required:false, caption:''}){
+      svgWrap.innerHTML=''; svgWrap.style.display='none';
+      img.style.display='none'; img.removeAttribute('src'); img.alt='';
+
+      const showBadge = (txt)=>{
+        if (txt && String(txt).trim()){ imgHint.textContent = txt; imgHint.style.display='inline-flex'; }
+        else { imgHint.style.display='none'; }
+      };
+
+      if (!src){ showBadge(opts.caption||''); return; }
+      const test = new Image();
+      test.onload = ()=>{ img.src=src; img.alt=alt; img.style.display='block'; showBadge(opts.caption||''); };
+      test.onerror = ()=>{ if (opts.required){ showBadge(`⚠️ Afbeelding niet gevonden: ${src}`); } else { showBadge(opts.caption||''); } };
+      test.src = src;
+    }
+
+    function resetCounters(){
+      state.right=0; state.wrong=0; okCount.textContent='0'; errCount.textContent='0';
+      state.asked=0; progressChip.style.display='none';
+    }
+
+    function tick(){
+      if (state.mode===MODES.VRIJ) return;
+      const left = Math.max(0, Math.round(state.secsLeft - (Date.now()-state.startAt)/1000));
+      timeDisp.textContent = new Date(left*1000).toISOString().substring(14,19);
+      if (left<=0){ clearInterval(state.timer); state.timer=null; finishSession(); }
+    }
+
+    function setToolsEnabled(on){
+      [helpBtn,convBtn].forEach(btn=>{
+        if(!btn) return;
+        if(on){ btn.removeAttribute('disabled'); } else { btn.setAttribute('disabled',''); }
+      });
+      if(!on){ $('#helpPanel').style.display='none'; $('#convPanel').style.display='none'; }
+    }
+    function refreshAssistLock(){
+      const lock = (state.mode===MODES.TOETS) && !state.dys;
+      setToolsEnabled(!lock);
+    }
+
+    function startRun(mode){
+      state.mode = mode; resetCounters(); state.running=true; state.questions=[];
+      // 20 min taak (mag je aanpassen), 15 min toets per vraag 30
+      if (mode===MODES.TAAK){ state.total=30; state.secsLeft=60*20; }
+      if (mode===MODES.TOETS){ state.total=30; state.secsLeft=60*15; } // 15 min
+      state.startAt=Date.now();
+      if (mode!==MODES.VRIJ){ qNow.textContent='1'; qTotal.textContent=String(state.total); progressChip.style.display='inline-flex'; }
+      if (state.timer) clearInterval(state.timer); state.timer=setInterval(tick,500); tick();
+      refreshAssistLock();
+      nextQuestion();
+    }
+    function stopRun(){ clearInterval(state.timer); state.timer=null; state.running=false; timeDisp.textContent='—'; progressChip.style.display='none'; }
+    function finishSession(){
+      stopRun();
+      const summary = {
+        mode: state.mode, seconds: Math.round((Date.now()-state.startAt)/1000),
+        score: state.right, total: state.asked, goals: GOALS,
+        gameId: document.querySelector('meta[name="x-game-id"]').content,
+        questions: state.questions,
+        flags:{ dyscalculie: !!state.dys }
+      };
+      if (window.MR_SHARED?.trySharedProof){ MR_SHARED.trySharedProof(summary); }
+      status.innerHTML = '<span class="okTxt">Sessie beëindigd.</span>';
+    }
+
+    // =================== SVG MAATBEKER ===================
+    function drawBeakerSVG({ capMl, majorMl, minorMl, labelEvery=1, showUnit, valueMl, width=360, height=520 }){
+      const w=width, h=height;
+      function toUnit(ml){ if (showUnit==='l') return ml/1000; if (showUnit==='dl') return ml/100; if (showUnit==='cl') return ml/10; return ml; }
+      function fmtLabel(ml){ const v=toUnit(ml); const s=(Math.abs(v)>=1?v.toFixed(1):v.toFixed(2)).replace('.',','); return s.replace(/,0+$/,'').replace(/,00$/,''); }
+
+      const LABEL_FS=14, CHAR_W=LABEL_FS*0.62;
+      const labelVals=[]; for (let M=0,idx=0; M<=capMl+1e-9; M+=majorMl,idx++){ if (idx%labelEvery===0) labelVals.push(fmtLabel(M)); }
+      const maxLabelPx = labelVals.reduce((m,s)=>Math.max(m, s.length*CHAR_W), 0);
+
+      const basePad=24, tickToLabelGap=12, tickLeftOverhang=10;
+      const padLeft = Math.max(basePad, Math.ceil(maxLabelPx + tickToLabelGap + tickLeftOverhang + 4));
+      const padRight=basePad, padTop=basePad, padBottom=basePad;
+
+      const innerW = w - padLeft - padRight;
+      const top = padTop + 12, bottom = h - padBottom, left = padLeft, right = w - padRight;
+
+      const fluidH = (valueMl/capMl) * (bottom-top);
+      const yFluidTop = bottom - fluidH;
+
+      const ticks=[];
+      for (let M=0,idx=0; M<=capMl+1e-9; M+=majorMl,idx++){
+        const yM = bottom - (M/capMl)*(bottom-top);
+        ticks.push({ ml:M, y:yM, kind:'major', label:(idx%labelEvery===0) });
+        if (M<capMl-1e-9){
+          for (let m=M+minorMl; m<Math.min(capMl,M+majorMl)-1e-9; m+=minorMl){
+            const y=bottom - (m/capMl)*(bottom-top);
+            ticks.push({ ml:m, y, kind:'minor', label:false });
+          }
+        }
+      }
+      const tickLines = ticks.map(t=>{
+        const len = t.kind==='major' ? 18 : 10;
+        const x2 = left + len;
+        const label = (t.kind==='major' && t.label)
+          ? `<text x="${left-10}" y="${(t.y+4).toFixed(2)}" text-anchor="end" font-family="Inter" font-weight="800" font-size="${LABEL_FS}" fill="#111827">${fmtLabel(t.ml)}</text>` : '';
+        return `<line x1="${left-6}" x2="${x2}" y1="${t.y.toFixed(2)}" y2="${t.y.toFixed(2)}" stroke="#1f2937" stroke-width="${t.kind==='major'?2:1.5}" />${label}`;
+      }).join('');
+
+      const unitTxt = showUnit;
+      return `
+<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" aria-label="Maatbeker">
+  <defs>
+    <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#3b82f6" stop-opacity=".85"/><stop offset="1" stop-color="#60a5fa" stop-opacity=".9"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="rgba(2,6,23,.25)"/></filter>
+  </defs>
+  <path d="M ${left} ${top-14} L ${right} ${top-6} L ${right-6} ${bottom} L ${left+6} ${bottom} Z" fill="#fff" stroke="#111827" stroke-width="2.5" filter="url(#shadow)"/>
+  <clipPath id="clip"><path d="M ${left} ${top-14} L ${right} ${top-6} L ${right-6} ${bottom} L ${left+6} ${bottom} Z"/></clipPath>
+  <rect x="${left+6}" y="${yFluidTop.toFixed(2)}" width="${innerW-12}" height="${fluidH.toFixed(2)}" fill="url(#g1)" opacity="0.95" clip-path="url(#clip)"/>
+  ${tickLines}
+  <text x="${left+18}" y="${top-22}" font-family="Inter" font-weight="900" font-size="16" fill="#111827">
+    max: ${unitTxt==='l' ? (capMl/1000)+' l' : unitTxt==='dl' ? (capMl/100)+' dl' : unitTxt==='cl' ? (capMl/10)+' cl' : capMl+' ml'}
+  </text>
+  <text x="${right-4}" y="${top-10}" text-anchor="end" font-family="Inter" font-weight="800" font-size="13" fill="#374151">schaal: ${unitTxt}</text>
+</svg>`;
+    }
+
+    // =================== DATASETS / AFBEELDINGEN ===================
+    const IMG_BASE = 'inhoudafb/';
+
+    // Recepten (afbeelding verplicht)
+    const RECIPES = [
+      { title:'Limonade', img:'limonade.png', items:[ {name:'Water',qty:1.2,unit:'l'}, {name:'Citroensap',qty:20,unit:'cl'}, {name:'Suikersiroop',qty:150,unit:'ml'} ] },
+      { title:'IJsthee', img:'ijsthee.png', items:[ {name:'Thee',qty:8,unit:'dl'}, {name:'Perziksap',qty:25,unit:'cl'}, {name:'Siroop',qty:120,unit:'ml'} ] },
+      { title:'Chocomelk', img:'chocomelk.png', items:[ {name:'Melk',qty:8,unit:'dl'}, {name:'Chocoladesiroop',qty:10,unit:'cl'}, {name:'Room',qty:4,unit:'cl'} ] },
+      { title:'Smoothie (sinaasappelsap)', img:'smoothie.png', items:[ {name:'Melk',qty:3,unit:'dl'}, {name:'Yoghurt',qty:2,unit:'dl'}, {name:'Sinaasappelsap',qty:10,unit:'cl'} ] },
+      { title:'Mocktail “Sunrise”', img:'sunrise.png', items:[ {name:'Sinaasappelsap',qty:6,unit:'dl'}, {name:'Ananassap',qty:2,unit:'dl'}, {name:'Grenadine',qty:4,unit:'cl'}, {name:'Spuitwater',qty:2,unit:'dl'} ] },
+      { title:'Sportdrank citroen', img:'sportdrank.png', items:[ {name:'Water',qty:1,unit:'l'}, {name:'Citroensap',qty:12,unit:'cl'}, {name:'Honingsiroop',qty:80,unit:'ml'} ] },
+      { title:'Iced latte', img:'latte.png', items:[ {name:'Sterke koffie',qty:4,unit:'dl'}, {name:'Melk',qty:2,unit:'dl'}, {name:'Suikersiroop',qty:3,unit:'cl'} ] },
+      { title:'Tomatensoep (snel)', img:'tomatensoep.png', items:[ {name:'Passata',qty:6,unit:'dl'}, {name:'Water',qty:4,unit:'dl'}, {name:'Room',qty:10,unit:'cl'} ] },
+      { title:'Honing-citroen dressing', img:'dressing.png', items:[ {name:'Olijfolie',qty:8,unit:'cl'}, {name:'Water',qty:4,unit:'cl'}, {name:'Citroensap',qty:3,unit:'cl'}, {name:'Honingsiroop',qty:2,unit:'cl'} ] }
+    ];
+
+    // Extra losse foto’s die je al hebt gemaakt/gebruikt
+    const LOOSE_PHOTOS = ['drinkbus.png','karaf.png','appelsap.png','lepel.png','limonade2.png'];
+
+    // =================== GENERATORS ===================
+
+    // 1) AFLEZEN — Levelregels: L1 zelfde eenheid; L2–L3 zelfde of ±1 stap (×10/÷10)
+    function genRead(level){
+      const presets = [
+        { capMl:1000, majorMl:100, possibleUnits:['l','dl','cl','ml'], subdivs:[2,5,10] },
+        { capMl:250,  majorMl:10,  possibleUnits:['dl','cl','ml'],     subdivs:[2,5] },
+        { capMl:50,   majorMl:5,   possibleUnits:['cl','ml'],          subdivs:[5] }
+      ];
+      const P = presets[clamp(level,1,3)-1];
+      const showUnit = choice(P.possibleUnits);
+      const subdiv = choice(P.subdivs);
+      const minorMl = Math.max(1, Math.floor(P.majorMl / subdiv));
+      const labelEvery = choice([1,2]);
+      const steps = Math.floor(P.capMl / minorMl);
+      const k = rnd(1, steps-1);
+      const valueMl = k * minorMl;
+
+      let answerUnit = showUnit;
+      if (level>=2){
+        const cand = [showUnit, ...neighbors(showUnit)];
+        answerUnit = choice(cand);
+      }
+
+      const svg = drawBeakerSVG({ capMl:P.capMl, majorMl:P.majorMl, minorMl, labelEvery, showUnit, valueMl });
+      const typeText =
+        P.capMl===1000 ? 'Maatbeker tot 1 l — major: 0,1 l' :
+        P.capMl===250  ? 'Maatbeker tot 2,5 dl — major: 0,1 dl' :
+                         'Maatbeker tot 5 cl — major: 0,5 cl';
+
+      return {
+        type:'aflezen',
+        meta:{ level, capMl:P.capMl, majorMl:P.majorMl, minorMl, labelEvery, showUnit, answerUnit, valueMl },
+        q:`Lees de maatbeker af en geef enkel het getal (eenheid is ${answerUnit}).`,
+        render: ()=>{
+          answerZone.classList.remove('hidden'); choiceZone.classList.add('hidden'); tableZone.classList.add('hidden');
+          answer.value=''; setTimeout(()=>answer.focus(),0);
+          unitChip.textContent = answerUnit; unitChip.classList.remove('hidden');
+          imgHint.textContent = `${typeText} • schaal: ${showUnit}`; imgHint.style.display='inline-flex';
+          setVisualSVG(svg);
+        },
+        check: ()=>{
+          const s = String(answer.value||'').trim().replace(',', '.');
+          if (!/^([+-]?\d+(?:\.\d+)?)$/.test(s)){
+            return { ok:false, want:'', given:answer.value.trim(), explain:'Typ enkel het getal; de eenheid staat naast het vak.' };
+          }
+          const val = Number(s);
+          const asMl = val * UNIT_TO_ML[answerUnit];
+          const ok = Math.abs(asMl - valueMl) <= 0.5;
+
+          const wantInAns = (()=> {
+            const v = valueMl / UNIT_TO_ML[answerUnit];
+            const sr = (Math.abs(v)>=1?v.toFixed(2):v.toFixed(3)).replace('.',',').replace(/,0+$/,'').replace(/,00$/,'');
+            return `${sr} ${answerUnit}`;
+          })();
+
+          return { ok, want:`${wantInAns} (${valueMl} ml)`, given:`${answer.value.trim()} ${answerUnit}`, explain:'Lees t.o.v. de ijkstrepen en gebruik de opgegeven eenheid.' };
+        }
+      };
+    }
+
+    // 2) RECEPT SCHALEN — 3 levels
+    function pickRecipeForLevel(level){
+      if (level===1){ const pool = RECIPES.filter(r=>r.items.length===3); return pool.length ? choice(pool) : choice(RECIPES); }
+      if (level===2){ const pool = RECIPES.filter(r=>r.items.length===4); return pool.length ? choice(pool) : choice(RECIPES); }
+      const pool = RECIPES.filter(r=>r.items.length>=4);
+      return pool.length ? choice(pool) : choice(RECIPES);
+    }
+    function pickScaleForLevel(level){
+      if (level===1){
+        const mult = choice([2,3,4,5]);
+        const base = choice([2,3,4,5]);
+        return { base, target: base*mult, ratio: mult };
+      }
+      const mult = choice([1.5, 2.5]);
+      const base = choice([2,4]);
+      return { base, target: Math.round(base*mult), ratio: mult };
+    }
+    function genRecipe(level){
+      const ING = pickRecipeForLevel(level);
+      const { base, target, ratio } = pickScaleForLevel(level);
+      const rows = ING.items.map(it => ({ name:it.name, unit:it.unit, base:it.qty, target:it.qty*ratio }));
+
+      return {
+        type:'recept',
+        meta:{ level, baseP:base, tgtP:target, recipe:ING.title, ratio },
+        q:`Vul de tabel voor het recept van ${ING.title}.`,
+        render: ()=>{
+          answerZone.classList.add('hidden'); choiceZone.classList.add('hidden'); tableZone.classList.remove('hidden');
+          thBase.textContent   = `voor ${base} p.`; thTarget.textContent = `voor ${target} p.`;
+          recipeBody.innerHTML = rows.map((r,i)=>`
+            <tr>
+              <th>${r.name}</th>
+              <td>${fmt(r.base)} ${r.unit}</td>
+              <td><input class="ibox" data-i="${i}" type="text" inputmode="decimal" placeholder="0" aria-label="hoeveelheid ${r.name}" /> ${r.unit}</td>
+            </tr>`).join('');
+          // bij het renderen van het recept:
+const recInputs = Array.from(recipeBody.querySelectorAll('input'));
+recInputs.forEach(inp=>{
+  inp.addEventListener('focus', ()=> activeRecipeInput = inp);
+  inp.addEventListener('click', ()=> activeRecipeInput = inp);   // <- nieuw
+  inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); onCheck(); } });
+});
+if (recInputs[0]) { activeRecipeInput = recInputs[0]; recInputs[0].focus(); } // <- handig
+
+          setTimeout(()=>{ if (recInputs[0]) recInputs[0].focus(); },0);
+          setImg(IMG_BASE + ING.img, `Recept: ${ING.title}`, { required:true, caption:`Recept: ${ING.title}` });
+          unitChip.classList.add('hidden');
+        },
+        check: ()=>{
+          const inputs = Array.from(recipeBody.querySelectorAll('input'));
+          let allOk=true; const given=[], want=[];
+          inputs.forEach((inp,i)=>{
+            const r = rows[i];
+            const g = parseNum(inp.value);
+            const w = r.target;
+            given.push(inp.value.trim()); want.push(`${fmt(w)} ${r.unit}`);
+            const ok = eqNum(g,w);
+            inp.style.borderColor = ok?'#c4eedc':'#ffd7d7';
+            inp.style.background  = ok?'#eafaf4':'#fff6f6';
+            if (!ok) allOk=false;
+          });
+          const explain = (ratio===Math.round(ratio)) ? `Vermenigvuldig alle hoeveelheden met ${fmt(ratio)}.` : `Vermenigvuldig alle hoeveelheden met ${String(ratio).replace('.',',')}.`;
+          return { ok:allOk, want:want.join(' | '), given:given.join(' | '), explain };
+        }
+      };
+    }
+
+    // 3) VRAAGSTUKKEN
+    function genWord(){
+      const BANK = [
+        ()=> {
+          const perL = 0.2;
+          const n = choice([4,6,8,12,24]);
+          const want = perL * n;
+          return { img: choice(['limonade2.png']), q:`Elke flesje bevat ${String(perL).replace('.',',')} l. Hoeveel liter is er in een pak van ${n} flessen?`, want };
+        },
+        ()=> {
+          const capCL = choice([20,25]);
+          const bottleL = choice([1,2,3]);
+          const want = (bottleL*100) / capCL;
+          return { img:'limonade.png', q:`Een glas is ${capCL} cl. Hoeveel glazen kan je vullen met ${String(bottleL).replace('.',',')} l?`, want };
+        },
+        ()=> {
+          const busL = 0.5, cupML = choice([50,100,125]);
+          const want = (busL*1000)/cupML;
+          return { img:'drinkbus.png', q:`Een drinkbus bevat ${String(busL).replace('.',',')} l. Elke drinkbeurt drink je ${cupML} ml. Hoeveel keer kan je drinken?`, want };
+        },
+        ()=> {
+          const karafL = 3, glasCL = choice([20,25]);
+          const want = (karafL*100) / glasCL;
+          return { img:'karaf.png', q:`Een karaf bevat ${karafL} l. Je vult glazen van ${glasCL} cl. Hoeveel glazen kan je vullen?`, want };
+        },
+        // BUGFIX: brik is 1 liter -> 1000 ml
+        ()=> {
+          const brik = 1, pourML = choice([100,200,250]);
+          const want = (brik*1000)/pourML; // FIX i.p.v. canDL
+          return { img: 'appelsap.png', q:`Een brik appelsap bevat ${brik} l. Je schenkt telkens ${pourML} ml. Hoeveel keer kan je schenken?`, want };
+        },
+        ()=> {
+          const spoons = choice([4,6,8,10]); const per=5; const want = spoons*per;
+          return { img:'lepel.png', q:`Je voegt ${spoons} theelepels (één theelepel = 5 ml) olie toe aan een recept. Hoeveel ml is dat?`, want };
+        },
+        ()=> {
+          const eet = choice([2,3]), thee = choice([1,2,3]);
+          const ml = eet*15 + thee*5;
+          const want = ml/10; // cl
+          return { img:'lepel.png', q:`Je voegt ${eet} eetlepels (15 ml) en ${thee} theelepels (5 ml) toe. Hoeveel cl is dit samen? (geef het getal)`, want };
+        },
+      ];
+
+      const gen = choice(BANK);
+      const { img:imgName, q, want } = gen();
+      const imgSrc = IMG_BASE + (imgName || choice(LOOSE_PHOTOS));
+
+      return {
+        type:'vraagstuk',
+        meta:{ pattern:'bank', want },
+        q,
+        render: ()=>{
+          setImg(imgSrc, 'Vraagstuk', { required:false });
+          unitChip.classList.add('hidden');
+          answerZone.classList.remove('hidden');
+          choiceZone.classList.add('hidden');
+          tableZone.classList.add('hidden');
+          answer.value=''; setTimeout(()=>answer.focus(),0);
+        },
+        check: ()=>{
+          const g = parseNum(answer.value);
+          const ok = eqNum(g, want);
+          return { ok, want: fmt(want), given: (answer.value||'').trim(), explain:'Reken om naar dezelfde eenheid en pas de juiste bewerking toe.' };
+        }
+      };
+    }
+
+    // 4) 10× GROTER/KLEINER — klik = meteen door
+    function genBiggerSmaller(level){
+      const kset = (level===1) ? [10] : (level===2) ? [10,100] : [10,100,1000];
+      const k = choice(kset);
+      const base = choice(['liter','milliliter']);
+      const dir = (base==='liter') ? 'kleiner' : 'groter';
+      let wantUnit;
+      if (base==='liter'){ wantUnit = (k===10?'dl' : k===100?'cl' : 'ml'); }
+      else { wantUnit = (k===10?'cl' : k===100?'dl' : 'l'); }
+
+      const q = `${k}× ${dir} dan een ${base} is …`;
+      const opts = shuffle([...UNITS_VOL]); if (!opts.includes(wantUnit)) opts[0] = wantUnit;
+
+      return {
+        type:'groterkleiner', meta:{k,dir,base, wantUnit}, q,
+        render: ()=>{
+          setImg(null);
+          unitChip.classList.add('hidden');
+          board.classList.add('single');
+          padwrap.classList.add('hidden');
+          leftCol.classList.add('hidden');
+          choiceZone.innerHTML = opts.map(u=>`<button class="choice" data-v="${u}">${u}</button>`).join('');
+          choiceZone.classList.remove('hidden');
+          tableZone.classList.add('hidden');
+          answerZone.classList.add('hidden');
+        },
+        check: ()=>{
+          const picked = choiceZone.querySelector('.choice.sel')?.dataset.v || '';
+          const ok = picked === wantUnit;
+          return { ok, want: wantUnit, given: picked, explain:'Gebruik het trapje: l → dl → cl → ml (per stap ×10 of ÷10).' };
+        }
+      };
+    }
+
+    // 5) KIES DE EENHEID
+    const PICK_UNIT_BANK = [
+      { img:'karaf.png', make:()=> choice([
+          {q:'Een grote karaf bevat 3 … drank.', corr:'l'},
+          {q:'Een grote karaf bevat 30 … drank.', corr:'dl'},
+          {q:'Een grote karaf bevat 300 … drank.', corr:'cl'},
+          {q:'Een grote karaf bevat 3000 … drank.', corr:'ml'},
+      ]) },
+      { img:'limonade2.png', make:()=> choice([
+          {q:'Een klein flesje limonade bevat 0,2 … limonade.', corr:'l'},
+          {q:'Een klein flesje limonade bevat 2 … limonade.', corr:'dl'},
+          {q:'Een klein flesje limonade bevat 20 … limonade.', corr:'cl'},
+          {q:'Een klein flesje limonade bevat 200 … limonade.', corr:'ml'},
+      ]) },
+      { img:'appelsap.png', make:()=> choice([
+          {q:'Een groot brik appelsap bevat 1 … appelsap.', corr:'l'},
+          {q:'Een groot brik appelsap bevat 10 … appelsap.', corr:'dl'},
+          {q:'Een groot brik appelsap bevat 100 … appelsap.', corr:'cl'},
+          {q:'Een groot brik appelsap bevat 1000 … appelsap.', corr:'ml'},
+      ]) },
+      { img:'drinkbus.png', make:()=> choice([
+          {q:'Een drinkbus bevat 0,5 … water.', corr:'l'},
+          {q:'Een drinkbus bevat 5 … water.', corr:'dl'},
+          {q:'Een drinkbus bevat 50 … water.', corr:'cl'},
+          {q:'Een drinkbus bevat 500 … water.', corr:'ml'},
+      ]) },
+      { img:'lepel.png', make:()=> choice([
+          {q:'Een theelepel bevat 5 … siroop.', corr:'ml'},
+          {q:'Een eetlepel bevat 15 … siroop.', corr:'ml'},
+      ]) },
+      { img:'latte.png', make:()=> ({ q:'Een thermos bevat 1 … koffie.', corr:'l' }) },
+      { img:'smoothie.png', make:()=> ({ q:'Een smoothieglas bevat 25 … smoothie.', corr:'cl' }) },
+      { img:'tomatensoep.png', make:()=> ({ q:'Eén portie bevat 3 … tomatensoep.', corr:'dl' }) },
+    ];
+
+    function genPickUnit(){
+      const t = choice(PICK_UNIT_BANK);
+      const v = t.make();
+      const q = v.q; const correct = v.corr;
+      const opts = shuffle([...UNITS_VOL]); if (!opts.includes(correct)) opts[0] = correct;
+
+      return {
+        type:'kieseenheid', meta:{ corr:correct }, q,
+        render: ()=>{
+          setImg(IMG_BASE + t.img, 'Context: kies de eenheid', { required:true, caption:'' });
+          unitChip.classList.add('hidden');
+          board.classList.remove('single');
+          padwrap.classList.remove('hidden');
+          leftCol.classList.remove('hidden');
+          choiceZone.innerHTML = opts.map(u=>`<button class="choice" data-v="${u}">${u}</button>`).join('');
+          choiceZone.classList.remove('hidden');
+          tableZone.classList.add('hidden');
+          answerZone.classList.add('hidden');
+        },
+        check: ()=>{
+          const picked = choiceZone.querySelector('.choice.sel')?.dataset.v || '';
+          const ok = picked === correct;
+          return { ok, want:correct, given:picked, explain:'Kies de meest passende inhouds-eenheid (l – dl – cl – ml).' };
+        }
+      };
+    }
+
+    function shuffle(a){ const b=a.slice(); for (let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; } return b; }
+
+    // ==== Flow ====
+    let activeRecipeInput = null;
+
+    function resetLayoutForNormal(){
+      board.classList.remove('single');
+      padwrap.classList.remove('hidden');
+      leftCol.classList.remove('hidden');
+    }
+
+    function currentLevel(){
+      if(state.mode===MODES.TOETS){
+        if(state.right>=20) return 3;
+        if(state.right>=10) return 2;
+        return 1;
+      }
+      return Number(levelSel.value) || 1;
+    }
+
+    function nextQuestion(){
+      status.textContent=''; answer.value='';
+      choiceZone.innerHTML='';
+      choiceZone.classList.add('hidden'); tableZone.classList.add('hidden'); answerZone.classList.remove('hidden');
+      unitChip.classList.add('hidden');
+      resetLayoutForNormal();
+      state.awaitingNext = false;
+
+      const kind = (state.mode===MODES.VRIJ) ? typeSel.value : 'mix';
+      const lvl = currentLevel();
+
+      const pick = ()=>{
+        switch(kind){
+          case 'aflezen':       return genRead(lvl);
+          case 'recept':        return genRecipe(lvl);
+          case 'vraagstuk':     return genWord();
+          case 'groterkleiner': return genBiggerSmaller(lvl);
+          case 'kieseenheid':   return genPickUnit();
+          default: {
+            const pool = [ ()=>genRead(lvl), ()=>genRecipe(lvl), genWord, ()=>genBiggerSmaller(lvl), genPickUnit ];
+            return choice(pool)();
+          }
+        }
+      };
+
+      const q = pick(); state.cur = q;
+      qText.textContent = q.q;
+      q.render();
+
+      // Meerkeuze: klik = select + auto-check
+      choiceZone.onclick = (e)=>{
+        const btn = e.target.closest('.choice'); if (!btn) return;
+        $$('.choice').forEach(c=>c.classList.remove('sel'));
+        btn.classList.add('sel');
+        if (state.cur && (state.cur.type==='groterkleiner' || state.cur.type==='kieseenheid')){
+          onCheck(); // meteen door
+        }
+      };
+    }
+
+    function onCheck(){
+      // In oefenmodus na een fout wachten we op tweede OK om door te gaan
+      if(state.awaitingNext){
+        state.awaitingNext = false;
+        nextQuestion();
+        return;
+      }
+
+      if (!state.cur) return;
+      const res = state.cur.check();
+      const ok = !!res.ok; flash(ok);
+
+      // statusbericht: in oefenmodus altijd juiste tonen bij fout voor we doorgaan
+      if (ok){
+        status.innerHTML = `<span class="okTxt">✅ Juist!</span>`;
+      } else {
+        const wantTxt = res.want ? ` <span class="errTxt">Antwoord: ${res.want}</span>` : '';
+        status.innerHTML = `<span class="errTxt">❌ Fout.</span>${wantTxt}`;
+      }
+
+      state.asked++; 
+      if (ok){ state.right++; okCount.textContent = String(state.right); } 
+      else { state.wrong++; errCount.textContent = String(state.wrong); }
+
+      if (state.mode!==MODES.VRIJ){ const nextIdx = Math.min(state.asked+1, state.total); qNow.textContent = String(nextIdx); }
+      state.questions.push({ q: state.cur.q, correct: String(res.want||''), given: String(res.given||''), ok });
+
+      const done = (state.mode!==MODES.VRIJ) && (state.asked>=state.total);
+      if (done){ finishSession(); return; }
+
+      // Doorstuurgedrag
+      if(state.mode===MODES.VRIJ && !ok){
+        // wacht op tweede OK/Enter van leerling
+        status.innerHTML += `<div style="margin-top:.35rem; font-weight:800; color:#374151">Druk op <em>OK</em> of <em>Enter</em> voor de volgende vraag.</div>`;
+        state.awaitingNext = true;
+      } else {
+        setTimeout(nextQuestion, ok ? 280 : 600);
+      }
+    }
+
+    // === Events ===
+    checkBtn.onclick = onCheck; okKey.onclick = onCheck;
+    answer.addEventListener('keydown', e=>{ if (e.key==='Enter') onCheck(); });
+pad.addEventListener('pointerdown', (e)=>{
+  if (e.target.closest('.key')) e.preventDefault(); // input blijft gefocust
+});
+
+   pad.addEventListener('click', e=>{
+  const k = e.target.closest('.key'); if (!k) return;
+
+  // schrijf naar het juiste doel
+  const tgt = (state.cur?.type === 'recept' && activeRecipeInput)
+    ? activeRecipeInput
+    : answer;
+
+  const act = k.dataset.act;
+  if (act === 'bksp') {
+    tgt.value = (tgt.value || '').slice(0,-1);
+    tgt.dispatchEvent(new Event('input'));
+    tgt.focus();
+    return;
+  }
+  if (act === 'enter') { onCheck(); return; }
+
+  const v = k.textContent.trim();
+  tgt.value += (v === ',' ? ',' : v);
+  tgt.dispatchEvent(new Event('input'));
+  tgt.focus();
+});
+
+    // ===== Naam/dyscalculie modal (fallback) =====
+    function openNameModal(modeWanted){
+      state.pendingMode = modeWanted || MODES.TAAK;
+      nameModal.classList.add('open');
+      nameInput.value='';
+      if(state.pendingMode===MODES.TOETS){ dysRow.style.display='flex'; dysChk.checked=false; } else { dysRow.style.display='none'; dysChk.checked=false; }
+      setTimeout(()=>nameInput.focus(),0);
+    }
+    function closeNameModal(){ nameModal.classList.remove('open'); }
+    function resetSession(){
+      state.right=0; state.wrong=0; okCount.textContent='0'; errCount.textContent='0';
+      state.asked=0; progressChip.style.display='none';
+      timeDisp.textContent='—';
+    }
+    function startFromModal(){
+      const nm=(nameInput.value||'').trim();
+      if(!nm){ nameInput.focus(); return; }
+      state.name = nm;
+      state.dys = (state.pendingMode===MODES.TOETS) ? !!dysChk.checked : false;
+      resetSession();
+      startRun(state.pendingMode);
+      closeNameModal();
+    }
+    cancelModalBtn.addEventListener('click', closeNameModal);
+    startModalBtn.addEventListener('click', startFromModal);
+    nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') startFromModal(); });
+
+    // Startknoppen met MR_SHARED integratie
+    startTaak.onclick = ()=>{
+      if (window.MR_SHARED?.askName){
+        MR_SHARED.askName('taak').then(v=>{
+          if(!v) return;
+          state.name = (typeof v==='string') ? v : (v.name||'');
+          try{ state.klas = MR_SHARED.getClass?.()||''; }catch(e){}
+          state.dys = false;
+          resetSession(); startRun(MODES.TAAK);
+        });
+      } else openNameModal(MODES.TAAK);
+    };
+
+    startToets.onclick = ()=>{
+      if (window.MR_SHARED?.askName){
+        MR_SHARED.askName('toets', { extraFlags:[{id:'dyscalculie', label:'Ik heb dyscalculie'}] }).then(v=>{
+          if(!v) return;
+          if (typeof v==='string'){ state.name = v; state.dys=false; }
+          else { state.name = v.name||''; state.dys = !!(v.flags && v.flags.dyscalculie); }
+          try{ state.klas = MR_SHARED.getClass?.()||''; }catch(e){}
+          resetSession(); startRun(MODES.TOETS);
+        });
+      } else openNameModal(MODES.TOETS);
+    };
+
+    fullBtn.onclick = ()=>{ const el=document.documentElement; if (!document.fullscreenElement){ el.requestFullscreen?.(); } else { document.exitFullscreen?.(); } };
+
+    typeSel.addEventListener('change', ()=>{
+      const t = typeSel.value;
+      const showLevels = (t==='aflezen' || t==='recept' || t==='groterkleiner' || t==='mix');
+      levelWrap.style.display = showLevels ? 'inline-flex' : 'none';
+      if(state.mode===MODES.VRIJ) nextQuestion();
+    });
+    levelWrap.style.display='inline-flex';
+
+    // ===== Panels
+    const helpPanel = $('#helpPanel');
+    const convPanel = $('#convPanel');
+    const calcPanel = $('#calcPanel');
+    const calcDisplay = $('#calcDisplay');
+    const calcKeys = $('#calcKeys');
+    const calcPaste = $('#calcPaste');
+
+    function closeAllPanels(){ helpPanel.style.display='none'; convPanel.style.display='none'; calcPanel.style.display='none'; }
+    helpBtn.addEventListener('click', ()=>{ const on=helpPanel.style.display==='block'; closeAllPanels(); helpPanel.style.display = on?'none':'block'; });
+    convBtn.addEventListener('click', ()=>{ const on=convPanel.style.display==='block'; closeAllPanels(); convPanel.style.display = on?'none':'block'; });
+    calcBtn.addEventListener('click', ()=>{ const on=calcPanel.style.display==='block'; closeAllPanels(); calcPanel.style.display = on?'none':'block'; if(!on) calcDisplay.focus(); });
+
+    document.addEventListener('click', (e)=>{
+      if (e.target.closest('.toolBar') || e.target.closest('.helpPanel') || e.target.closest('.convPanel') || e.target.closest('.calcPanel')) return;
+      closeAllPanels();
+    });
+
+    function insertToDisplay(str){ if (str==='π'){ const piStr=String(Math.PI.toFixed(4)).replace('.',','); calcDisplay.value+=piStr; } else { calcDisplay.value+=str; } calcDisplay.focus(); }
+    function bksp(){ calcDisplay.value = calcDisplay.value.slice(0,-1); calcDisplay.focus(); }
+    function ac(){ calcDisplay.value=''; calcDisplay.focus(); }
+    function normalizeExpr(expr){
+      return String(expr||'').normalize('NFKC').replace(/\s+/g,'').replace(/,/g,'.').replace(/[x×]/gi,'*').replace(/[÷:]/g,'/').replace(/[−–—]/g,'-').replace(/π/gi, String(Math.PI));
+    }
+    function compute(expr){
+      const norm = normalizeExpr(expr); if (!norm) return NaN;
+      const parts = norm.split(/([+\-*/])/).filter(Boolean); if (!parts.length) return NaN;
+      const tokens = parts.map(p => /[+\-*/]/.test(p) ? p : Number(p)); if (Number.isNaN(tokens[0])) return NaN;
+      let stack=[tokens[0]];
+      for (let i=1;i<tokens.length;i+=2){
+        const op=tokens[i], rhs=tokens[i+1]; if (typeof rhs!=='number' || Number.isNaN(rhs)) return NaN;
+        const lhs=stack[stack.length-1]; if (op==='*'||op==='/'){ stack[stack.length-1] = (op==='*') ? (lhs*rhs) : (lhs/rhs); } else { stack.push(op,rhs); }
+      }
+      let result=stack[0];
+      for (let i=1;i<stack.length;i+=2){ result = (stack[i]==='+') ? (result+stack[i+1]) : (result-stack[i+1]); }
+      return Math.round((result+Number.EPSILON)*100)/100;
+    }
+    function doEquals(){ const r=compute(calcDisplay.value); if (!Number.isNaN(r)){ calcDisplay.value=String(r).replace('.',','); } }
+    calcKeys.addEventListener('click', e=>{
+      const btn=e.target.closest('.ckey'); if(!btn) return;
+      const act=btn.dataset.act, ch=btn.dataset.k;
+      if (act==='ac') return ac();
+      if (act==='bksp') return bksp();
+      if (act==='eq') return doEquals();
+      if (ch!==undefined) return insertToDisplay(ch);
+    });
+    calcDisplay.addEventListener('keydown', e=>{
+      const okKeys='0123456789+-/*,:.÷×−';
+      if (e.key==='Enter'){ e.preventDefault(); return doEquals(); }
+      if (e.key==='Escape'){ e.preventDefault(); return ac(); }
+      if (e.key==='Backspace'){ return; }
+      if (!okKeys.includes(e.key)){ e.preventDefault(); return; }
+      if (e.key=== '.'){ e.preventDefault(); insertToDisplay(','); }
+    });
+    calcPaste.addEventListener('click', ()=>{
+      const r=compute(calcDisplay.value);
+      if (!Number.isNaN(r)){ answer.value=String(r).replace('.',','); answer.dispatchEvent(new Event('input')); answer.focus(); }
+    });
+
+    // ==== Omzettingstabel keys ====
+    const convCells = ['cell-lA','cell-lB','cell-lC','cell-l','cell-dl','cell-cl','cell-ml'].map(id=>document.getElementById(id));
+    let convOpenIdx=3;
+    function convFocus(i){ convOpenIdx=Math.max(0,Math.min(convCells.length-1,i)); convCells[convOpenIdx].focus(); }
+    convCells.forEach((inp,i)=>{
+      inp.addEventListener('focus',()=>convOpenIdx=i);
+      inp.addEventListener('input',()=>{ inp.value=(inp.value||'').replace(/\D/g,'').slice(0,1); if (inp.value && i<convCells.length-1){ convFocus(i+1); } });
+      inp.addEventListener('keydown',(e)=>{
+        if (e.key==='ArrowLeft'){ e.preventDefault(); convFocus(i-1); }
+        if (e.key==='ArrowRight'){ e.preventDefault(); convFocus(i+1); }
+        if (e.key==='Backspace' && !inp.value){ e.preventDefault(); if (i>0){ convCells[i-1].value=''; convFocus(i-1); } }
+      });
+    });
+    $('#convPad').addEventListener('click', e=>{
+      const k=e.target.closest('.key'); if(!k) return;
+      const ch=k.dataset.k, act=k.dataset.act;
+      if (ch!==undefined){ convInsertDigit(ch); return; }
+      if (act==='left') return convMove(-1);
+      if (act==='right') return convMove(1);
+      if (act==='bksp') return convBack();
+      if (act==='ac') return convClear();
+    });
+    function convInsertDigit(d){ const inp=convCells[convOpenIdx]; if(!/^\d$/.test(d)) return; inp.value=d; if (convOpenIdx<convCells.length-1) convFocus(convOpenIdx+1); }
+    function convMove(dx){ convFocus(convOpenIdx+dx); }
+    function convBack(){ const inp=convCells[convOpenIdx]; if (inp.value){ inp.value=''; return; } if (convOpenIdx>0){ convCells[convOpenIdx-1].value=''; convFocus(convOpenIdx-1); } }
+    function convClear(){ convCells.forEach(c=>c.value=''); convFocus(3); }
+    document.addEventListener('keydown', (e)=>{
+      if (convPanel.style.display!=='block') return;
+      if (/^Digit\d$/.test(e.code) || /^Numpad\d$/.test(e.code)){ e.preventDefault(); convInsertDigit(e.code.slice(-1)); return; }
+      if (e.key==='Backspace'){ e.preventDefault(); convBack(); return; }
+      if (e.key==='Delete'){ e.preventDefault(); convClear(); return; }
+      if (e.key==='ArrowLeft'){ e.preventDefault(); convMove(-1); return; }
+      if (e.key==='ArrowRight'){ e.preventDefault(); convMove(1); return; }
+    });
+
+    // ===== Init =====
+    function ensureShared(cb){
+      if(window.MR_SHARED) return cb(true);
+      const s=document.querySelector('script[src*="mrraes-shared.js"]');
+      if(!s){ cb(false); return; }
+      s.addEventListener('load', ()=>cb(!!window.MR_SHARED));
+      s.addEventListener('error', ()=>cb(false));
+      setTimeout(()=>cb(!!window.MR_SHARED), 0);
+    }
+    ensureShared((ok)=>{
+      // niets extra te koppelen hier; startknoppen handelen zelf MR_SHARED af
+    });
+
+    // Eerste vraag in vrij-modus
+    nextQuestion();
+  })();
+  </script>
+</body>
+</html>

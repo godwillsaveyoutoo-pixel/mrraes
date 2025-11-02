@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mr Raes: Getallenas</title>
+  <meta name="x-game-id" content="Getallenas (1LJB)">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="mrraes-shared.css">
+  <script src="mrraes-shared.js"></script>
+
+  <style>
+    :root{
+      --bg:#f6f8fb; --ink:#111827; --muted:#6b7280; --card:#ffffff; --border:#e5e7eb; --soft:#f2f4f8;
+      --tick:#9ca3af; --ref:#f59e0b; --good:#10b981; --bad:#ef4444; --info:#2563eb; --info-bg:#eff6ff; --info-br:#bfdbfe;
+      /* toegevoegd zodat .chip-stijlen geen undefined vars hebben */
+      --ring2:#dfe6f6;
+      --radius-chip:999px;
+      --shadow:0 10px 28px rgba(15,23,42,.06);
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background: radial-gradient(1200px 700px at 20% -10%, #fff 0%, var(--bg) 60%); color:var(--ink)
+    }
+    .topbar{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem}
+    .row{display:flex; flex-wrap:wrap; align-items:center; gap:10px}
+    .spacer{flex:1}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px; border:1px solid var(--border); border-radius:999px;
+      padding:8px 12px; background:#fff; font-weight:700
+    }
+    .pill.good{ color:var(--good); border-color:#a7f3d0; background:#ecfdf5}
+    .pill.bad{  color:var(--bad);  border-color:#fecaca; background:#fef2f2}
+    .wrap{ max-width:1100px; margin:18px auto; padding:0 14px}
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 12px 40px rgba(0,0,0,.06)}
+    .meta{ font-size:13px; color:var(--muted); margin-bottom:8px}
+
+    .line-area{
+      position:relative; margin:10px 0 6px; padding:18px 96px 64px; border:1px solid var(--border);
+      border-radius:14px; background:#fff; overflow:hidden
+    }
+    .axis-header{ display:flex; align-items:center; gap:8px; margin-bottom:8px }
+    .axis-title{ font-size:13px; font-weight:700; color:#111827 }
+    .tipbtn{
+      margin-bottom:24px; margin-left:auto; font-size:12px; border:1px solid var(--info-br);
+      background:var(--info-bg); color:var(--info); border-radius:999px; padding:4px 10px; cursor:pointer; font-weight:700
+    }
+    .tipbox{
+      text-align:center; display:none; margin-bottom:40px; font-size:12px; line-height:1.4; background:var(--info-bg);
+      border:1px solid var(--info-br); color:#1e3a8a; border-radius:10px; padding:8px 10px
+    }
+    .line{ position:relative; height:4px; background:linear-gradient(90deg,#d1d5db,#c7cad1); border-radius:3px; margin-top:4px}
+    .line-area.flash-ok{ background:#ecfdf5 !important; border-color:#a7f3d0 !important; transition:background .25s, border-color .25s }
+    .line-area.flash-err{ background:#fef2f2 !important; border-color:#fecaca !important; transition:background .25s, border-color .25s }
+    .ticks{ position:absolute; left:0; right:0; height:0; pointer-events:none }
+    .tick{ position:absolute; width:1px; background:var(--tick); height:14px; transform:translate(-.5px,-50%) }
+    .ref-dot{
+      position:absolute; width:12px; height:12px; border-radius:50%; background:var(--ref);
+      box-shadow:0 0 0 6px rgba(245,158,11,.12); transform:translate(-50%,-50%); pointer-events:none
+    }
+    .ref-tag{
+      position:absolute; transform:translate(-50%,-170%); pointer-events:none; background:#fff7ed; color:#92400e;
+      border:1px solid #fcd34d; border-radius:10px; padding:2px 8px; font-size:12px
+    }
+    .axis-arrow{ position:absolute; width:0; height:0; pointer-events:none}
+    .axis-arrow::after{ content:""; position:absolute; border-left:12px solid #9ca3af; border-top:7px solid transparent; border-bottom:7px solid transparent}
+
+    .hint{ font-size:12px; color:#374151; margin:12px 0 14px; line-height:1.35 }
+    .hint ul{ margin:6px 0 0 0; padding-left:18px } .hint li{ margin:2px 0 }
+
+    .bank{ display:flex; flex-wrap:wrap; gap:10px; min-height:48px }
+
+    /* algemene chip (topbar & bank) */
+    .chip{
+      background:#fff; border:1px solid var(--ring2); border-radius:var(--radius-chip);
+      padding:.35rem .7rem; box-shadow:var(--shadow);
+      display:inline-flex; gap:.5rem; align-items:center; font-weight:800
+    }
+    .chip.btn{cursor:pointer}
+    .chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+    .chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+
+    /* enkel chips die in de bank/line gesleept worden */
+    .bank .chip{ cursor:grab; user-select:none; touch-action:none }
+    .bank .chip:active{ cursor:grabbing }
+    .chip.placed{ position:absolute; z-index:10 } /* werkt ook nadat ze naar .line-area verplaatst zijn */
+
+    .controls{ display:flex; gap:10px; justify-content:flex-end; margin-top:12px }
+    .btn{ border:1px solid #e6e9ef; background:#fff; color:#111827; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer }
+    .btn.primary{ background:#fafafa; border-color:#111827 }
+    .btn.primary.btn-ok{ background:#78cfb2; border-color:#10b981; color:#fff }
+    .btn.primary.btn-err{ background:#cd6f6f; border-color:#ef4444; color:#fff }
+    @keyframes btnBump{0%{transform:scale(1)}30%{transform:scale(.96)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+    @keyframes btnShakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+    .btn-pop{animation:btnBump .35s ease-out}
+    .btn-shake{animation:btnShakeX .38s ease-in-out}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+
+    .context-temp .line{ background:linear-gradient(90deg,#60a5fa,#f87171) }
+    .context-bank .line-area{ background:linear-gradient(180deg,#ffffff 0%,#f7fffb 100%) }
+    .context-time .line-area{ background:linear-gradient(180deg,#ffffff 0%,#f7f7ff 100%) }
+
+    /* Overlay */
+    .overlay{ position:fixed; inset:0; z-index:1000; display:none; align-items:center; justify-content:center; background:rgba(17,24,39,.45); padding:20px }
+    .overlay .dialog{
+      width:min(520px,92vw); background:#fff; border:1px solid #e5e7eb; border-radius:16px;
+      box-shadow:0 24px 60px rgba(0,0,0,.20); padding:18px
+    }
+    .overlay .dialog h2{ margin:0 0 8px 0; font-size:20px }
+    .overlay .dialog .sub{ color:#6b7280; font-size:13px; margin-bottom:12px }
+    .overlay .dialog input{ width:100%; padding:10px 12px; border:1px solid #e6e9ef; border-radius:10px; font-size:14px }
+    body.noscroll{ overflow:hidden }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button id="startTaak" class="chip btn">📝 Start taak (20)</button>
+    <button id="startToets" class="chip btn">🧭 Start toets (20 / 15 min)</button>
+    <button id="fullBtn" class="chip btn">⤢ Volledig scherm</button>
+
+    <span class="chip" id="levelChip">📈 Level: <strong>1 / 4</strong></span>
+
+    <div class="spacer"></div>
+
+    <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+    <span class="chip ok">✅ Juist: <span id="okCount">0</span></span>
+    <span class="chip bad">❌ Fout: <span id="errCount">0</span></span>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="meta" id="meta">Getallenas • Oefenen (—)</div>
+
+      <div class="line-area" id="lineArea">
+        <div class="axis-header">
+          <button id="tipBtn" class="tipbtn">ℹ️ Tip</button>
+          <!-- optioneel: vrij-keuze selector (gelocked in taak/toets) -->
+          <!-- <select id="typeSel" data-lock-on-run>
+            <option value="mix">Mix</option>
+            <option value="time">Tijdlijn</option>
+            <option value="temp">Temperatuur</option>
+            <option value="bank">Bankrekening</option>
+          </select> -->
+        </div>
+        <div id="tipBox" class="tipbox"></div>
+
+        <div id="line" class="line"></div>
+        <div id="ticks" class="ticks"></div>
+        <div id="axisArrow" class="axis-arrow"></div>
+      </div>
+
+      <div id="bank" class="bank"></div>
+      <div id="hint" class="hint"></div>
+
+      <div class="controls">
+        <button id="checkBtn" class="btn primary">Controleer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Naam/Klas overlay (fallback zonder MR_SHARED) -->
+  <div class="overlay" id="startOverlay" style="display:none;">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+      <h2 id="dlgTitle">Start</h2>
+      <div class="sub" id="dlgSub">Vul je naam en klas in en klik Start.</div>
+      <div class="row" id="nameRow" style="margin-bottom:8px;">
+        <input id="nameInput" placeholder="Voornaam + familienaam" />
+      </div>
+      <div class="row" style="margin-bottom:8px;">
+        <input id="classInput" placeholder="Klas (bv. 1LJB)" />
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <button id="dlgStart" class="chip btn">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  window.GAME_ID = 'getallenas_1ljb';
+
+  (()=> {
+    /* ===== Doelen ===== */
+    const DOC_GOALS = {
+      BV1_06_01:{ code:"BV1_06.01", text:"Ordenen van getallen in context"},
+      BV1_06_01_01:{ code:"06.01.01", text:"Getallen voorstellen op een getallenas"},
+      BV1_06_01_02:{ code:"06.01.02", text:"Symbolen hanteren (=, ≠, <, >, ≤, ≥)"},
+      BV1_06_01_03:{ code:"06.01.03", text:"Natuurlijke getallen ordenen in context"},
+      BV1_06_01_04:{ code:"06.01.04", text:"Gehele getallen ordenen in context"},
+      BV1_06_01_05:{ code:"06.01.05", text:"Decimale getallen en eenvoudige breuken ordenen"},
+      BV1_06_03:{ code:"BV1_06.03", text:"Afronden en schatten in context"},
+      BV1_06_03_02:{ code:"06.03.02", text:"Afrondings- en schattingstechnieken"},
+      BV1_06_03_03:{ code:"06.03.03", text:"Af- en inschatten in context"}
+    };
+
+    /* ===== Elements ===== */
+    const lineArea = document.getElementById('lineArea');
+    const lineEl   = document.getElementById('line');
+    const ticksEl  = document.getElementById('ticks');
+    const tipBtn   = document.getElementById('tipBtn');
+    const tipBox   = document.getElementById('tipBox');
+    const hintEl   = document.getElementById('hint');
+    const axisArrow= document.getElementById('axisArrow');
+    const bankEl   = document.getElementById('bank');
+    const checkBtn = document.getElementById('checkBtn');
+    const metaEl   = document.getElementById('meta');
+
+    const okCountEl = document.getElementById('okCount');
+    const errCountEl = document.getElementById('errCount');
+    const timeDisp = document.getElementById('timeDisp');
+    const startTaak = document.getElementById('startTaak');
+    const startToets= document.getElementById('startToets');
+    const fullBtn= document.getElementById('fullBtn');
+    const typeSel = document.getElementById('typeSel'); // optioneel
+
+    const ovl      = document.getElementById('startOverlay');
+    const dlgTitle = document.getElementById('dlgTitle');
+    const dlgSub   = document.getElementById('dlgSub');
+    const nameInput= document.getElementById('nameInput');
+    const classInput= document.getElementById('classInput');
+    const dlgStart = document.getElementById('dlgStart');
+
+    /* ===== State ===== */
+    const TARGET_MARKS = 14, TICK_INTERVALS = TARGET_MARKS - 1;
+    const MIN_TARGET_GAP = 2, MIN_REF_GAP = 2;
+    const TEST_SECONDS = 15*60;
+
+    let Q = null, geom = null, placements = {};
+    let mode = 'oefen'; // 'oefen' | 'taak' | 'toets'
+    let total = 0, idx = 0, timer = null, seconds = 0;
+    let studentName = '', studentClass = '';
+    let okCount = 0, errCount = 0, oefenCounter = 0;
+    const results = [];
+
+    let USE_SHARED = false;
+
+    /* ===== Utils ===== */
+    const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+    const pickOne=(arr)=>arr[rnd(0,arr.length-1)];
+    const shuffle=(arr)=>arr.slice().sort(()=>Math.random()-0.5);
+    const fmtTime=(s)=>`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    const decimalsOf=(x)=>{const s=String(x); const i=s.indexOf('.'); return i<0?0:(s.length-i-1);};
+    const stepToScale=(st)=>{const d=decimalsOf(st); return Math.pow(10,d);};
+    const idxFromVal=(val,min,step)=>{const sc=stepToScale(step); return Math.round(((val-min)*sc)/Math.round(step*sc));};
+    const NBSP = '\u00A0';
+
+    /* ===== Keyboard ===== */
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){ e.preventDefault(); checkBtn.click(); }
+    });
+
+    /* ===== Layout ===== */
+    const ro = new ResizeObserver(()=> scheduleAxisBuild()); ro.observe(lineArea);
+    let buildScheduled=false;
+    function scheduleAxisBuild(){
+      if(buildScheduled) return;
+      buildScheduled=true;
+      requestAnimationFrame(()=> requestAnimationFrame(()=>{
+        buildScheduled=false; if(Q) buildAxis();
+      }));
+    }
+    function calcGeom(){
+      const tickCount = Math.round((Q.max - Q.min)/Q.step);
+      const baseX = lineEl.offsetLeft;
+      const width = lineEl.clientWidth;
+      const spacing = width / tickCount;
+      const lineCenterY = lineEl.offsetTop + lineEl.offsetHeight/2;
+      const dropTop = lineEl.offsetTop + 28;
+      geom = { baseX, spacing, tickCount, lineCenterY, dropTop };
+      ticksEl.style.top = geom.lineCenterY + 'px';
+    }
+
+    function isAligned(value,min,step){
+      const sc=stepToScale(step);
+      const t=((value-min)*sc)/Math.round(step*sc);
+      return Math.abs(t - Math.round(t)) < 1e-6;
+    }
+    function renderHintLines(lines){ if(!lines||!lines.length) return ''; return '<ul>'+lines.map(l=>`<li>${l}</li>`).join('')+'</ul>'; }
+
+    /* ===== Goals per vraag ===== */
+    function goalsForQuestion({min,max,step,kind,requiresOrdering=false}){
+      const goals=new Map();
+      goals.set(DOC_GOALS.BV1_06_01_01.code, DOC_GOALS.BV1_06_01_01);
+
+      const isInt = Number.isInteger;
+      const stepHasDecimals  = !isInt(step);
+      const rangeHasDecimals = !isInt(min) || !isInt(max);
+
+      if(min>=0 && isInt(min) && isInt(max) && isInt(step)) goals.set(DOC_GOALS.BV1_06_01_03.code, DOC_GOALS.BV1_06_01_03);
+      if(min<0 || (min<=0 && max>=0)) goals.set(DOC_GOALS.BV1_06_01_04.code, DOC_GOALS.BV1_06_01_04);
+      if(stepHasDecimals || rangeHasDecimals) goals.set(DOC_GOALS.BV1_06_01_05.code, DOC_GOALS.BV1_06_01_05);
+      if(requiresOrdering===true || kind==='ordenen' || kind==='compare') goals.set(DOC_GOALS.BV1_06_01_02.code, DOC_GOELS_BV1_06_01_02 = DOC_GOALS.BV1_06_01_02); // keeps all
+      if(stepHasDecimals || kind==='schaal' || kind==='schatten'){
+        goals.set(DOC_GOALS.BV1_06_03.code, DOC_GOALS.BV1_06_03);
+        goals.set(DOC_GOALS.BV1_06_03_02.code, DOC_GOALS.BV1_06_03_02);
+        goals.set(DOC_GOALS.BV1_06_03_03.code, DOC_GOALS.BV1_06_03_03);
+      }
+      return Array.from(goals.values());
+    }
+
+    function buildAxis(){
+      ticksEl.innerHTML='';
+      [...lineArea.querySelectorAll('.ref-dot,.ref-tag')].forEach(n=>n.remove());
+      calcGeom();
+      for(let i=0;i<=geom.tickCount;i++){
+        const x = geom.baseX + i*geom.spacing;
+        const t = document.createElement('div'); t.className='tick'; t.style.left=`${x}px`; ticksEl.appendChild(t);
+      }
+      Q.refs.forEach(v=>{
+        const idx = idxFromVal(v, Q.min, Q.step), x = geom.baseX + idx * geom.spacing;
+        const dot = document.createElement('div'); dot.className='ref-dot'; dot.style.left=`${x}px`; dot.style.top=`${geom.lineCenterY}px`; lineArea.appendChild(dot);
+        const tag = document.createElement('div'); tag.className='ref-tag'; tag.style.left=`${x}px`; tag.style.top=`${geom.lineCenterY}px`; tag.textContent = Q.print ? Q.print(v) : formatNL(v,Q.step); lineArea.appendChild(tag);
+      });
+      const rightX = geom.baseX + geom.tickCount * geom.spacing;
+      axisArrow.style.left = (rightX + 6) + 'px'; axisArrow.style.top = (geom.lineCenterY - 7) + 'px';
+
+      Object.entries(placements).forEach(([val,idxStr])=>{
+  const chip = [...document.querySelectorAll('.value-chip')].find(c=>c.dataset.value===val);
+  if(chip && chip.parentElement===lineArea){
+    const i = Number(idxStr), x = geom.baseX + i*geom.spacing;
+    chip.style.left = (x - chip.offsetWidth/2)+'px';
+    chip.style.top  = geom.dropTop+'px';
+  }
+});
+
+    }
+
+function clearChips(){
+  document.querySelectorAll('.value-chip').forEach(n=>n.remove());
+  placements = {};
+}
+    function createChip(val){
+  const chip = document.createElement('div');
+  chip.className = 'chip value-chip'; // <-- extra class
+  chip.textContent = Q.print ? Q.print(Number(val)) : formatNL(Number(val), Q.step);
+  chip.dataset.value = String(val);
+  bankEl.appendChild(chip);
+  makeDraggable(chip);
+}
+
+    function makeDraggable(el){
+      let dragging=false, offsetX=0;
+const getLocalX=(evt)=>{
+  const pt = (evt.touches ? evt.touches[0] : evt);
+  const r = lineArea.getBoundingClientRect();
+  const cs = getComputedStyle(lineArea);
+  const padL = parseFloat(cs.paddingLeft) || 0;
+  const bordL = parseFloat(cs.borderLeftWidth) || 0;
+  // coordinaat t.o.v. padding-box (zelfde referentie als absolute positioned children)
+  return pt.clientX - r.left - bordL - padL;
+};
+      const onDown=(e)=>{
+        dragging=true;
+        if(el.parentElement!==lineArea){
+          el.classList.add('placed'); lineArea.appendChild(el);
+          const x=getLocalX(e); el.style.left=(x - el.offsetWidth/2)+'px'; el.style.top=geom.dropTop+'px';
+        }
+        const x=getLocalX(e); const currentLeft=parseFloat(el.style.left)||0;
+        offsetX = x - currentLeft; el.style.zIndex=999; e.preventDefault?.();
+      };
+      const onMove=(e)=>{
+        if(!dragging) return;
+        let left = getLocalX(e) - offsetX;
+        left = Math.max(0, Math.min(lineArea.clientWidth - el.offsetWidth, left));
+        el.style.left=left+'px'; el.style.top=geom.dropTop+'px';
+      };
+      const onUp=()=>{
+        if(!dragging) return; dragging=false;
+        const currentLeft=parseFloat(el.style.left)||0; const centerX=currentLeft + el.offsetWidth/2;
+        const idx = Math.round((centerX - geom.baseX)/geom.spacing);
+        const clamped = Math.max(0, Math.min(geom.tickCount, idx));
+        const x = geom.baseX + clamped*geom.spacing;
+        el.style.left=(x - el.offsetWidth/2)+'px'; el.style.top=geom.dropTop+'px';
+        el.style.zIndex=10; placements[el.dataset.value]=clamped;
+      };
+      el.addEventListener('mousedown', onDown); el.addEventListener('touchstart', onDown, {passive:false});
+      window.addEventListener('mousemove', onMove, {passive:false}); window.addEventListener('touchmove', onMove, {passive:false});
+      window.addEventListener('mouseup', onUp); window.addEventListener('touchend', onUp);
+    }
+
+    function flash(which){
+      lineArea.classList.remove('flash-ok','flash-err'); void lineArea.offsetWidth;
+      lineArea.classList.add(which==='ok'?'flash-ok':'flash-err');
+      setTimeout(()=> lineArea.classList.remove('flash-ok','flash-err'), 500);
+    }
+
+    /* ===== Formatters ===== */
+    function formatNL(val,step=1){
+      const decimals = (String(step).split('.')[1]||'').length;
+      return Number(val).toLocaleString('nl-BE',{minimumFractionDigits:decimals, maximumFractionDigits:decimals});
+    }
+    function printEuro(x,step=1){ return (x<0?'-':'')+formatNL(Math.abs(x),step)+NBSP+'€'; }
+    function printDeg(x,step=1){  return (x<0?'-':'')+formatNL(Math.abs(x),step)+NBSP+'°C'; }
+    function printYear(x){ return formatNL(x,1); }
+
+    /* ===== Weetjes-pools ===== */
+    const TIME_EVENTS=[{y:-3000,t:'Eerste schrijfsystemen in Egypte en Mesopotamië.'},{y:-776,t:'Eerste Olympische Spelen in het oude Griekenland.'},{y:-509,t:'Rome wordt een republiek.'},{y:-44,t:'Julius Caesar wordt vermoord in Rome.'},{y:0,t:'Start van onze jaartelling.'},{y:313,t:'Christenen mogen hun geloof vrij uitoefenen.'},{y:476,t:'Val van het West-Romeinse Rijk: einde Oudheid.'},{y:800,t:'Karel de Grote wordt keizer gekroond.'},{y:1302,t:'Guldensporenslag bij Kortrijk.'},{y:1492,t:'Columbus bereikt Amerika.'},{y:1687,t:'Newton publiceert zwaartekracht.'},{y:1751,t:'Start van de Encyclopédie.'},{y:1789,t:'Begin van de Franse Revolutie.'},{y:1830,t:'België wordt onafhankelijk.'},{y:1914,t:'Start WO I.'},{y:1918,t:'Einde WO I.'},{y:1939,t:'Start WO II.'},{y:1945,t:'Einde WO II.'},{y:1958,t:'Expo 58 in Brussel.'},{y:1969,t:'Maanlanding.'},{y:1989,t:'Val van de Berlijnse Muur.'},{y:1999,t:'Euro start digitaal.'},{y:2001,t:'9/11.'},{y:2007,t:'Eerste iPhone.'},{y:2020,t:'COVID-19 pandemie.'},{y:2022,t:'James Webb telescoop.'}];
+    const PREHIST_EVENTS=[{y:-230000000,t:'Dinosaurussen verschijnen.'},{y:-65000000,t:'Dino’s sterven uit.'},{y:-7000000,t:'Vroege mensachtigen in Afrika.'},{y:-40000,t:'Grotkunst.'},{y:-12000,t:'Einde laatste ijstijd.'},{y:-10000,t:'Landbouw ontstaat.'},{y:-3000,t:'Eerste schrift.'}];
+    const TEMP_FACTS=[{c:-18,t:'Diepvries-temperatuur.'},{c:0,t:'Water bevriest.'},{c:4,t:'Water is het zwaarst.'},{c:20,t:'Kamer-temperatuur.'},{c:37,t:'Lichaamstemperatuur.'},{c:100,t:'Water kookt.'}];
+    const MONEY_EVENTS=[{v:1,t:"Snoepje."},{v:5,t:"IJsje voor 2."},{v:10,t:"2 broodjes."},{v:15,t:"Cinema."},{v:30,t:"Sportschoenen."},{v:50,t:"Jeansbroek."},{v:100,t:"Kinderfiets."},{v:250,t:"2e hands laptop."}];
+
+    /* ===== Consistency helpers ===== */
+    function isConsistentQ(Q){
+      const inRange=(v)=>v>=Math.min(Q.min,Q.max)-1e-9 && v<=Math.max(Q.min,Q.max)+1e-9;
+      const aligned=(v)=>isAligned(+v, Q.min, Q.step);
+      if(!Q.refs.every(v=>inRange(v)&&aligned(v))) return false;
+      if(!Q.targets.every(v=>inRange(v)&&aligned(v))) return false;
+      const tickCount = Math.round((Q.max - Q.min)/Q.step);
+      if(tickCount !== TICK_INTERVALS) return false;
+      return true;
+    }
+    function chooseTargetsWithPreference(avail, preferred, k, gap){
+      const picks=[]; const pref=shuffle(preferred).filter(i=>avail.includes(i));
+      for(const i of pref){ if(picks.length>=k) break; if(picks.every(p=>Math.abs(p-i)>=gap)) picks.push(i); }
+      if(picks.length<k){
+        const others=shuffle(avail.filter(i=>!picks.includes(i)));
+        for(const i of others){ if(picks.length>=k) break; if(picks.every(p=>Math.abs(p-i)>=gap)) picks.push(i); }
+      }
+      if(picks.length<k){ picks.push(...avail.filter(i=>!picks.includes(i)).slice(0, k-picks.length)); }
+      return picks.sort((a,b)=>a-b);
+    }
+    function pickRoundedAnchor(step,minVal,maxVal){
+      const kMin=Math.ceil(minVal/step), kMax=Math.floor(maxVal/step);
+      if(kMin>kMax) return 0; const k=rnd(kMin,kMax); return k*step;
+    }
+
+    /* ===== Vraaggenerator ===== */
+    function genScenarioQuestion(){
+      for(let guard=0; guard<25; guard++){
+        const kind = typeSel?.value && typeSel.value!=='mix' ? typeSel.value : pickOne(['temp','bank','time']);
+        let preferredIdx = [];
+        let stepPool;
+        if(kind==='temp'){ stepPool=[0.2,0.5,1,2,5]; }
+        else if(kind==='bank'){ stepPool=[0.5,1,2,5,10,20]; }
+        else { // time
+          const r=Math.random();
+          if(r<0.5) stepPool=[1,2,4,5,10];
+          else if(r<0.7) stepPool=[100];
+          else if(r<0.9) stepPool=[1000,10000,100000];
+          else stepPool=[1000000];
+        }
+        const step=pickOne(stepPool);
+
+        let min;
+        if(kind==='time'){
+          let anchor;
+          if(step>=1000){
+            const ranges=[[-70000000,-1000000],[-500000,0],[0,3000]];
+            const rr=pickOne(ranges); anchor=pickRoundedAnchor(step, rr[0], rr[1]);
+          }else if(step===100){
+            anchor=pickRoundedAnchor(step, -1000, 3000);
+          }else{
+            const modernAnchors=[1914,1939,1969,1989,2001,2007,2016,2020,2024];
+            anchor=Math.round(pickOne(modernAnchors)/step)*step;
+          }
+          const k=rnd(3,9);
+          min=+(anchor - k*step).toFixed(decimalsOf(step));
+          if(step>=1000) min=Math.floor(min/step)*step;
+        }else if(kind==='temp'){
+          const anchor=pickOne([-25,-18,-10,0,4,10,15,20,25,30,37,45,60,70,90,100]);
+          const k=rnd(2,9); min=+(anchor - k*step).toFixed(decimalsOf(step));
+        }else{ // bank
+          const includeZero = Math.random()<0.7;
+          if(includeZero){ const left=rnd(3,10); min = -left*step; }
+          else{ const startMul=rnd(-12,6); min=+(startMul*step).toFixed(decimalsOf(step)); }
+        }
+        const max = +(min + TICK_INTERVALS*step).toFixed(decimalsOf(step));
+        const tickCount = TICK_INTERVALS;
+
+        // referenties
+        let a=rnd(1,tickCount-1), b=rnd(1,tickCount-1), guardRef=0;
+        while((b===a || Math.abs(b-a)<MIN_REF_GAP) && guardRef<50){ b=rnd(1,tickCount-1); guardRef++; }
+        const refsIdx=[a,b].sort((x,y)=>x-y);
+        const refs = refsIdx.map(i=>+(min+i*step).toFixed(decimalsOf(step)));
+
+        // hints
+        let hintLines=[];
+        if(kind==='time'){
+          const inRangeModern = TIME_EVENTS.filter(ev=>ev.y>=Math.min(min,max) && ev.y<=Math.max(min,max) && isAligned(ev.y,min,step));
+          const inRangePre = PREHIST_EVENTS.filter(ev=>ev.y>=Math.min(min,max) && ev.y<=Math.max(min,max) && isAligned(ev.y,min,step));
+          const pool = (step>=1000) ? inRangePre.concat(inRangeModern) : inRangeModern;
+          preferredIdx = pool.map(ev=>idxFromVal(ev.y,min,step));
+          const chosen=shuffle(pool).slice(0,Math.min(3,pool.length));
+          hintLines = chosen.length ? chosen.map(e=>`${formatNL(e.y)}: ${e.t}`) : ['Plaats de jaartallen correct op de tijdlijn.'];
+        }else if(kind==='temp'){
+          const inRange = TEMP_FACTS.filter(f=>f.c>=Math.min(min,max) && f.c<=Math.max(min,max) && isAligned(f.c,min,step));
+          preferredIdx = inRange.map(f=>idxFromVal(f.c,min,step));
+          const chosen=shuffle(inRange).slice(0,Math.min(3,inRange.length));
+          hintLines = chosen.length ? chosen.map(f=>`${formatNL(f.c)}°C: ${f.t}`) : ['Plaats de temperaturen correct op de schaal.'];
+        }else{
+          const inRangeM = MONEY_EVENTS.filter(ev=>ev.v>=Math.min(min,max) && ev.v<=Math.max(min,max) && isAligned(ev.v,min,step));
+          preferredIdx = inRangeM.map(ev=>idxFromVal(ev.v,min,step));
+          const chosen=shuffle(inRangeM).slice(0,Math.min(3,inRangeM.length));
+          hintLines = chosen.length ? chosen.map(e=>`€${formatNL(e.v)}: ${e.t}`) : ['Vergelijk de bedragen: negatief = schuld, positief = tegoed.'];
+        }
+
+        // targets
+        const forbid=new Set(refsIdx);
+        const availIdx=Array.from({length:tickCount+1},(_,i)=>i).filter(i=>!forbid.has(i));
+        const targetCount=(kind==='time' && Math.random()<0.5)?4:3;
+        const chosenIdx = chooseTargetsWithPreference(availIdx, preferredIdx, targetCount, MIN_TARGET_GAP);
+        const targets = chosenIdx.map(i=>+(min+i*step).toFixed(decimalsOf(step)));
+
+        // labels
+        let title, cls, printFn;
+        if(kind==='temp'){ title='Temperatuur (°C)'; cls='context-temp'; printFn=(v)=>printDeg(v,step); }
+        else if(kind==='bank'){ title='Bankrekening (€)'; cls='context-bank'; printFn=(v)=>printEuro(v,step); }
+        else { title='Tijdlijn (jaartallen)'; cls='context-time'; printFn=(v)=>printYear(v,step); }
+
+        const Qcand = {
+          min, max, step, refs,
+          targets: shuffle(targets),
+          title, cls, kind,
+          print: printFn,
+          tip: `Ijking = ${formatNL(step,step)} | Minimum = ${formatNL(min,step)} | Maximum = ${formatNL(max,step)}`,
+          hintLines
+        };
+        Qcand.goals = goalsForQuestion({min,max,step,kind});
+        if(isConsistentQ(Qcand)) return Qcand;
+      }
+
+      // fallback
+      const fb={ min:-50, max:80, step:10, refs:[-20,30], targets:[0,40,70],
+        title:'Bankrekening (€)', cls:'context-bank', kind:'bank',
+        print:(v)=>printEuro(v,10), tip:`Ijking = 10 | Minimum = -50 | Maximum = 80`, hintLines:['Plaats de bedragen correct op de schaal.'] };
+      fb.goals = goalsForQuestion({min:fb.min, max:fb.max, step:fb.step, kind:fb.kind});
+      return fb;
+    }
+    const genQuestion = ()=>genScenarioQuestion();
+
+    /* ===== Flow ===== */
+    function animateCheckButton(ok, after){
+      checkBtn.classList.remove('btn-ok','btn-err','btn-pop','btn-shake'); void checkBtn.offsetWidth;
+      if(ok){ checkBtn.classList.add('btn-ok','btn-pop'); } else { checkBtn.classList.add('btn-err','btn-shake'); }
+      setTimeout(()=>{ checkBtn.classList.remove('btn-ok','btn-err','btn-pop','btn-shake'); after && after(); }, 380);
+    }
+
+    function checkAnswer(){
+      for(const v of Q.targets){ if(!(String(v) in placements)){ register(false); return; } }
+      let ok=true;
+      for(const v of Q.targets){
+        const expected = idxFromVal(v, Q.min, Q.step);
+        if(placements[String(v)] !== expected){ ok=false; break; }
+      }
+      register(ok);
+    }
+
+    function register(ok){
+      flash(ok?'ok':'err');
+      if(ok){ okCount++; okCountEl.textContent=okCount; } else { errCount++; errCountEl.textContent=errCount; }
+
+      const placedCopy={}, placedValues=[];
+      Q.targets.forEach(v=>{
+        const key=String(v), idxT=placements[key];
+        placedCopy[key]=idxT;
+        const valAtTick=(idxT==null)?null: +(Q.min + idxT*Q.step).toFixed(decimalsOf(Q.step));
+        placedValues.push(valAtTick);
+      });
+
+      const row = {
+        i:(mode==='oefen'?oefenCounter+1:idx+1),
+        context: Q.title, hint: Q.hint || '',
+        step: Q.step, min: Q.min, max: Q.max,
+        refs: [...Q.refs], targets: [...Q.targets],
+        placed: placedCopy, placedValues,
+        correct: ok,
+        goals: (Q.goals||[])
+      };
+      results.push(row);
+
+      // per-vraag logging naar platform
+      try{
+        if(window.MR_SHARED && MR_SHARED.mark){
+          const fmtTargets = Q.targets.map(v=>Q.print?Q.print(v):formatNL(v,Q.step)).join(' | ');
+          const fmtPlaced  = placedValues.map(v=> (v==null?'-': (Q.print?Q.print(v):formatNL(v,Q.step)))).join(' | ');
+          MR_SHARED.mark({
+            q: `${Q.title} — targets: ${fmtTargets}`,
+            a: fmtPlaced,
+            correct: fmtTargets,
+            ok: !!ok,
+            goals: (Q.goals||[]).map(g=>g.code||g)
+          });
+        }
+      }catch(e){ /* noop */ }
+
+      const proceed=()=>{
+        if(mode==='oefen'){ if(ok){ oefenCounter++; initQuestion(genQuestion()); } }
+        else{
+          idx++;
+          if(idx>=total){
+            if(USE_SHARED && window.MR_SHARED && MR_SHARED.endRun){ MR_SHARED.endRun({}); }
+            else { finishRun(); }
+          }else{
+            initQuestion(genQuestion());
+          }
+        }
+      };
+      animateCheckButton(ok, proceed);
+    }
+
+    function applyContextClass(cls){
+      lineArea.classList.remove('context-temp','context-bank','context-time');
+      if(cls) lineArea.classList.add(cls);
+    }
+
+    function initQuestion(conf){
+      Q = { ...conf };
+      const modeName = (mode==='oefen'?'Oefenen':mode==='taak'?'Taak':'Toets');
+      const progress = (mode==='oefen'?'—':`${idx+1}/${total}`);
+      metaEl.textContent = `Getallenas • ${modeName} (${progress})`;
+
+      tipBox.textContent = Q.tip || '';
+      tipBox.style.display = 'none';
+      hintEl.innerHTML = renderHintLines(Q.hintLines) || '';
+      applyContextClass(Q.cls);
+
+      clearChips();
+      Q.targets.forEach(v=>createChip(v));
+      scheduleAxisBuild();
+      checkBtn.disabled=false;
+    }
+
+    /* ===== Tip toggle ===== */
+    tipBtn.onclick=()=>{ if(!tipBox.textContent) return; tipBox.style.display=(tipBox.style.display==='none')?'block':'none'; };
+
+    /* ===== Timer (fallback) ===== */
+    function startTimerUp(){ stopTimer(); seconds=0; timeDisp.textContent=fmtTime(seconds); timer=setInterval(()=>{ seconds++; timeDisp.textContent=fmtTime(seconds); }, 1000); }
+    function startTimerDown(){ stopTimer(); seconds=TEST_SECONDS; timeDisp.textContent=fmtTime(seconds);
+      timer=setInterval(()=>{ seconds--; if(seconds<0){ seconds=0; timeDisp.textContent='0:00'; finishRun(); } else { timeDisp.textContent=fmtTime(seconds);} }, 1000); }
+    function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
+
+    /* ===== Bewijs ===== */
+    function trySharedProof(summary){
+      try{
+        const api = (typeof window!=='undefined') ? window.MR_SHARED : null;
+        if(!api || typeof api.finishSession!=='function') return false;
+        const payload = { ...summary };
+        if(typeof payload.seconds==='number') payload.seconds=Math.max(0,Math.round(payload.seconds));
+        const res = api.finishSession(payload);
+        if(res && typeof res.then==='function'){ res.catch(err=>console.error('shared bewijs failed (async)', err)); }
+        return true;
+      }catch(e){ console.error('shared bewijs failed (sync)', e); return false; }
+    }
+
+    function downloadProof(){
+      const now=new Date();
+      const totalRows = results.length;
+      const correct = results.filter(r=>r.correct).length;
+
+      const allGoalCodes = Array.from(new Set(results.flatMap(r=>(r.goals||[])).map(g=> typeof g==='string'? g : (g && g.code) )));
+      const summary = {
+        title:'Getallenas',
+        gameId: (window.GAME_ID || 'getallenas'),
+        mode,
+        name: (studentName || ''),
+        class: (studentClass || ''),
+        ok: correct,
+        err: (totalRows - correct),
+        total: totalRows,
+        score: correct,
+        seconds: (mode==='toets') ? (TEST_SECONDS - Math.max(0, seconds)) : Math.max(0, seconds),
+        goals: allGoalCodes,
+        questions: results.map(r=>({
+          q: `${r.context} [${formatNL(r.min,r.step)} → ${formatNL(r.max,r.step)}; stap ${formatNL(r.step,r.step)}]`,
+          a: (r.placedValues||[]).map(v=> v==null?'-':(Q && Q.print? Q.print(v) : formatNL(v,r.step))).join(' | '),
+          given: (r.placedValues||[]).map(v=> v==null?'-':(Q && Q.print? Q.print(v) : formatNL(v,r.step))).join(' | '),
+          correct: (r.targets||[]).map(v=> (Q && Q.print? Q.print(v) : formatNL(v,r.step))).join(' | '),
+          ok: !!r.correct
+        }))
+      };
+
+      if(trySharedProof(summary)) return;
+
+      if(!(window.MR_SHARED && MR_SHARED.cert && MR_SHARED.cert.downloadTable)){
+        alert('Bewijsje kan niet gedownload worden (helper ontbreekt).');
+        return;
+      }
+
+      const secondsValue = Math.max(0, Math.round(summary.seconds||0));
+      const meta = {
+        name: summary.name || '-',
+        class: summary.class || '',
+        gameId: summary.gameId || (window.GAME_ID || 'getallenas'),
+        mode: summary.mode,
+        seconds: secondsValue,
+        score: summary.ok,
+        total: summary.total,
+        goals: summary.goals && summary.goals.length ? summary.goals : undefined,
+        date: now
+      };
+
+      const rows = (summary.questions && summary.questions.length)
+        ? summary.questions.map((q,i)=>({ nr:i+1, vraag:q.q, leerling:q.a||'-', correct:q.correct||'-', ok:!!q.ok }))
+        : [{ nr:1, vraag:'—', leerling:'—', correct:'—', ok:false }];
+
+      const safe = (summary.name || 'leerling').replace(/[^\w\s-]+/g,'').trim().replace(/\s+/g,'_');
+      const stamp = now.toISOString().replace(/[:T]/g,'-').split('.')[0];
+
+      MR_SHARED.cert.downloadTable({
+        width: 1240,
+        title: 'Bewijsje - Getallenas',
+        gradient: ['#ffffff','#eef3ff'],
+        meta,
+        table:{
+          title:'Vragen & antwoorden',
+          columns:[
+            {label:'#', key:'nr', width:60},
+            {label:'Vraag', key:'vraag', width:420, wrap:true, lineHeight:22},
+            {label:'Leerling', key:'leerling', width:240},
+            {label:'Correct', key:'correct', width:240},
+            {label:'Status', width:120, align:'center', value:r=>r.ok?'Juist':'Fout', color:r=>r.ok?'#16a34a':'#dc2626'}
+          ],
+          rows
+        },
+        fileName: `bewijsje_getallenas_${summary.mode}_${safe}_${stamp}.png`
+      });
+    }
+
+    function finishRun(){
+      stopTimer();
+      downloadProof();
+      setMode('oefen'); // terug vrij
+      initQuestion(genQuestion());
+    }
+
+    /* ===== Overlay helpers (fallback) ===== */
+    function showOverlay(show, title='Start', sub='Vul je naam en klas in en klik Start.'){
+      ovl.style.display = show ? 'flex' : 'none';
+      document.body.classList.toggle('noscroll', show);
+      if(show){
+        dlgTitle.textContent=title; dlgSub.textContent=sub;
+        nameInput.value = localStorage.getItem('mr.name') || '';
+        classInput.value = localStorage.getItem('mr.class') || '';
+        requestAnimationFrame(()=> nameInput.focus());
+      }
+    }
+
+    function setFreeLock(disabled){
+  document.querySelectorAll('[data-lock-on-run],[data-free-only]').forEach(el=>{
+    if (el.tagName === 'BUTTON') {
+      el.disabled = !!disabled;
+    } else {
+      if (disabled) el.setAttribute('disabled','true');
+      else el.removeAttribute('disabled');
+    }
+  });
+  if (typeSel){ typeSel.disabled = !!disabled; }
+}
+
+    function startRun(newMode){
+      mode = newMode; idx = 0; okCount = 0; errCount = 0;
+      okCountEl.textContent='0'; errCountEl.textContent='0'; results.length = 0; placements={};
+      setFreeLock(mode!=='oefen');
+
+      if(mode==='oefen'){ total=0; timeDisp.textContent='—'; stopTimer(); }
+      if(mode==='taak'){ total=20; startTimerUp(); }
+      if(mode==='toets'){ total=20; startTimerDown(); }
+
+      initQuestion(genQuestion());
+    }
+
+    function setMode(newMode){ startRun(newMode); }
+
+    /* ===== Events ===== */
+    checkBtn.onclick = checkAnswer;
+    fullBtn.onclick = ()=>{ if(!document.fullscreenElement){ document.documentElement.requestFullscreen?.(); } else { document.exitFullscreen?.(); } };
+    window.addEventListener('resize', ()=> scheduleAxisBuild());
+
+    /* ===== MR_SHARED wiring + fallbacks ===== */
+    document.addEventListener('DOMContentLoaded', ()=>{
+      if(window.MR_SHARED && MR_SHARED.wireTopbar){
+        USE_SHARED = true;
+        MR_SHARED.wireTopbar({
+          gameId: (window.GAME_ID || 'getallenas'),
+          title: 'Getallenas',
+          selectors:{ taskBtn:'#startTaak', testBtn:'#startToets', timerLabel:'#timeDisp' },
+          test:{ countdownSec: TEST_SECONDS },
+          onReset(runMode){
+            try{
+              if(MR_SHARED.getName) studentName = MR_SHARED.getName() || '';
+              studentClass = (MR_SHARED.getClass && MR_SHARED.getClass()) || (localStorage.getItem('mr.class')||'');
+            }catch(e){}
+            setMode(runMode); // 'taak' | 'toets'
+          },
+          onFinish(summary){
+            const totalRows = results.length;
+            const correct = results.filter(r=>r.correct).length;
+            const goalCodes = Array.from(new Set(results.flatMap(r=>(r.goals||[])).map(g=> g.code||g )));
+            summary.title = summary.title || 'Getallenas';
+            summary.gameId = summary.gameId || (window.GAME_ID || 'getallenas');
+            summary.name = summary.name || studentName || '';
+            summary.ok = (typeof summary.ok==='number') ? summary.ok : correct;
+            summary.total = (typeof summary.total==='number') ? summary.total : totalRows;
+            summary.err = (typeof summary.err==='number') ? summary.err : Math.max(0, summary.total - summary.ok);
+            summary.score = (typeof summary.score==='number') ? summary.score : summary.ok;
+            summary.goals = Array.from(new Set([...(summary.goals||[]), ...goalCodes]));
+            if(!summary.questions || !summary.questions.length){
+              summary.questions = results.map(r=>({
+                q: `${r.context} [${formatNL(r.min,r.step)} → ${formatNL(r.max,r.step)}; stap ${formatNL(r.step,r.step)}]`,
+                a: (r.placedValues||[]).map(v=> v==null?'-':(Q && Q.print? Q.print(v) : formatNL(v,r.step))).join(' | '),
+                given: (r.placedValues||[]).map(v=> v==null?'-':(Q && Q.print? Q.print(v) : formatNL(v,r.step))).join(' | '),
+                correct: (r.targets||[]).map(v=> (Q && Q.print? Q.print(v) : formatNL(v,r.step))).join(' | '),
+                ok: !!r.correct
+              }));
+            }
+            MR_SHARED.finishSession(summary);
+            setMode('oefen');
+          }
+        });
+      } else {
+        // Alleen zonder MR_SHARED: fallback handlers + oefenstart
+        startTaak.onclick = ()=>{
+          const n=(prompt('Naam?')||'').trim(); if(!n) return;
+          studentName=n; startRun('taak');
+        };
+        startToets.onclick = ()=>{
+          const n=(prompt('Naam?')||'').trim(); if(!n) return;
+          studentName=n; startRun('toets');
+        };
+        // start vrij oefenen
+        startRun('oefen');
+        timeDisp.textContent='—';
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

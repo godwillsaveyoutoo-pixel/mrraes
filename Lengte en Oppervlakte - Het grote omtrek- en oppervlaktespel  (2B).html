@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mr Raes: Omtrek & Oppervlakte — BV1_06.06</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f7f9fc; --card:#fff; --ink:#0b132b; --muted:#6b7280;
+      --ring:#e6ecf8; --ring2:#dfe6f6; --shadow:0 10px 28px rgba(15,23,42,.06);
+      --good:#10b981; --bad:#ef4444; --accent:#ffffff;
+      --radius-board:24px; --radius-chip:999px;
+      --control-h:56px; --control-h-lg:64px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink); font-family:Inter, system-ui, Arial, sans-serif;
+      background:radial-gradient(1200px 600px at 80% -10%, #eef3ff 0%, #f7f9fc 50%, #fbfdff 100%);
+    }
+    .wrap{width:min(1200px,96vw); padding:1rem; margin:0 auto}
+
+    .topbar{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem}
+    .chip{
+      background:#fff; border:1px solid var(--ring2); border-radius:var(--radius-chip);
+      padding:.35rem .7rem; box-shadow:var(--shadow); display:inline-flex; gap:.5rem; align-items:center; font-weight:800
+    }
+    .chip.btn{cursor:pointer}
+    .chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+    .chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+    .chip.sm{padding:.22rem .55rem; font-weight:900}
+    .spacer{flex:1}
+
+    .board{
+      background:#fff; border:1px solid var(--ring); border-radius:var(--radius-board);
+      box-shadow:var(--shadow); padding:1rem;
+      display:grid; grid-template-columns:420px 1fr; gap:1rem; align-items:stretch;
+      min-height:clamp(560px,78vh,920px); position:relative;
+    }
+    .board.flash-ok{background:#f4fdf8!important; border-color:#c4eedc!important; transition:background .25s, border-color .25s}
+    .board.flash-err{background:#fff6f6!important; border-color:#ffd7d7!important; transition:background .25s, border-color .25s}
+
+    .leftCol{
+      background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow);
+      display:flex; flex-direction:column; height:100%
+    }
+    .imgbox{
+      flex:1; min-height:0; border-radius:16px; overflow:hidden; background:#fff; border:1px solid var(--ring);
+      display:flex; align-items:center; justify-content:center; height:100%
+    }
+    .imgbox img{width:100%; height:100%; object-fit:contain}
+
+    .rightCol{display:grid; grid-template-rows:1fr auto; gap:.75rem; min-height:0}
+
+    .qCard{
+      position:relative;
+      background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem 1.2rem 1.2rem;
+      box-shadow:var(--shadow);
+      display:flex; min-height:0;
+    }
+    .qCenter{
+      margin:auto;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:.75rem; text-align:center; width:100%; max-width:720px;
+    }
+    .meta{
+      display:flex; justify-content:center; align-items:center; text-align:center;
+      gap:.5rem; flex-wrap:wrap; color:#374151; font-weight:800; margin-top: 30px;
+    }
+    .badge{border:1px solid var(--ring2); border-radius:999px; padding:.25rem .6rem; background:#fff; box-shadow:var(--shadow); margin-top:.2rem;}
+
+    .toolBar{position:absolute; top:8px; right:8px; display:flex; gap:.35rem;}
+    .toolBtn{border:1px solid var(--ring2); background:#fff; border-radius:999px; padding:.2rem .6rem; font-weight:900; cursor:pointer; box-shadow:var(--shadow)}
+
+    .qText{
+      white-space:pre-line;
+      align-self:center; text-align:center;
+      font-weight:900; font-size:clamp(18px,2.2vw,22px); line-height:1.35;
+      min-height:3.2em; padding:.2rem .4rem;
+    }
+    .row{display:flex; align-items:center; justify-content:center; gap:.6rem; flex-wrap:wrap}
+    .ibox{
+      height:var(--control-h); min-width:280px; padding:0 16px;
+      font:900 20px Inter, sans-serif; text-align:center;
+      border-radius:12px; background:#fff; border:1px solid var(--ring2); color:var(--ink); outline:none
+    }
+    select.ibox{min-width:140px}
+    #checkBtn.key{height:var(--control-h-lg); padding:0 28px; font-size:20px; border-radius:14px}
+    .status{min-height:28px; font-weight:800; text-align:center}
+    .okTxt{color:var(--good)} .errTxt{color:var(--bad)}
+
+    /* Panels */
+    .floatingPanel{
+      position:absolute; top:46px; right:8px; z-index:5;
+      background:#fff; border:1px solid var(--ring2); border-radius:12px; box-shadow:var(--shadow);
+      padding:.75rem .9rem; display:none; font-weight:800; color:#374151; max-width:min(460px, 96vw);
+    }
+    .floatingPanel h4 { margin: .2rem 0 .6rem; font-weight: 900; }
+    .floatingPanel .rowp { margin: .25rem 0; line-height: 1.35; }
+    .floatingPanel sup{font-size:.8em}
+
+    .helpPanel .rowp strong{font-weight: 900; text-decoration-thickness: .18em; text-underline-offset: .18em;}
+    .helpPanel .rowp.perim  strong{ color:#1d4ed8; text-decoration: underline #93c5fd;}
+    .helpPanel .rowp.area   strong{ color:#dc2626; text-decoration: underline #fca5a5;}
+    .helpPanel .rowp.units  strong{ color:#065f46; text-decoration: underline #a7f3d0;}
+
+    /* Rekenpaneel */
+    .calcPanel{ width:min(420px, 96%); padding:1rem; }
+    .calcDisplayWrap{ border:1px solid var(--ring2); border-radius:12px; box-shadow:var(--shadow);
+      background:#fff; padding:.4rem; margin-bottom:.7rem; }
+    .calcDisplay{ width:100%; border:none; outline:none; background:transparent;
+      font:900 24px Inter, system-ui, sans-serif; text-align:right; padding:.3rem .4rem; color:#0b132b; }
+    .calcKeys{ display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; }
+    .ckey{ user-select:none; cursor:pointer; height:56px; border-radius:14px; border:1px solid var(--ring2);
+      background:#f7faff; box-shadow:0 6px 16px rgba(15,23,42,.06); font:900 20px Inter, system-ui, sans-serif;
+      transition:transform .06s, box-shadow .12s, background .12s, border-color .12s; }
+    .ckey:active{ transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08); }
+    .ckey.c-op   { background:#eef5ff; border-color:#cfe2ff; }
+    .ckey.c-func { background:#fff7ea; border-color:#ffe2b8; }
+    .ckey.c-eq   { background:#eafaf4; border-color:#c4eedc; }
+
+    /* Rechter numeriek blok (antwoord) */
+    .padwrap{align-self:auto; background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow)}
+    .keypad{display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem}
+    .key{
+      user-select:none; cursor:pointer; text-align:center; font-weight:900; font-size:clamp(18px,3.2vw,22px);
+      padding:1rem 0; border-radius:14px; background:#f7faff; border:1px solid var(--ring2);
+      box-shadow:0 6px 16px rgba(15,23,42,.06); transition:transform .06s, box-shadow .12s, background .12s
+    }
+    .key.wide{grid-column:1/-1}
+    .key:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+    .key.ok{background:#eafaf4; border-color:#c4eedc}
+    .key.bad{background:#fdeeee; border-color:#ffd7d7}
+
+    /* Overlays */
+    .overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,.25);
+      display:none; align-items:center; justify-content:center; padding:20px; z-index:100;
+    }
+    .dialog{
+      width:min(560px, 94vw);
+      background:#fff; border:1px solid var(--ring2); border-radius:16px; padding:16px; box-shadow:0 24px 80px rgba(0,0,0,.12)
+    }
+    .dialog h2{margin:0 0 8px; font-size:20px}
+
+    @media (max-width:980px){
+      .board{grid-template-columns:1fr; min-height:unset}
+      .leftCol{height:auto} .imgbox{height:420px}
+      .padwrap{align-self:stretch}
+    }
+
+    .svgwrap{display:block; background:#f9fbff; border:1px solid var(--ring); border-radius:10px; padding:8px; margin:.4rem 0}
+    .muted{color:#6b7280}
+    .dimchip{display:inline-block;border:1px solid var(--ring2);border-radius:10px;padding:.15rem .45rem;background:#fff;margin:.1rem;font-weight:800}
+
+    /* --- HELP VISUALS UPGRADE --- */
+    .helpPanel .svgwrap{
+      background:#fff; border:1px solid var(--ring); border-radius:12px;
+      padding:8px; margin:.5rem 0; box-shadow:0 6px 18px rgba(15,23,42,.06);
+    }
+    .helpPanel svg text{
+      font-family:Inter,system-ui,Arial,sans-serif;
+      font-weight:800; fill:#111827; font-size:12px; paint-order:stroke fill;
+      stroke:#fff; stroke-width:2px; stroke-linejoin:round;
+    }
+    .helpPanel .legend{display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.35rem}
+    .helpPanel .legend .chip{
+      border-radius:999px; padding:.2rem .55rem; font-size:12px; font-weight:900;
+      border:1px solid var(--ring2); background:#fff; box-shadow:var(--shadow)
+    }
+    .helpPanel .legend .per{color:#1d4ed8; border-color:#bfdbfe; background:#eef5ff}
+    .helpPanel .legend .area{color:#dc2626; border-color:#fecaca; background:#fff1f1}
+  </style>
+
+  <!-- Optioneel: gedeelde helpers (logging/bewijs) -->
+  <link rel="stylesheet" href="mrraes-shared.css">
+  <script src="mrraes-shared.js"></script>
+</head>
+<body>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button id="startTaak" class="chip btn">📝 Start taak (20)</button>
+    <button id="startToets" class="chip btn">🧭 Start toets (20 / 15 min)</button>
+    <button id="fullBtn" class="chip btn">⤢ Volledig scherm</button>
+
+    <span class="chip" id="levelChip">📈 Level: <strong>1 / 4</strong></span>
+<!-- Oefenlevel keuze (alleen zichtbaar in oefenmodus) -->
+    <div id="practiceLevel" class="chip" style="display:none; gap:.4rem;">
+      🎯 Oefenlevel:
+      <button class="chip btn sm lvlBtn" data-lvl="1">1</button>
+      <button class="chip btn sm lvlBtn" data-lvl="2">2</button>
+      <button class="chip btn sm lvlBtn" data-lvl="3">3</button>
+      <button class="chip btn sm lvlBtn" data-lvl="4">4</button>
+    </div>
+    <span id="unitModeFree"   class="chip btn">🔓 Vrije eenheid</span>
+    <span id="unitModeForced" class="chip btn">🔒 Gevraagde eenheid</span>
+
+    
+
+    <div class="spacer"></div>
+    <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+    <span class="chip ok">✅ Juist: <span id="okCount">0</span></span>
+    <span class="chip bad">❌ Fout: <span id="errCount">0</span></span>
+  </div>
+
+  <div class="wrap">
+    <div class="board" id="board">
+      <!-- LINKS -->
+      <div class="leftCol">
+        <div class="imgbox"><img id="itemImg" alt="Afbeelding" /></div>
+      </div>
+
+      <!-- RECHTS -->
+      <div class="rightCol">
+        <div class="qCard">
+          <div class="toolBar">
+            <button id="calcBtn" class="toolBtn">🧮 Reken</button>
+            <button id="helpBtn" class="toolBtn">❔ Hulp</button>
+          </div>
+
+          <!-- DYNAMISCHE HELP -->
+          <div id="helpPanel" class="floatingPanel helpPanel" aria-live="polite"></div>
+
+          <!-- UITLEG -->
+          <div id="explainPanel" class="floatingPanel" aria-live="polite"></div>
+
+          <!-- REKENTOESTEL -->
+          <div id="calcPanel" class="floatingPanel calcPanel" aria-hidden="true">
+            <h4>Rekentoestel</h4>
+            <div class="calcDisplayWrap">
+              <input id="calcDisplay" class="calcDisplay" type="text" inputmode="decimal" placeholder="0" />
+            </div>
+            <div class="calcKeys" id="calcKeys">
+              <button class="ckey c-func" data-act="ac">AC</button>
+              <button class="ckey c-func" data-act="bksp">←</button>
+              <button class="ckey c-func" data-k="π">π</button>
+              <button class="ckey c-op"   data-k="÷">÷</button>
+              <button class="ckey" data-k="7">7</button>
+              <button class="ckey" data-k="8">8</button>
+              <button class="ckey" data-k="9">9</button>
+              <button class="ckey c-op" data-k="×">×</button>
+              <button class="ckey" data-k="4">4</button>
+              <button class="ckey" data-k="5">5</button>
+              <button class="ckey" data-k="6">6</button>
+              <button class="ckey c-op" data-k="−">−</button>
+              <button class="ckey" data-k="1">1</button>
+              <button class="ckey" data-k="2">2</button>
+              <button class="ckey" data-k="3">3</button>
+              <button class="ckey c-op" data-k="+">+</button>
+              <button class="ckey" data-k="0">0</button>
+              <button class="ckey" data-k=",">,</button>
+              <button class="ckey c-eq" data-act="eq">=</button>
+              <button class="ckey c-func" id="calcPaste" title="Plak resultaat in antwoord">⤓</button>
+            </div>
+          </div>
+
+          <!-- Gecentreerd blok -->
+          <div class="qCenter">
+            <div class="meta">
+              <span class="badge" id="itemName">—</span>
+              <span class="badge" id="itemDims">—</span>
+              <span class="badge" id="taskKind">—</span>
+            </div>
+            <div id="question" class="qText">Klik op “Start taak/toets” of oefen vrij.</div>
+            <div class="row">
+              <input id="answer" class="ibox" type="text" placeholder="jouw antwoord…" inputmode="decimal" />
+              <select id="unitSelect" class="ibox">
+                <option value="">— eenheid —</option>
+                <option>mm</option><option>cm</option><option>m</option>
+                <option>mm²</option><option>cm²</option><option>m²</option>
+              </select>
+              <button id="checkBtn" class="key" data-act="enter">OK</button>
+            </div>
+            <div id="status" class="status"></div>
+          </div>
+        </div>
+
+        <div class="padwrap">
+          <div class="keypad" id="pad">
+            <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key" data-act="bksp">←</div>
+            <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">,</div>
+            <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">0</div>
+            <div class="key wide" id="okKey" data-act="enter">OK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTAAT / BEWIJSJE OVERLAY -->
+  <div class="overlay" id="resultOverlay" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+      <h2 id="resultTitle">Klaar!</h2>
+      <div id="resultBody" style="margin:.4rem 0 .8rem; font-weight:800; color:#111827"></div>
+      <div style="display:flex; justify-content:flex-end; gap:.5rem; margin-top:.8rem">
+        <button id="downloadProofBtn" class="chip btn">📷 Download bewijs</button>
+        <button id="closeResultBtn" class="chip btn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ========= DATA ========= */
+    const ITEMS = [
+      // RECTS
+      {type:'rect',  name:'Basketbord',     img:['basketbord.png'],      unit:'cm', w:120, h:105},
+      {type:'rect',  name:'Klimrek',        img:['klimrek.png'],         unit:'cm', w:230, h:90},
+      {type:'rect',  name:'Pingpongtafel',  img:['pingpongtafel.png'],   unit:'cm', w:274, h:152},
+      {type:'rect',  name:'Rekentoestel',   img:['rekentoestel.png'],    unit:'cm', w:13,  h:7},
+      {type:'rect',  name:'Schoolbord',     img:['schoolbord.png'],      unit:'cm', w:120, h:80},
+      {type:'rect',  name:'Schriftje',      img:['schriftje.png'],       unit:'cm', w:20,  h:15},
+      {type:'rect',  name:'Mattenstapel',   img:['mattenstapel.png'],    unit:'cm', w:90,  h:70},
+      {type:'rect',  name:'Valmat',         img:['valmat.png'],          unit:'cm', w:200, h:60},
+      {type:'rect',  name:'Chocoladereep',  img:['chocoladereep.png'],   unit:'mm', w:180, h:60},
+      {type:'rect',  name:'Chocoladestukje',img:['chocoladestukje.png'], unit:'mm', w:30, h:15},
+      {type:'rect',  name:'Dambord',        img:['dambord.png'],         unit:'dm', w:3, h:3},
+      {type:'rect',  name:'Map',            img:['map.png'],             unit:'mm', w:300, h:200},
+      {type:'rect',  name:'Smartphone',     img:['smartphone.png'],      unit:'mm', w:150, h:50},
+      {type:'rect',  name:'Wollen Tapijt',  img:['tapijt.png'],          unit:'m', w:2.8, h:1.2},
+      {type:'rect',  name:'Tapijt',         img:['tapijtje.png'],        unit:'m', w:1.1, h:0.4},
+      // CIRCLES
+      {type:'circle',name:'Basketbal',      img:['basketbal.png'],       unit:'cm', d:24},
+      {type:'circle',name:'Frisbee',        img:['frisbee.png'],         unit:'cm', d:27},
+      {type:'circle',name:'Klok',           img:['klok.png'],            unit:'cm', d:30},
+      {type:'circle',name:'Hoepel',         img:['hoepel.png'],          unit:'cm', d:80},
+      {type:'circle',name:'Wereldbol',      img:['wereldbol.png'],       unit:'cm', d:32},
+      {type:'circle',name:'Trampoline',     img:['trampoline.png'],      unit:'cm', d:140},
+      {type:'circle',name:'Basket-ring',    img:['basketring.png'],      unit:'cm', d:45},
+      {type:'circle',name:'Ringen (turnen)',img:['ringen.png'],          unit:'cm', d:18},
+      // TRIANGLE
+      {type:'tri',   name:'Driehoekmat',    img:['driehoekmat.png'],     unit:'cm', a:50, b:60, c:60, ha:55},
+      {type:'tri',   name:'Verkeersbord',   img:['verkeersbord.png'],    unit:'dm', a:4, b:4, c:4, ha:4.5},
+      {type:'tri',   name:'Zeil',           img:['zeil.png'],            unit:'cm', a:200, b:180, c:100, ha:215},
+      {type:'tri',   name:'Doritos',        img:['doritos.png'],         unit:'dm', a:0.4, b:0.3, c:0.32, ha:0.25},
+      {type:'tri',   name:'Boterham',       img:['boterham.png'],        unit:'dm', a:1.2, b:1.5, c:0.9, ha:1.2},
+      // SQUARE
+      {type:'square',name:'Vierkante tegel',img:['tegel.png'],           unit:'cm', s:20},
+      {type:'square',name:'Pizzadoos',      img:['pizzadoos.png'],       unit:'dm', s:2.5},
+      {type:'square',name:'Dambord',        img:['dambord.png'],         unit:'dm', s:3},
+    ];
+
+    /* ========= HELPERS ========= */
+    const $  = s => document.querySelector(s);
+    const byId = id => document.getElementById(id);
+    const rnd = n => Math.floor(Math.random() * n);
+    const round2 = x => Math.round((+x + Number.EPSILON) * 100) / 100;
+
+    const prettyC = (n) => {
+      if (n === null || n === undefined || Number.isNaN(+n)) return '—';
+      const r = round2(+n);
+      const s = (Math.abs(r - Math.round(r)) < 1e-12 ? String(Math.round(r))
+        : String(r.toFixed(2)).replace(/\.?0+$/, ''));
+      return s.replace('.', ',');
+    };
+    const parseNum = (s) => {
+      if (typeof s !== 'string') s = String(s);
+      s = s.replace(/\./g, ',').replace(/[^\d,]/g, '');
+      const first = s.indexOf(',');
+      if (first !== -1) s = s.slice(0, first + 1) + s.slice(first + 1).replace(/,/g, '');
+      return Number(s.replace(',', '.'));
+    };
+    function attachCommaGuard(el){
+      el.addEventListener('input', ()=>{
+        let v = el.value;
+        v = v.replace(/\./g, ',').replace(/[^\d,]/g, '');
+        const i = v.indexOf(',');
+        if (i !== -1) v = v.slice(0, i+1) + v.slice(i+1).replace(/,/g,'');
+        el.value = v;
+      });
+    }
+    async function resolveImage(cands){
+      const BASE = "omtrekenoppervlakte/";
+      for (const name of (cands || [])) {
+        const candidatePath = BASE + name;
+        try {
+          await new Promise((res, rej) => {
+            const im = new Image();
+            im.onload = () => res(candidatePath);
+            im.onerror = rej;
+            im.src = candidatePath;
+          });
+          return candidatePath;
+        } catch(e) {}
+      }
+      return (cands && cands[0]) ? (BASE + cands[0]) : "";
+    }
+
+    // naam uit bestandsnaam (lowercase, zonder extensie/pad/koppelteken)
+    function fileStemLower(it){
+      const f = (it.img && it.img[0]) || (it.name || '');
+      return String(f).toLowerCase()
+        .replace(/^.*\//,'')
+        .replace(/\.(png|jpg|jpeg|webp|svg)$/,'')
+        .replace(/-/g,'');
+    }
+    // lidwoorden (basis + fallback)
+    const LIDWOORD = {
+      basketbord:'het', klimrek:'het', pingpongtafel:'de', rekentoestel:'het',
+      schoolbord:'het', schriftje:'het', mattenstapel:'de', valmat:'de',
+      basketbal:'de', frisbee:'de', klok:'de', hoepel:'de', wereldbol:'de',
+      trampoline:'de', basketring:'de', ringen:'de',
+      driehoekmat:'de', tegel:'de',
+      verkeersbord:'het', zeil:'het', doritos:'de', boterham:'de',
+      pizzadoos:'de', dambord:'het', map:'de', smartphone:'de', tapijt:'het', tapijtje:'het',
+    };
+    const artikelVoor = woord => LIDWOORD[woord] || (/(tje|je)$/.test(woord) ? 'het' : 'de');
+
+    const LEN_UNITS  = ['mm','cm','m'];
+    const AREA_UNITS = ['mm²','cm²','m²'];
+
+    // Eenheden-conversie
+    const LENGTH_FACTORS = { mm: 0.001, cm: 0.01, m: 1 }; // naar meter
+    const AREA_FACTORS   = { 'mm²': 1e-6, 'cm²': 1e-4, 'm²': 1 }; // naar m²
+    const isAreaUnit = u => /²$/.test(u);
+    function sameDimFamily(u1, u2){ return isAreaUnit(u1) === isAreaUnit(u2); }
+    function convert(val, fromUnit, toUnit){
+      if (fromUnit === toUnit) return val;
+      if (isAreaUnit(fromUnit)){
+        const fFrom = AREA_FACTORS[fromUnit], fTo = AREA_FACTORS[toUnit];
+        if (fFrom == null || fTo == null) return NaN;
+        return val * (fFrom / fTo);
+      } else {
+        const fFrom = LENGTH_FACTORS[fromUnit], fTo = LENGTH_FACTORS[toUnit];
+        if (fFrom == null || fTo == null) return NaN;
+        return val * (fFrom / fTo);
+      }
+    }
+
+    /* ========= UI refs ========= */
+    const unitModeFreeBtn   = byId('unitModeFree');
+    const unitModeForcedBtn = byId('unitModeForced');
+
+    const board = byId('board');
+    const okEl = byId('okCount');
+    const errEl = byId('errCount');
+    const timeDisp = byId('timeDisp');
+    const startTaak = byId('startTaak');
+    const startToets = byId('startToets');
+    const fullBtn = byId('fullBtn');
+    const levelChip = byId('levelChip');
+
+    const $img = byId('itemImg');
+    const $nm = byId('itemName');
+    const $dims = byId('itemDims');
+    const $taskKind = byId('taskKind');
+
+    const $q = byId('question');
+    const $ans = byId('answer');
+    const $unit = byId('unitSelect');
+    const $status = byId('status');
+
+    const pad = byId('pad');
+    const okKey = byId('okKey');
+    const checkBtn = byId('checkBtn');
+
+    const resultOverlay = byId('resultOverlay');
+    const resultBody = byId('resultBody');
+    const downloadProofBtn = byId('downloadProofBtn');
+    const closeResultBtn = byId('closeResultBtn');
+
+    const helpBtn = byId('helpBtn');
+    const helpPanel = byId('helpPanel');
+
+    // Rekentoestel
+    const calcBtn = byId('calcBtn');
+    const calcPanel = byId('calcPanel');
+    const calcDisplay = byId('calcDisplay');
+    const calcKeys    = byId('calcKeys');
+    const pasteBtn    = byId('calcPaste');
+
+    // Uitleg
+    const explainPanel = byId('explainPanel');
+
+    // Oefenlevel UI
+    const practiceLevel = byId('practiceLevel');
+
+    /* ========= STATE ========= */
+    let unitMode = 'free'; // 'free' of 'forced'
+    let mode = 'oefen';    // 'oefen'|'taak'|'toets'
+    let total = 0, idx = 0, seconds = 0, timer = null, studentName = '';
+    let ok = 0, err = 0;
+    let current = null;
+    let runLog = [];
+    let dyscalculie = false; // vlag uit MR_SHARED.askName (toets)
+
+    // Adaptive / oefenlevel
+    let level = 1;          // 1..4 (adaptief standaard)
+    let levelLock = 1;      // oefenmodus: vast level (1..4). Start op 1 zoals gevraagd.
+    let streakOK = 0;
+    let streakERR = 0;
+
+    /* ========= GOALS ========= */
+    const GOALS = {
+      OMTREK:      "BV1_06.06* – Omtrek berekenen",
+      OPP:         "BV1_06.06* – Oppervlakte berekenen",
+      EENHEDEN:    "BV1_06.06* – Gepaste eenheden kiezen",
+      VERMENDEL:   "BV1_06.06* – Eenvoudige berekeningen in context"
+    };
+
+    /* ========= FORMULES ========= */
+    const PI = Math.PI;
+
+    function describeDims(it){
+      const u = it.unit || 'cm';
+      if (it.type==='rect')   return `lengte = ${prettyC(it.w)} ${u}, breedte = ${prettyC(it.h)} ${u}`;
+      if (it.type==='square') return `zijde = ${prettyC(it.s)} ${u}`;
+      if (it.type==='circle') return `diameter = ${prettyC(it.d)} ${u}`;
+      if (it.type==='tri')    return `basis a = ${prettyC(it.a)} ${u}, b = ${prettyC(it.b)} ${u}, c = ${prettyC(it.c)} ${u}, hoogte = ${prettyC(it.ha)} ${u}`;
+      return '—';
+    }
+    function perimeter(it){
+      const u = it.unit;
+      if (it.type==='rect')   return {val: 2*(it.w + it.h), unit:u};
+      if (it.type==='square') return {val: 4*it.s, unit:u};
+      if (it.type==='circle') return {val: PI*it.d, unit:u};
+      if (it.type==='tri')    return {val: it.a + it.b + it.c, unit:u};
+      return {val:NaN, unit:u};
+    }
+    function area(it){
+      const u = it.unit;
+      if (it.type==='rect')   return {val: it.w*it.h, unit:u+'²'};
+      if (it.type==='square') return {val: it.s*it.s, unit:u+'²'};
+      if (it.type==='circle') return {val: PI * Math.pow(it.d/2,2), unit:u+'²'};
+      if (it.type==='tri')    return {val: 0.5 * it.a * it.ha, unit:u+'²'};
+      return {val:NaN, unit:u+'²'};
+    }
+    const unitPool = kind => (kind==='omtrek') ? LEN_UNITS : AREA_UNITS;
+    function fmtTime(s){ return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+
+    async function showItem(it){
+      const src = await resolveImage(it.img || []);
+      $img.src = src; $img.alt = it.name;
+      $nm.textContent = it.name;
+      $dims.textContent = describeDims(it);
+    }
+
+    /* ========= ADAPTIVE POOLS ========= */
+    function combosForLevel(lvl){
+      const C = [];
+      if (lvl >= 1){
+        C.push(['square','omtrek'], ['rect','omtrek'], ['tri','omtrek']);
+      }
+      if (lvl >= 2){
+        C.push(['square','oppervlakte'], ['rect','oppervlakte']);
+      }
+      if (lvl >= 3){
+        C.push(['tri','oppervlakte'], ['circle','omtrek']);
+      }
+      if (lvl >= 4){
+        C.push(['circle','oppervlakte']);
+      }
+      return C;
+    }
+    function pickQuestion(lvl){
+      const combos = combosForLevel(lvl);
+      const [t,k] = combos[rnd(combos.length)];
+      const pool = ITEMS.filter(it => it.type === t);
+      const it = pool[rnd(pool.length)];
+      return {it, kind:k};
+    }
+
+    /* ========= HELP / UITLEG ========= */
+// ——— HULPTEKENINGEN (SVG) ———
+function svgFor(it, kind){
+  const isPerim = (kind === 'omtrek');
+  const C = {
+    perim: '#1d4ed8',   // blauw (omtrek)
+    area:  '#dc2626',   // rood (oppervlakte)
+    dim:   '#9ca3af',   // maatlijnen
+    frame: '#e5edff',   // kader
+    fill:  '#fafcff'    // lichte bg
+  };
+  const W = 420, H = 220;
+
+  const wrap = inner => `
+    <div class="svgwrap">
+      <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">
+        <defs>
+          <marker id="mr-arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse">
+            <path d="M0,0 L8,4 L0,8 Z" fill="${C.dim}"></path>
+          </marker>
+          <pattern id="mr-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#fecaca" stroke-width="2"></line>
+          </pattern>
+        </defs>
+        <rect x="0.5" y="0.5" width="${W-1}" height="${H-1}" rx="10" fill="${C.fill}" stroke="${C.frame}"></rect>
+        ${inner}
+      </svg>
+    </div>`;
+
+  const text = (x,y,t) => `<text x="${x}" y="${y}">${t}</text>`;
+  const dimArrow = (x1,y1,x2,y2,label,dx=0,dy=0) => {
+    const mx = (x1+x2)/2 + dx, my = (y1+y2)/2 + dy;
+    return `
+      <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
+            stroke="${C.dim}" stroke-width="1.6" stroke-dasharray="3 3"
+            marker-start="url(#mr-arrow)" marker-end="url(#mr-arrow)"/>
+      ${text(mx - (String(label).length*3.2), my - 6, label)}
+    `;
+  };
+  const rightAngle = (x,y,size=10) =>
+    `<path d="M ${x} ${y} h ${size} v ${size}" fill="none" stroke="${C.dim}" stroke-width="1.6"/>`;
+
+  // ——— Rechthoek / Vierkant ———
+  if (it.type==='rect' || it.type==='square'){
+    const isSquare = (it.type==='square');
+    const Wsh = 160, Hsh = isSquare ? 160 : 100;
+    const x = (W - Wsh)/2, y = (H - Hsh)/2;
+    const strokeClr = isPerim ? C.perim : C.area;
+    const fill = isPerim ? '#eef5ff' : 'url(#mr-hatch)';
+
+    // labels: vierkant → s en s; rechthoek → l en b
+    const topLbl = isSquare ? 'z' : 'l';
+    const sideLbl = isSquare ? 'z' : 'b';
+
+    return wrap(`
+      <rect x="${x}" y="${y}" width="${Wsh}" height="${Hsh}"
+            fill="${fill}" stroke="${strokeClr}" stroke-width="3" rx="8"/>
+      ${dimArrow(x, y-10, x+Wsh, y-10, topLbl)}
+      ${dimArrow(x-10, y, x-10, y+Hsh, sideLbl)}
+    `);
+  }
+
+  // ——— Cirkel ———
+  if (it.type==='circle'){
+    const R = 60, cx = W/2, cy = H/2;
+    const strokeClr = isPerim ? C.perim : C.area;
+    const fill = isPerim ? '#fff7ed' : 'url(#mr-hatch)';
+
+    // omtrek → diameter d ; oppervlakte → straal r
+    const measure = isPerim
+      ? `
+         <line x1="${cx-R}" y1="${cy}" x2="${cx+R}" y2="${cy}"
+               stroke="${C.dim}" stroke-width="1.6" marker-start="url(#mr-arrow)" marker-end="url(#mr-arrow)"/>
+         ${text(cx-6, cy-8, 'd')}
+        `
+      : `
+         <line x1="${cx}" y1="${cy}" x2="${cx+R}" y2="${cy}"
+               stroke="${C.dim}" stroke-width="1.6" marker-end="url(#mr-arrow)"/>
+         ${text(cx+R/2-4, cy-8, 'r')}
+        `;
+
+    return wrap(`
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="${fill}" stroke="${strokeClr}" stroke-width="3"/>
+      ${measure}
+    `);
+  }
+
+  // ——— Driehoek ———
+  if (it.type==='tri'){
+    const base = 260, x0 = (W-base)/2, y0 = H-30;
+    const x1 = x0 + base, y1 = y0;
+    const xm = x0 + base*0.62, ym = y0 - 110;
+    const strokeClr = isPerim ? C.perim : C.area;
+
+    const triShape = `
+      <polygon points="${x0},${y0} ${x1},${y1} ${xm},${ym}"
+               fill="${isPerim ? '#f0fdf4' : 'url(#mr-hatch)'}"
+               stroke="${strokeClr}" stroke-width="3"/>
+    `;
+
+    const perimDims = `
+      ${text((x0+xm)/2-6, (y0+ym)/2-6, 'b')}
+      ${text((x1+xm)/2+6, (y1+ym)/2-6, 'c')}
+      ${dimArrow(x0, y0+10, x1, y1+10, 'a')}
+    `;
+
+    // hoogte op a
+    const hx = x0 + base*0.35, hy = y0;
+    const areaDims = `
+      <line x1="${hx}" y1="${hy}" x2="${hx}" y2="${ym}" stroke="${C.dim}" stroke-width="1.6" stroke-dasharray="3 3"/>
+      ${rightAngle(hx, hy-12, 10)}
+      ${dimArrow(x0, y0+10, x1, y1+10, 'a')}
+      ${text(hx-8, (hy+ym)/2, 'h')}
+    `;
+
+    return wrap(`
+      ${triShape}
+      ${isPerim ? perimDims : areaDims}
+    `);
+  }
+
+  return wrap('');
+}
+
+    function formulaFor(it, kind){
+      if (kind==='omtrek'){
+        if (it.type==='rect')   return 'P = 2 × (l + b)';
+        if (it.type==='square') return 'P = 4 × z';
+        if (it.type==='tri')    return 'P = a + b + c';
+        if (it.type==='circle') return 'C = π × d';
+      }else{
+        if (it.type==='rect')   return 'A = l × b';
+        if (it.type==='square') return 'A = z × z';
+        if (it.type==='tri')    return 'A = (b × h) ÷ 2';
+        if (it.type==='circle') return 'A = π × r²   (r = d ÷ 2)';
+      }
+      return '';
+    }
+
+    function helpAllowedFor(mode, it, kind){
+      // Dyscalculie → altijd hulp
+      if (dyscalculie) return true;
+
+      // Volledige hulp in OEFEN en TAAK
+      if (mode === 'oefen' || mode === 'taak') return true;
+
+      // Beperkte hulp in TOETS
+      if (mode === 'toets'){
+        if (it.type === 'circle') return true;                 // cirkel (omtrek/opp)
+        if (it.type === 'tri' && kind === 'oppervlakte') return true; // driehoek (opp)
+        return false;
+      }
+      return false;
+    }
+
+    function renderHelp(){
+      if (!current) return;
+      const {item:it, kind} = current;
+      const allowed = helpAllowedFor(mode, it, kind);
+      if (!allowed){
+        helpPanel.innerHTML = `<h4>Hulp</h4><div class="rowp muted">In <strong>${mode}</strong> is hulp beperkt.</div>`;
+        return;
+      }
+      const f = formulaFor(it, kind);
+      const noun = fileStemLower(it);
+      const art  = artikelVoor(noun);
+      helpPanel.innerHTML = `
+        <h4>Hulp</h4>
+        <div class="rowp ${kind==='omtrek'?'perim':'area'}">
+          <strong>${kind==='omtrek'?'Omtrek':'Oppervlakte'}</strong> — ${art} ${noun}
+        </div>
+        ${svgFor(it, kind)}
+        <div class="rowp">Formule: <strong>${f}</strong></div>
+      `;
+    }
+    function renderExplain(){
+      if (!current) return;
+      const {item:it, kind} = current;
+      const uLen = it.unit, uArea = uLen+'²';
+      const expr = (()=> {
+        if (kind==='omtrek'){
+          if (it.type==='rect')   return `2 × (${prettyC(it.w)} + ${prettyC(it.h)}) = … ${uLen}`;
+          if (it.type==='square') return `4 × ${prettyC(it.s)} = … ${uLen}`;
+          if (it.type==='tri')    return `${prettyC(it.a)} + ${prettyC(it.b)} + ${prettyC(it.c)} = … ${uLen}`;
+          if (it.type==='circle') return `π × ${prettyC(it.d)} ≈ 3,14 × ${prettyC(it.d)} = … ${uLen}`;
+        }else{
+          if (it.type==='rect')   return `${prettyC(it.w)} × ${prettyC(it.h)} = … ${uArea}`;
+          if (it.type==='square') return `${prettyC(it.s)} × ${prettyC(it.s)} = … ${uArea}`;
+          if (it.type==='tri')    return `(${prettyC(it.a)} × ${prettyC(it.ha)}) ÷ 2 = … ${uArea}`;
+          if (it.type==='circle') return `π × (${prettyC(it.d)} ÷ 2)² ≈ 3,14 × (…) = … ${uArea}`;
+        }
+        return '';
+      })();
+      explainPanel.innerHTML = `
+        <h4>Uitleg (zonder oplossing)</h4>
+        ${svgFor(it, kind)}
+        <div class="rowp"><strong>Stap 1</strong>: Noteer de juiste formule.</div>
+        <div class="rowp"><strong>Stap 2</strong>: Vervang met de waarden van de tekening.</div>
+        <div class="rowp"><strong>Stap 3</strong>: Reken uit en rond desnoods zinvol af.</div>
+        <div class="rowp">Ingevulde uitdrukking: <span class="dimchip">${expr}</span></div>
+        <div class="rowp muted">Let op de juiste <em>eenheid</em> en of het om lengte of oppervlakte gaat.</div>
+      `;
+    }
+
+    /* ========= VRAGEN ========= */
+    async function newQuestion(){
+      const effectiveLevel = (mode === 'oefen' && levelLock != null) ? levelLock : level;
+
+      const pick = pickQuestion(effectiveLevel);
+      const it = pick.it;
+      const kind = pick.kind;
+
+      await showItem(it);
+
+      const res  = (kind==='omtrek') ? perimeter(it) : area(it); // {val, unit}
+      const noun = fileStemLower(it);
+      const art  = artikelVoor(noun);
+      const extraPi = (it.type==='circle') ? ' (Gebruik π)' : '';
+
+      // Doel-eenheid per unitMode (+ toetsregel per level)
+     // Doel-eenheid per unitMode (+ regels voor toets en oefen)
+let targetUnit = res.unit;
+if (unitMode === 'forced'){
+  const pool = unitPool(kind);
+  if (mode === 'toets'){
+    // Toets: L1–2 bron-eenheid; L3–4 willekeurig
+    targetUnit = (effectiveLevel <= 2) ? res.unit : pool[rnd(pool.length)];
+  } else if (mode === 'oefen'){
+    // Oefen: L1–2 bron-eenheid; L3–4 willekeurig  ✅ (nieuw)
+    targetUnit = (effectiveLevel <= 2) ? res.unit : pool[rnd(pool.length)];
+  } else {
+    // Taak: huidig gedrag (willekeurig)
+    targetUnit = pool[rnd(pool.length)];
+  }
+}
+
+
+      // Dropdown
+      if (unitMode === 'free'){
+        $unit.innerHTML = '';
+        const pool = unitPool(kind);
+        $unit.append(new Option('— eenheid —', ''));
+        pool.forEach(u => $unit.append(new Option(u, u)));
+        $unit.disabled = false;
+        $unit.value = '';
+      } else {
+        $unit.innerHTML = '';
+        $unit.append(new Option(targetUnit, targetUnit));
+        $unit.disabled = true;
+        $unit.value = targetUnit;
+      }
+
+      // Vraagtekst
+      const txt = (kind === 'omtrek')
+        ? `Geef de omtrek van ${art} ${noun}.${extraPi}`
+        : `Geef de oppervlakte van ${art} ${noun}.${extraPi}`;
+      const unitHint = (unitMode === 'forced') ? `\nDruk je antwoord uit in ${targetUnit}.` : `\nKies ook de juiste eenheid.`;
+
+      $q.textContent = txt + unitHint;
+      $status.textContent = ''; $status.className = 'status';
+      $ans.value = ''; $ans.focus();
+
+      $taskKind.textContent = (kind==='omtrek'?'Omtrek':'Oppervlakte');
+
+      current = {
+        item: it,
+        kind,
+        correct: res.val,
+        baseUnit: res.unit,
+        targetUnit,
+        levelNow: effectiveLevel,
+        goals: [kind==='omtrek'?GOALS.OMTREK:GOALS.OPP, GOALS.EENHEDEN, GOALS.VERMENDEL]
+      };
+
+      renderHelp();
+      renderExplain();
+      levelChip.innerHTML = `📈 Level: <strong>${effectiveLevel} / 4</strong>`;
+    }
+
+    /* ========= CHECK ========= */
+    function check(){
+      if(!current) return;
+      const v = parseNum($ans.value);
+      const uSel = ($unit.value || '').trim();
+
+      if(Number.isNaN(v)){
+        $status.textContent = '⚠️ Vul een getal in met een komma.';
+        $status.className = 'status errTxt';
+        return;
+      }
+      if(unitMode==='free' && !uSel){
+        $status.textContent = '⚠️ Kies de eenheid.';
+        $status.className = 'status errTxt';
+        return;
+      }
+
+      const wantUnit = (unitMode==='free') ? uSel : current.targetUnit;
+
+      if(!sameDimFamily(wantUnit, current.baseUnit)){
+        $status.textContent = '❌ Foute soort eenheid (lengte vs oppervlakte).';
+        $status.className = 'status errTxt';
+        afterCheck(false, v, wantUnit);
+        return;
+      }
+
+      const correctInWanted = convert(current.correct, current.baseUnit, wantUnit);
+      const tol = Math.max(0.005, Math.abs(correctInWanted)*0.005); // 0.5%
+      const numOK = Math.abs(v - correctInWanted) <= tol;
+      const oky = !!numOK;
+
+      $status.textContent = oky ? '✅ Juist!' : '❌ Niet juist.';
+      $status.className = 'status ' + (oky ? 'okTxt' : 'errTxt');
+
+      afterCheck(oky, v, wantUnit, correctInWanted);
+    }
+
+    function updateAdaptive(oky){
+      // In oefenmodus met vast level → geen adaptief gedrag
+      if (mode === 'oefen' && levelLock != null){
+        level = levelLock;
+        levelChip.innerHTML = `📈 Level: <strong>${level} / 4</strong>`;
+        return;
+      }
+      // Adaptief (taak/toets of oefen zonder lock — we gebruiken altijd lock in oefen hier)
+      if (oky){
+        streakOK++; streakERR = 0;
+        if (streakOK >= 6 && level < 4){ level++; streakOK = 0; streakERR = 0; }
+      } else {
+        streakERR++; streakOK = 0;
+        if (streakERR >= 2 && level > 1){ level--; streakERR = 0; streakOK = 0; }
+      }
+      levelChip.innerHTML = `📈 Level: <strong>${level} / 4</strong>`;
+    }
+
+    function flashBoard(okay){
+      board.classList.remove('flash-ok','flash-err'); void board.offsetWidth;
+      board.classList.add(okay?'flash-ok':'flash-err');
+      setTimeout(()=>board.classList.remove('flash-ok','flash-err'),420);
+    }
+    function animateOK(okay, after){
+      const els = [okKey, checkBtn];
+      els.forEach(el=>{ el.classList.remove('ok','bad'); void el.offsetWidth; el.classList.add(okay?'ok':'bad'); });
+      setTimeout(()=>{ els.forEach(el=>el.classList.remove('ok','bad')); after && after(); }, 320);
+    }
+
+    function afterCheck(oky, givenVal, unitUsed, corrInUnit){
+      if (mode !== 'oefen') {
+        const wantUnit = unitUsed || (current ? current.targetUnit : '');
+        const corrShown = (typeof corrInUnit === 'number')
+          ? corrInUnit
+          : convert(current.correct, current.baseUnit, wantUnit);
+
+        runLog.push({
+          qNum: idx + 1,
+          level: current.levelNow,
+          item: current.item.name,
+          qText: $q.textContent,
+          unitOut: wantUnit,
+          correct: corrShown,
+          given: givenVal,
+          ok: oky,
+          goals: current.goals || []
+        });
+      }
+
+      animateOK(oky, ()=>{
+        flashBoard(oky);
+        if (oky) { ok++; okEl.textContent = ok; } else { err++; errEl.textContent = err; }
+        updateAdaptive(oky);
+
+        if (mode === 'oefen'){ newQuestion(); }
+        else {
+          idx++;
+          if (total && idx >= total) { finishRun(); }
+          else { newQuestion(); }
+        }
+      });
+    }
+
+    /* ========= ANTW-KNOPPEN ========= */
+    pad.addEventListener('click', e=>{
+      const k = e.target.closest('.key'); if (!k) return;
+      const act = k.dataset.act || '';
+      const put = t => { $ans.value = ($ans.value || '') + t; $ans.dispatchEvent(new Event('input')); $ans.focus(); };
+      if(!act){
+        const t = k.textContent.trim();
+        if(/^[0-9]$/.test(t)) { put(t); return; }
+        if(t === ',') { if(!$ans.value.includes(',')) put(','); return; }
+        return;
+      }
+      if(act === 'bksp'){ $ans.value = ($ans.value || '').slice(0,-1); $ans.focus(); return; }
+      if(act === 'enter'){ check(); return; }
+    });
+    checkBtn.onclick = check;
+    $ans.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); check(); } });
+    attachCommaGuard($ans);
+
+    /* ========= TIMER & MODES ========= */
+    function startTimerUp(){ stopTimer(); seconds=0; timeDisp.textContent = fmtTime(seconds);
+      timer = setInterval(()=>{ seconds++; timeDisp.textContent = fmtTime(seconds); }, 1000); }
+    function startTimerDown(){ stopTimer(); seconds = 15*60; timeDisp.textContent = fmtTime(seconds);
+      timer = setInterval(()=>{ seconds--; timeDisp.textContent = fmtTime(Math.max(0,seconds)); if(seconds < 0){ finishRun(); } }, 1000); }
+    function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
+
+    function startRun(newMode){
+      mode = newMode; idx=0; ok=0; err=0; runLog = [];
+      // In oefenmodus level vast (levelLock), in taak/toets adaptief
+      if (mode === 'oefen'){
+        if (levelLock == null) levelLock = 1;
+        level = levelLock;
+      } else {
+        level = 1; levelLock = null; // reset naar adaptief voor taak/toets
+      }
+      streakOK = 0; streakERR = 0;
+      levelChip.innerHTML = `📈 Level: <strong>${(mode==='oefen' && levelLock!=null?levelLock:level)} / 4</strong>`;
+      okEl.textContent='0'; errEl.textContent='0';
+
+      // Oefenlevel UI tonen/verbergen
+      practiceLevel.style.display = (mode === 'oefen') ? 'inline-flex' : 'none';
+
+      if(mode==='oefen'){ total=0; stopTimer(); timeDisp.textContent='—'; }
+      if(mode==='taak'){ total=20; startTimerUp(); }
+      if(mode==='toets'){ total=20; startTimerDown(); unitMode='forced'; updateUnitModeUI(); } // toets → altijd gevraagde eenheid
+
+      newQuestion();
+    }
+
+    // MR_SHARED.askName integratie
+    startTaak.onclick = ()=>{
+      if (window.MR_SHARED && typeof MR_SHARED.askName === 'function') {
+        MR_SHARED.askName('taak')
+          .then(n => {
+            if (!n) return;
+            // askName kan string of object zijn; voor taak enkel naam nodig
+            studentName = (typeof n === 'string') ? n.trim() : String(n.name||'').trim();
+            startRun('taak');
+          })
+          .catch(()=>{});
+      } else {
+        const n=(prompt('Naam?')||'').trim(); if(!n) return;
+        studentName=n; startRun('taak');
+      }
+    };
+    startToets.onclick = ()=>{
+      dyscalculie = false;
+      if (window.MR_SHARED && typeof MR_SHARED.askName === 'function') {
+        MR_SHARED.askName('toets', { extraFlags:[{id:'dyscalculie', label:'Ik heb dyscalculie'}] })
+          .then(res => {
+            if (!res) return;
+            if (typeof res === 'string'){
+              studentName = res.trim();
+              dyscalculie = false;
+            } else {
+              studentName = String(res.name||'').trim();
+              dyscalculie = !!(res.flags && res.flags.dyscalculie);
+            }
+            startRun('toets');
+          })
+          .catch(()=>{});
+      } else {
+        const n=(prompt('Naam?')||'').trim(); if(!n) return;
+        studentName=n; startRun('toets');
+      }
+    };
+    fullBtn.onclick = ()=>{ if(!document.fullscreenElement){ document.documentElement.requestFullscreen?.(); } else{ document.exitFullscreen?.(); } };
+
+    function updateUnitModeUI(){
+      unitModeFreeBtn.classList.toggle('ok', unitMode==='free');
+      unitModeForcedBtn.classList.toggle('ok', unitMode==='forced');
+    }
+    unitModeFreeBtn.onclick   = ()=>{ unitMode='free';   updateUnitModeUI(); newQuestion(); };
+    unitModeForcedBtn.onclick = ()=>{ unitMode='forced'; updateUnitModeUI(); newQuestion(); };
+    updateUnitModeUI();
+
+    // Oefenlevel knoppen
+    practiceLevel.addEventListener('click', (e)=>{
+      const b = e.target.closest('.lvlBtn'); if (!b) return;
+      const L = Number(b.dataset.lvl||1);
+      levelLock = Math.min(4, Math.max(1, L));
+      if (mode === 'oefen'){ level = levelLock; }
+      // UI markering
+      practiceLevel.querySelectorAll('.lvlBtn').forEach(el => el.classList.toggle('ok', Number(el.dataset.lvl)===levelLock));
+      levelChip.innerHTML = `📈 Level: <strong>${levelLock} / 4</strong>`;
+      newQuestion();
+    });
+
+    // Panels toggles (exclusief)
+    function closePanels(){ helpPanel.style.display='none'; calcPanel.style.display='none'; explainPanel.style.display='none'; }
+    helpBtn.addEventListener('click', ()=>{ renderHelp(); const s = helpPanel.style.display==='block'; closePanels(); helpPanel.style.display = s?'none':'block'; });
+    calcBtn.addEventListener('click', ()=>{ const s = calcPanel.style.display==='block'; closePanels(); calcPanel.style.display = s?'none':'block'; if(!s) calcDisplay.focus(); });
+
+    document.addEventListener('click', (e)=>{
+      if (!e.target.closest('.toolBtn') && !e.target.closest('.floatingPanel')) {
+        closePanels();
+      }
+    });
+
+    // Rekentoestel
+    function insertToDisplay(str){
+      if (str === 'π'){
+        const piStr = String(Math.PI.toFixed(4)).replace('.', ',');
+        calcDisplay.value += piStr;
+      } else {
+        calcDisplay.value += str;
+      }
+      calcDisplay.focus();
+    }
+    function bksp(){ calcDisplay.value = calcDisplay.value.slice(0, -1); calcDisplay.focus(); }
+    function ac(){ calcDisplay.value = ''; calcDisplay.focus(); }
+    function normalizeExpr(expr){
+      return String(expr || '')
+        .normalize('NFKC')
+        .replace(/\s+/g, '')
+        .replace(/,/g, '.')
+        .replace(/[x×]/gi, '*')
+        .replace(/[÷:]/g, '/')
+        .replace(/[−–—]/g, '-')
+        .replace(/π/gi, String(Math.PI));
+    }
+    function compute(expr){
+      const norm = normalizeExpr(expr);
+      if (!norm) return NaN;
+
+      const parts = norm.split(/([+\-*/])/).filter(Boolean);
+      if (!parts.length) return NaN;
+
+      const tokens = parts.map(p => /[+\-*/]/.test(p) ? p : Number(p));
+      if (Number.isNaN(tokens[0])) return NaN;
+
+      // Eerst × en ÷
+      let stack = [tokens[0]];
+      for (let i = 1; i < tokens.length; i += 2){
+        const op = tokens[i], rhs = tokens[i+1];
+        if (typeof rhs !== 'number' || Number.isNaN(rhs)) return NaN;
+        const lhs = stack[stack.length - 1];
+        if (op === '*' || op === '/'){
+          stack[stack.length - 1] = (op === '*') ? (lhs * rhs) : (lhs / rhs);
+        } else {
+          stack.push(op, rhs);
+        }
+      }
+      // Dan + en -
+      let result = stack[0];
+      for (let i = 1; i < stack.length; i += 2){
+        result = (stack[i] === '+') ? (result + stack[i+1]) : (result - stack[i+1]);
+      }
+      return Math.round((result + Number.EPSILON) * 100) / 100; // 2 dec
+    }
+    function doEquals(){
+      const r = compute(calcDisplay.value);
+      if (Number.isNaN(r)) return;
+      calcDisplay.value = String(r).replace('.', ',');
+    }
+    calcKeys.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.ckey'); if(!btn) return;
+      const act = btn.dataset.act;
+      const ch  = btn.dataset.k;
+      if (act === 'ac') return ac();
+      if (act === 'bksp') return bksp();
+      if (act === 'eq') return doEquals();
+      if (ch !== undefined) return insertToDisplay(ch);
+    });
+    calcDisplay.addEventListener('keydown', (e)=>{
+      const okKeys = '0123456789+-/*,:.÷×−';
+      if (e.key === 'Enter'){ e.preventDefault(); return doEquals(); }
+      if (e.key === 'Escape'){ e.preventDefault(); return ac(); }
+      if (e.key === 'Backspace'){ return; }
+      if (!okKeys.includes(e.key)){ e.preventDefault(); return; }
+      if (e.key === '.'){ e.preventDefault(); insertToDisplay(','); }
+    });
+    pasteBtn.addEventListener('click', ()=>{
+      const r = compute(calcDisplay.value);
+      if (!Number.isNaN(r)){
+        $ans.value = String(r).replace('.', ',');
+        $ans.dispatchEvent(new Event('input'));
+        $ans.focus();
+      }
+    });
+
+    /* ========= Bewijsje ========= */
+    function trySharedProof(summary){
+      try{
+        const api = (typeof window !== 'undefined') ? window.MR_SHARED : null;
+        if(!api || typeof api.finishSession!=='function') return false;
+
+        const payload = { ...summary };
+        if(typeof payload.seconds === 'number'){
+          payload.seconds = Math.max(0, Math.round(payload.seconds));
+        }
+        const res = api.finishSession(payload);
+        if(res && typeof res.then==='function'){ res.catch(err => console.error('shared bewijs failed (async)', err)); }
+        return true;
+      }catch(e){
+        console.error('shared bewijs failed (sync)', e);
+        return false;
+      }
+    }
+
+    function downloadProofPNG({name, mode, ok, total, secondsSpent, log}){
+      const sharedSummary = {
+        goals: ['BV1_06.06','06.06.01','06.06.02','06.06.03','06.06.04','06.06.07'],
+        title:'Omtrek & Oppervlakte',
+        gameId:'grote-oppervlakte',
+        mode,
+        name,
+        ok,
+        err:(total-ok),
+        total,
+        score: ok,
+        seconds: secondsSpent,
+        flags: { dyscalculie: !!dyscalculie },             // 👈 doorgeven aan bewijs
+        accommodations: dyscalculie ? ['dyscalculie'] : undefined,
+        questions:(log||[]).map(r=>({
+          q: r.qText || '',
+          a: (r.given==null ? '-' : `${prettyC(r.given)}${r.unitOut ? ' ' + r.unitOut : ''}`),
+          given: (r.given==null ? '-' : `${prettyC(r.given)}${r.unitOut ? ' ' + r.unitOut : ''}`),
+          correct: (r.correct==null ? '-' : `${prettyC(r.correct)}${r.unitOut ? ' ' + r.unitOut : ''}`),
+          ok: !!r.ok
+        }))
+      };
+      if(trySharedProof(sharedSummary)) return;
+
+      if(!(window.MR_SHARED && MR_SHARED.cert && MR_SHARED.cert.downloadTable)){
+        alert('Bewijsje kan niet gedownload worden (MR_SHARED helper ontbreekt).');
+        return;
+      }
+
+      const secondsValue = Math.max(0, Math.round(secondsSpent || 0));
+      const minutes = Math.floor(secondsValue / 60);
+      const secs = String(secondsValue % 60).padStart(2, '0');
+      const modeLabel = mode === 'taak' ? 'Taak' : (mode === 'toets' ? 'Toets' : 'Vrij');
+      const meta = [
+        `Naam: ${name || '-'}` + (dyscalculie ? ' (dyscalculie)' : ''),
+        `Modus: ${modeLabel}`,
+        `Score: ${ok}/${total}`,
+        `Tijd: ${minutes}:${secs}`,
+        `Datum: ${new Date().toLocaleString('nl-BE')}`,
+        `Aanpassingen: ${dyscalculie ? 'dyscalculie' : '—'}`
+      ];
+      const goalSet = new Set();
+      (log || []).forEach(r => (r.goals || []).forEach(g => goalSet.add(g)));
+      if(goalSet.size){ meta.push(`Doelen: ${Array.from(goalSet).join(', ')}`); }
+
+      const formatValue = (val, unit) => {
+        if (val == null || val === '') return '—';
+        if (typeof val === 'number') return `${prettyC(val)}${unit ? ' ' + unit : ''}`;
+        return String(val);
+      };
+      const rows = (log || []).map((r, idx) => ({
+        nr: r.qNum || idx + 1,
+        level: r.level != null ? r.level : '-',
+        item: r.item || '',
+        vraag: r.qText || '',
+        leerling: formatValue(r.given, r.unitOut),
+        correct: formatValue(r.correct, r.unitOut),
+        doelen: (r.goals || []).join(', '),
+        ok: !!r.ok
+      }));
+      const safeName = (name || 'leerling').replace(/[^\w\s-]+/g,'').trim().replace(/\s+/g,'_');
+
+      MR_SHARED.cert.downloadTable({
+        width: 1200,
+        title: 'Bewijsje - Omtrek & Oppervlakte',
+        gradient: ['#eef5ff', '#f7fbff'],
+        meta,
+        table: {
+          title: 'Vragen & antwoorden',
+          columns: [
+            { label: '#', key: 'nr', width: 60, align: 'left' },
+            { label: 'Level', key: 'level', width: 80 },
+            { label: 'Item', key: 'item', width: 140 },
+            { label: 'Vraag', key: 'vraag', width: 280, wrap: true, lineHeight: 22 },
+            { label: 'Leerling', key: 'leerling', width: 180 },
+            { label: 'Correct', key: 'correct', width: 180 },
+            { label: 'Doelen', key: 'doelen', width: 160, wrap: true, lineHeight: 20 },
+            { label: 'Status', width: 120, align: 'center', value: row => row.ok ? 'Juist' : 'Fout', color: row => row.ok ? '#16a34a' : '#dc2626' }
+          ],
+          rows
+        },
+        fileName: `Bewijsje_omtrek_oppervlakte_${mode}_${safeName}_${Date.now()}.png`
+      });
+    }
+
+    function finishRun(){
+      stopTimer();
+      if (mode === 'taak' || mode === 'toets') {
+        const answered = ok + err;
+        const totalShown = total || answered || 20;
+        let spent = 0;
+        if (mode === 'toets') spent = (15 * 60) - Math.max(0, seconds);
+        else if (mode === 'taak') spent = Math.max(0, seconds);
+
+        resultBody.innerHTML = `
+          <div><strong>Naam:</strong> ${studentName || '—'}${dyscalculie ? ' (dyscalculie)' : ''}</div>
+          <div><strong>Modus:</strong> ${mode}</div>
+          <div><strong>Score:</strong> ${ok}/${ok+err} (van ${totalShown})</div>
+          <div><strong>Tijd:</strong> ${fmtTime(spent)}</div>
+          <div style="margin-top:.4rem;color:#6b7280;font-weight:700">Je kan nu je bewijsje downloaden.</div>
+        `;
+        resultOverlay.style.display = 'flex';
+        resultOverlay.setAttribute('aria-hidden','false');
+
+        downloadProofBtn.onclick = ()=>{ downloadProofPNG({
+          name: studentName || '—',
+          mode,
+          ok,
+          total: totalShown,
+          secondsSpent: spent,
+          log: runLog
+        }); };
+        closeResultBtn.onclick = ()=>{ resultOverlay.style.display = 'none'; resultOverlay.setAttribute('aria-hidden','true'); startRun('oefen'); };
+      } else {
+        alert(`Klaar!\nScore: ${ok}/${ok + err}`);
+        startRun('oefen');
+      }
+    }
+
+    // start in oefenen
+    // Markeer init level knop
+    practiceLevel.querySelectorAll('.lvlBtn').forEach(el => el.classList.toggle('ok', Number(el.dataset.lvl)===levelLock));
+    startRun('oefen');
+  </script>
+</body>
+</html>

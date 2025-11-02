@@ -1,0 +1,821 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Vergelijken • Taak & Toets</title>
+
+  <!-- Game-ID voor bewijs en platform -->
+  <meta name="x-game-id" content="Vergelijken (1LJB)">
+  <script>window.GAME_ID = 'vergelijken_1ljb';</script>
+
+  <!-- Shared assets -->
+  <link rel="stylesheet" href="mrraes-shared.css">
+  <script src="mrraes-shared.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --card: #fff;
+      --ink: #0b132b;
+      --muted: #6b7280;
+      --ring: #e6ecf8;
+      --ring2: #dfe6f6;
+      --shadow: 0 10px 28px rgba(15, 23, 42, .06);
+      --good: #10b981;
+      --bad: #ef4444
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, Arial, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(1200px 700px at 80% -10%, #eef3ff 0%, #f7f9fc 50%, #fbfdff 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start
+    }
+
+    /* Topbar in dezelfde stijl als Lengte omzetten */
+    .topbar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .6rem;
+      flex-wrap: wrap;
+      padding: 10px 14px;
+      background: #fff;
+      border-bottom: 1px solid var(--ring2);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 50
+    }
+
+    .chip {
+      background: #fff;
+      border: 1px solid var(--ring2);
+      border-radius: 999px;
+      padding: .35rem .7rem;
+      box-shadow: var(--shadow);
+      display: inline-flex;
+      gap: .5rem;
+      align-items: center;
+      font-weight: 800
+    }
+
+    .chip.btn {
+      cursor: pointer
+    }
+
+    .score {
+      display: flex;
+      gap: .6rem;
+      align-items: center
+    }
+
+    .score .ok {
+      color: var(--good);
+      background: #eafaf4
+    }
+
+    .score .bad {
+      color: var(--bad);
+      background: #fdeeee
+    }
+
+    .wrap {
+      width: min(1100px, 96vw);
+      padding: 1rem;
+      margin: 0 auto
+    }
+
+    .board {
+      background: #fff;
+      border: 1px solid var(--ring);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 1.4rem
+    }
+
+    /* Arena */
+    .arena {
+      transition: .25s
+    }
+
+    .arena.good {
+      box-shadow: 0 12px 34px rgba(16, 185, 129, .25);
+      border-color: #bfe9d7
+    }
+
+    .arena.bad {
+      box-shadow: 0 12px 34px rgba(239, 68, 68, .20);
+      border-color: #f4c7c7
+    }
+
+    .nums {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: clamp(12px, 2vw, 24px)
+    }
+
+    .num {
+      font-weight: 900;
+      font-size: clamp(42px, 10vw, 160px);
+      text-align: center;
+      line-height: 1;
+      padding: .35rem .8rem;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fff 0%, #f3f6ff 100%);
+      border: 1px solid #ecf0fb;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 8px 18px rgba(0, 0, 0, .05)
+    }
+
+    .between {
+      min-width: clamp(40px, 8vw, 120px);
+      text-align: center;
+      font-size: clamp(40px, 8vw, 120px);
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none
+    }
+
+    .between .ghost {
+      opacity: .25
+    }
+
+    .between .chosen {
+      transform: scale(.2) translateY(-10px);
+      opacity: 0;
+      transition: .18s
+    }
+
+    .between.show .chosen {
+      transform: scale(1) translateY(0);
+      opacity: 1
+    }
+
+    .between.correct .chosen {
+      color: var(--good)
+    }
+
+    .between.wrong .chosen {
+      color: var(--bad)
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 1rem
+    }
+
+    button.big {
+      font-size: clamp(28px, 4vw, 54px);
+      font-weight: 900;
+      cursor: pointer;
+      background: linear-gradient(180deg, #fff 0%, #eef2ff 100%);
+      border: 1px solid var(--ring2);
+      border-radius: 18px;
+      padding: 1rem .5rem;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, .06), inset 0 1px 0 rgba(255, 255, 255, .7)
+    }
+
+    button.big.lt {
+      background: linear-gradient(180deg, #9ecebf 0%, #bfffe8 100%)
+    }
+
+    button.big.eq {
+      background: linear-gradient(180deg, #fffdf5 0%, #fff2b6 100%)
+    }
+
+    button.big.gt {
+      background: linear-gradient(180deg, #f2f8ff 0%, #cfe2ff 100%)
+    }
+
+    .shake {
+      animation: shake .35s ease
+    }
+
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0)
+      }
+
+      20% {
+        transform: translateX(-10px)
+      }
+
+      40% {
+        transform: translateX(10px)
+      }
+
+      60% {
+        transform: translateX(-6px)
+      }
+
+      80% {
+        transform: translateX(6px)
+      }
+    }
+
+    .hint {
+      margin-top: .6rem;
+      color: #374151;
+      text-align: center
+    }
+
+    .footerbar {
+      margin-top: .8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .6rem;
+      flex-wrap: wrap
+    }
+
+    .smallbtn {
+      background: #fff;
+      border: 1px solid var(--ring2);
+      border-radius: 10px;
+      padding: .45rem .7rem;
+      cursor: pointer;
+      font-weight: 800
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    /* Naam/klas fallback modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, .55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(3px)
+    }
+
+    .modal-backdrop.open {
+      display: flex
+    }
+
+    .modal {
+      width: min(560px, 94vw);
+      background: #fff;
+      border: 1px solid var(--ring2);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(2, 6, 23, .25);
+      padding: 1.2rem
+    }
+
+    .modal h3 {
+      margin: .2rem 0 .6rem;
+      font-size: 1.35rem
+    }
+
+    .row {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap
+    }
+
+    .modal input {
+      flex: 1 1 220px;
+      min-width: 0;
+      padding: .8rem .9rem;
+      border-radius: 12px;
+      border: 1px solid var(--ring2);
+      font: 600 1rem Inter, system-ui, Arial;
+      outline: none
+    }
+
+    .modal .actions {
+      display: flex;
+      gap: .6rem;
+      justify-content: flex-end;
+      margin-top: .9rem
+    }
+
+    .btn {
+      border: 1px solid var(--ring2);
+      background: #f7faff;
+      padding: .6rem .9rem;
+      border-radius: 12px;
+      font: 800 .98rem Inter, system-ui, Arial;
+      cursor: pointer
+    }
+
+    .btn.primary {
+      background: #2563eb;
+      color: #fff;
+      border-color: #215bd9
+    }
+
+    .btn.ghost {
+      background: #fff
+    }
+
+    /* Patch: MR_SHARED askName popup altijd passend */
+    #MR_ASK {
+      position: fixed !important;
+      inset: 0;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      overflow: auto
+    }
+
+    #MR_ASK .mr-ask-dialog {
+      width: min(560px, 96vw);
+      max-height: 92vh;
+      overflow: auto;
+      box-sizing: border-box
+    }
+
+    #MR_ASK .mr-ask-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap
+    }
+
+    #MR_ASK #mrAskName,
+    #MR_ASK #mrAskClass {
+      width: 100%;
+      flex: 1 1 220px;
+      min-width: 0;
+      box-sizing: border-box
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Topbar (volledige breedte) -->
+  <div class="topbar">
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+      <button id="taskBtn" class="chip btn">📝 Start taak (30)</button>
+      <button id="testBtn" class="chip btn">🧪 Start toets (30 / 10 min)</button>
+      <button class="chip btn" id="fullBtn" title="Volledig scherm">⛶ Volledig scherm</button>
+    </div>
+    <div class="score">
+      <span class="chip">⏱ <strong id="timerLabel">00:00</strong> <span id="timerMode">(vrij)</span></span>
+      <span class="chip ok">✅ Juist: <span id="okCount">0</span></span>
+      <span class="chip bad">❌ Fout: <span id="errCount">0</span></span>
+
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="board">
+      <main class="arena" id="arena" aria-live="polite">
+        <div class="nums">
+          <div class="num" id="numLeft">0</div>
+          <div class="between" id="between">
+            <span class="ghost" id="ghost">?</span>
+            <span class="chosen" id="chosen"></span>
+          </div>
+          <div class="num" id="numRight">0</div>
+        </div>
+        <div class="buttons">
+          <button class="big lt" data-ans="<">&lt;</button>
+          <button class="big eq" data-ans="=">=</button>
+          <button class="big gt" data-ans=">">&gt;</button>
+        </div>
+        <div class="hint" id="hint">Kies &lt;, = of &gt;.</div>
+      </main>
+
+      <div class="footerbar">
+        <div class="muted">Spel: <strong>Vergelijken</strong> • <span id="metaGameId">vergelijken_1ljb</span></div>
+        <div style="display:flex;align-items:center;gap:.6rem">
+          <button class="smallbtn hidden" id="downloadBtn">📷 Bewijs (PNG)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fallback naam/klas-popup -->
+  <div id="nameModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="nmTitle">
+    <div class="modal">
+      <h3 id="nmTitle">Start</h3>
+      <div class="row" style="margin:.2rem 0 .8rem">
+        <input id="nmName" type="text" placeholder="Naam…" autocomplete="off" />
+        <input id="nmClass" type="text" placeholder="Klas (optioneel)" autocomplete="off" />
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="nmCancel">Annuleren</button>
+        <button class="btn primary" id="nmStart">Starten</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const $ = (s) => document.querySelector(s);
+
+      // --- Meta
+      const metaGameId = $('#metaGameId'); if (metaGameId) metaGameId.textContent = window.GAME_ID || 'vergelijken_1ljb';
+
+      // --- Topbar refs
+      const okEl = document.getElementById('okCount');
+      const errEl = document.getElementById('errCount');
+      const taskBtn = $('#taskBtn'), testBtn = $('#testBtn'), fullBtn = $('#fullBtn');
+      const timerLabel = $('#timerLabel'), timerMode = $('#timerMode');
+
+      // --- Arena refs
+      const numLeft = document.getElementById('numLeft');
+      const numRight = document.getElementById('numRight');
+      const between = document.getElementById('between'),
+        ghost = document.getElementById('ghost'), chosen = document.getElementById('chosen');
+      const arena = document.getElementById('arena');
+      const downloadBtn = $('#downloadBtn');
+
+      // --- Fallback modal refs
+      const nameModal = $('#nameModal'), nmName = $('#nmName'), nmClass = $('#nmClass'), nmStart = $('#nmStart'), nmCancel = $('#nmCancel');
+
+      // --- Config
+      const TEST_SECONDS = 10 * 60, MAX_Q = 30;
+      const GOALS = ['BV1_06.01', '06.01.02', '06.01.03', '06.01.04', '06.01.05'];
+
+      // --- State
+      const MODE_FREE = 'vrij', MODE_TASK = 'taak', MODE_TEST = 'toets';
+      let mode = MODE_FREE, platformWired = false;
+let okCount = 0, errCount = 0, qNow = 0, finished = false;
+      let t = null, tLeft = TEST_SECONDS, tUp = 0;
+      let studentName = '', studentClass = '';
+      const log = []; let cur = { a: 0, b: 0 };
+
+      // --- Utils
+      const rInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+      const pad2 = n => String(Math.max(0, Math.floor(n))).padStart(2, '0');
+
+      // --- Naam modal (fallback)
+      function openNameModal(nextMode) {
+        mode = nextMode || MODE_TASK;
+        nameModal.classList.add('open');
+        nmName.value = localStorage.getItem('mr_name') || '';
+        nmClass.value = localStorage.getItem('mr_class') || '';
+        setTimeout(() => nmName.focus(), 0);
+      }
+      function closeNameModal() { nameModal.classList.remove('open'); }
+      nmCancel.addEventListener('click', closeNameModal);
+      nmStart.addEventListener('click', () => {
+        const n = (nmName.value || '').trim(); if (!n) { nmName.focus(); return; }
+        studentName = n; studentClass = (nmClass.value || '').trim();
+        try { localStorage.setItem('mr_name', n); localStorage.setItem('mr_class', studentClass); } catch (_) { }
+        closeNameModal(); startRun();
+      });
+      nmName.addEventListener('keydown', e => { if (e.key === 'Enter') nmStart.click(); });
+
+      // --- Timer helpers (fallback)
+      function stopTimer() { if (t) { clearInterval(t); t = null; } }
+      function renderDown() { timerLabel.textContent = `${pad2(Math.floor(tLeft / 60))}:${pad2(tLeft % 60)}`; }
+      function renderUp() { timerLabel.textContent = `${pad2(Math.floor(tUp / 60))}:${pad2(tUp % 60)}`; }
+      function startDown() { stopTimer(); tLeft = TEST_SECONDS; renderDown(); t = setInterval(() => { tLeft--; renderDown(); if (tLeft <= 0) { tLeft = 0; finish('timeup'); } }, 1000); }
+      function startUp() { stopTimer(); tUp = 0; renderUp(); t = setInterval(() => { tUp++; renderUp(); }, 1000); }
+
+      function setTimerLabel(ms, suffix) { timerLabel.textContent = ms; timerMode.textContent = suffix; } // platform may overwrite timerLabel
+
+      // --- Flow
+      function resetCounters() {
+        okCount = 0; errCount = 0;
+okEl.textContent = '0';
+errEl.textContent = '0';
+        qNow = 0; finished = false; log.length = 0;
+        downloadBtn.classList.add('hidden');
+        between.classList.remove('correct', 'wrong', 'show'); ghost.textContent = '?'; chosen.textContent = '';
+      }
+      function setMode(newMode) {
+        mode = newMode; resetCounters();
+        if (mode === MODE_TASK) { timerMode.textContent = '(taak)'; if (!platformWired) startUp(); else stopTimer(); }
+        else if (mode === MODE_TEST) { timerMode.textContent = '(toets)'; if (!platformWired) startDown(); else stopTimer(); }
+        else { timerMode.textContent = '(vrij)'; stopTimer(); timerLabel.textContent = '00:00'; }
+        newPair();
+      }
+
+      // --- Vraaggenerator
+      function newPair() {
+        arena.classList.remove('good', 'bad', 'shake');
+        between.classList.remove('correct', 'wrong', 'show');
+        ghost.textContent = '?'; chosen.textContent = '';
+        const a = rInt(-20, 20), b = rInt(-20, 20);
+        cur = { a, b };
+        numLeft.textContent  = a;
+numRight.textContent = b;
+        if (mode !== MODE_FREE && qNow === 0) { qNow = 1; }
+      }
+
+      // --- Per-vraag mark
+      function markQuestion(sym, ok) {
+        try {
+          if (mode !== MODE_FREE && window.MR_SHARED?.mark) {
+            MR_SHARED.mark({
+              q: `${cur.a} ? ${cur.b}`,
+              a: sym, given: sym,
+              correct: (cur.a === cur.b ? '=' : (cur.a < cur.b ? '<' : '>')),
+              ok: !!ok,
+              goals: GOALS
+            });
+          }
+        } catch (_) { }
+      }
+
+      // --- Antwoord
+      function pick(sym) {
+  if (finished) return;
+  ghost.textContent = ''; chosen.textContent = sym; between.classList.add('show');
+
+  const correct = (cur.a === cur.b) ? '=' : ((cur.a < cur.b) ? '<' : '>');
+  const isRight = (sym === correct);
+  markQuestion(sym, isRight);
+
+  if (isRight) {
+    okCount++; okEl.textContent = String(okCount);
+    between.classList.add('correct'); arena.classList.add('good');
+  } else {
+    errCount++; errEl.textContent = String(errCount);
+    between.classList.add('wrong'); arena.classList.add('bad');
+    arena.classList.remove('shake'); void arena.offsetWidth; arena.classList.add('shake');
+    setTimeout(() => arena.classList.remove('bad'), 300);
+  }
+
+  if (mode !== MODE_FREE) {
+    log.push({ nr: qNow, left: cur.a, right: cur.b, chosen: sym, correct, ok: isRight });
+  }
+
+  setTimeout(nextStep, 600);
+}
+
+      function nextStep() {
+        if (mode === MODE_FREE) { newPair(); return; }
+        if (qNow < MAX_Q) { qNow++; newPair(); }
+        else finish('done');
+      }
+
+      // --- Summary & bewijs
+      function buildSummary() {
+  return {
+    title: 'Vergelijken',
+    gameId: (window.GAME_ID || 'vergelijken_1ljb'),
+    mode,
+    name: (studentName || window.MR_SHARED?.getName?.() || ''),
+    class: (studentClass || window.MR_SHARED?.getClass?.() || ''),
+    ok: okCount,          // ⬅︎
+    err: errCount,        // ⬅︎
+    total: log.length,
+    score: okCount,       // ⬅︎
+    seconds: mode === MODE_TEST ? (TEST_SECONDS - Math.max(0, tLeft))
+           : (mode === MODE_TASK ? tUp : 0),
+    dateISO: new Date().toISOString(),
+    goals: GOALS.slice(),
+    questions: log.map(e => ({
+      q: `${e.left} ? ${e.right}`,
+      a: e.chosen,
+      given: e.chosen,
+      correct: e.correct,
+      ok: !!e.ok
+    }))
+  };
+}
+function trySharedProof(summary) {
+  try {
+    if (window.MR_SHARED?.trySharedProof) {
+      const res = MR_SHARED.trySharedProof(summary);
+      // Alleen 'true' betekent: het platform heeft het bewijsje zelf afgehandeld
+      return res === true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+      function trySharedFinish(summary) {
+        try { if (window.MR_SHARED?.finishSession) { MR_SHARED.finishSession(summary); return true; } } catch (_) { }
+        return false;
+      }
+      function downloadCertificate(summary, rows) {
+        try {
+          if (!(window.MR_SHARED?.cert?.downloadTable)) return false;
+          const nm = (summary.name || 'leerling').trim();
+          const rowsTbl = (rows || []).map((r, i) => ({ nr: i + 1, vraag: `${r.left} ? ${r.right}`, gekozen: String(r.chosen), correct: String(r.correct), ok: !!r.ok }));
+          MR_SHARED.cert.downloadTable({
+            width: 1240,
+            title: 'Bewijsje - Vergelijkspel',
+            gradient: ['#ffffff', '#eef3ff'],
+            // in downloadCertificate(...)
+meta: {
+  name: nm,
+  class: summary.class || '',
+  gameId: summary.gameId,
+  mode: summary.mode,
+  score: summary.ok,
+  total: summary.total,
+  seconds: summary.seconds,
+  goals: (summary.goals && summary.goals.length ? summary.goals : undefined), // ⬅︎
+  date: new Date(summary.dateISO || Date.now())
+},
+
+            table: {
+              title: 'Vragen en antwoorden',
+              columns: [
+                { label: 'Nr', key: 'nr', width: 60 },
+                { label: 'Vergelijking', key: 'vraag', width: 340, wrap: true },
+                { label: 'Jouw antwoord', key: 'gekozen', width: 220 },
+                { label: 'Correct', key: 'correct', width: 220 },
+                { label: 'Status', width: 120, align: 'center', value: r => r.ok ? 'Juist' : 'Fout', color: r => r.ok ? '#16a34a' : '#dc2626' }
+              ],
+              rows: rowsTbl
+            },
+            fileName: `bewijs_vergelijken_${summary.mode}_${nm.replace(/[^\w\s-]+/g, '').trim().replace(/\s+/g, '_') || 'leerling'}.png`
+          });
+          return true;
+        } catch (_) { return false; }
+      }
+      function pngFallback(summary) {
+        try {
+          const rows = (summary.questions || []).map((q, i) => ({ nr: i + 1, vraag: q.q, gekozen: q.a, correct: q.correct, ok: !!q.ok }));
+          const dpi = window.devicePixelRatio || 1, w = 1240, pad = 24, head = 120, rowH = 28, headRow = 32, foot = 30;
+          const h = head + pad + (rows.length ? headRow + rows.length * rowH : 0) + foot + pad;
+          const c = document.createElement('canvas'); c.width = w * dpi; c.height = h * dpi; const ctx = c.getContext('2d'); ctx.scale(dpi, dpi);
+          const g = ctx.createLinearGradient(0, 0, 0, head); g.addColorStop(0, '#fff'); g.addColorStop(1, '#eef3ff');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = g; ctx.fillRect(0, 0, w, head);
+          ctx.fillStyle = '#0b132b'; ctx.font = '800 22px Inter, system-ui, Arial'; ctx.fillText('Bewijsje - Vergelijkspel', pad, pad + 26);
+          ctx.font = '600 14px Inter, system-ui, Arial'; ctx.fillStyle = '#111827';
+          const dt = (summary.dateISO ? new Date(summary.dateISO) : new Date()).toLocaleString('nl-BE');
+          ctx.fillText(`Naam: ${summary.name || '-'}${summary.class ? ` (${summary.class})` : ''}`, pad, pad + 26 + 22);
+          ctx.fillText(`Modus: ${summary.mode} • Score: ${summary.ok}/${summary.total || '-'} • Datum: ${dt}`, pad, pad + 26 + 22 + 20);
+          if (rows.length) {
+            const cols = [{ l: '#', w: 60 }, { l: 'Vergelijking', w: 360 }, { l: 'Jouw', w: 320 }, { l: 'Correct', w: 220 }, { l: 'Status', w: 160 }];
+            let x = pad, y = head + pad; ctx.font = '800 13px Inter, system-ui, Arial'; ctx.fillStyle = '#111827';
+            cols.forEach(cn => { ctx.fillText(cn.l, x, y); x += cn.w; }); y += 8; ctx.fillStyle = '#e5e7eb'; ctx.fillRect(pad, y, w - 2 * pad, 1); y += headRow - 10;
+            ctx.font = '600 13px Inter, system-ui, Arial'; ctx.fillStyle = '#111827';
+            rows.forEach(r => {
+              let xx = pad; ctx.fillText(String(r.nr), xx, y); xx += cols[0].w; ctx.fillText(r.vraag, xx, y); xx += cols[1].w;
+              ctx.fillText(String(r.gekozen), xx, y); xx += cols[2].w; ctx.fillText(String(r.correct), xx, y); xx += cols[3].w;
+              ctx.fillStyle = r.ok ? '#16a34a' : '#dc2626'; ctx.fillText(r.ok ? 'Juist' : 'Fout', xx, y); ctx.fillStyle = '#111827'; y += rowH;
+            });
+          }
+          const a = document.createElement('a'); a.download = `bewijs_vergelijken_${summary.mode}.png`; a.href = c.toDataURL('image/png'); a.click();
+        } catch (_) { }
+      }
+
+      function shareProofOrDownload() {
+  const summary = buildSummary();
+
+  // Stuur altijd de samenvatting door (non-blocking, niet bepalend voor download).
+  try { MR_SHARED?.finishSession?.(summary); } catch(_) {}
+
+  // 1) Als het platform zélf een bewijsje maakt, klaar.
+  if (trySharedProof(summary)) return;
+
+  // 2) Gebruik onze gedeelde cert-helper (PNG met tabel).
+  if (downloadCertificate(summary, log)) return;
+
+  // 3) Laatste redmiddel: eigen canvas PNG.
+  pngFallback(summary);
+
+  downloadBtn.classList.add('hidden');
+}
+
+
+      // --- Einde / Finish
+      function finish(reason) {
+        finished = true;
+        if (mode !== MODE_FREE) {
+  // Alleen via platform afronden als de topbar effectief “wired” is
+  if (platformWired && window.MR_SHARED?.endRun) {
+    try { MR_SHARED.endRun({}); return; } catch(_) {}
+  }
+  // Anders zelf bewijs genereren
+  shareProofOrDownload();
+}
+
+        setMode(MODE_FREE);
+      }
+
+      // --- Starten (na naam bekend)
+      function startRun() {
+        if (mode === MODE_TASK) setMode(MODE_TASK);
+        else if (mode === MODE_TEST) setMode(MODE_TEST);
+        else setMode(MODE_FREE);
+      }
+
+      // --- Interactie
+      document.querySelectorAll('button.big').forEach(b => b.addEventListener('click', () => pick(b.dataset.ans)));
+      window.addEventListener('keydown', (e) => {
+        if (e.key === '<' || e.key === 'ArrowLeft') { e.preventDefault(); pick('<'); }
+        else if (e.key === '>' || e.key === 'ArrowRight') { e.preventDefault(); pick('>'); }
+        else if (e.key === '=' || e.key === 'Enter') { e.preventDefault(); pick('='); }
+      });
+
+      // Startknoppen: MR_SHARED wired → platform; anders askName of fallback modal
+      taskBtn.addEventListener('click', async () => {
+        if (window.MR_SHARED?.wireTopbar) return;
+        if (window.MR_SHARED?.askName) {
+          const n = await MR_SHARED.askName('taak'); if (!n) return;
+          studentName = n; try { studentClass = MR_SHARED.getClass?.() || ''; } catch (_) { }
+          setMode(MODE_TASK);
+        } else openNameModal(MODE_TASK);
+      });
+      testBtn.addEventListener('click', async () => {
+        if (window.MR_SHARED?.wireTopbar) return;
+        if (window.MR_SHARED?.askName) {
+          const n = await MR_SHARED.askName('toets'); if (!n) return;
+          studentName = n; try { studentClass = MR_SHARED.getClass?.() || ''; } catch (_) { }
+          setMode(MODE_TEST);
+        } else openNameModal(MODE_TEST);
+      });
+
+      downloadBtn.addEventListener('click', shareProofOrDownload);
+
+      fullBtn.addEventListener('click', () => {
+        const el = document.documentElement; if (!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.();
+      });
+
+      // --- Init (vrij)
+      setMode(MODE_FREE);
+
+      // --- MR_SHARED wireTopbar integratie
+      (function wireShared() {
+        function ensure(cb) {
+          if (window.MR_SHARED) return cb(true);
+          const s = document.querySelector('script[src*="mrraes-shared.js"]');
+          if (!s) return cb(false);
+          s.addEventListener('load', () => cb(!!window.MR_SHARED));
+          s.addEventListener('error', () => cb(false));
+          setTimeout(() => cb(!!window.MR_SHARED), 0);
+        }
+        ensure((ok) => {
+          if (!ok || !window.MR_SHARED?.wireTopbar) return;
+          MR_SHARED.wireTopbar({
+            gameId: (window.GAME_ID || 'vergelijken_1ljb'),
+            title: 'Vergelijken',
+            selectors: { taskBtn: '#taskBtn', testBtn: '#testBtn', timerLabel: '#timerLabel' },
+            test: { countdownSec: TEST_SECONDS },
+
+            onStart(runMode) {
+              platformWired = true;
+              studentName = MR_SHARED.getName?.() || studentName;
+              studentClass = MR_SHARED.getClass?.() || studentClass;
+              // timers door platform → geen lokale timers
+              setMode(runMode); // 'taak' of 'toets' (zet label + reset + nieuwe vraag)
+            },
+
+            onReset(runMode) {
+              platformWired = true;
+              studentName = MR_SHARED.getName?.() || studentName;
+              studentClass = MR_SHARED.getClass?.() || studentClass;
+              setMode(runMode);
+            },
+
+            getSummary() { return buildSummary(); },
+
+            onFinish(summary) {
+  const built  = buildSummary();
+  const merged = { ...built, ...summary };
+
+  // ⬇️ Belangrijk: vul aan als platform geen doelen/vragen meestuurt
+  if (!merged.goals || merged.goals.length === 0) merged.goals = built.goals;
+  if (!merged.questions || merged.questions.length === 0) merged.questions = built.questions;
+console.log('onFinish: platform summary:', summary);
+  console.log('onFinish: merged summary (used for proof):', merged);
+  try { MR_SHARED.finishSession?.(merged); } catch (_) {}
+
+  if (!trySharedProof(merged) && !downloadCertificate(merged, log)) {
+    pngFallback(merged);
+  }
+  setMode(MODE_FREE);
+}
+          });
+        });
+      })();
+
+    })();
+  </script>
+</body>
+
+</html>

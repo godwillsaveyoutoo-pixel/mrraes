@@ -1,0 +1,70 @@
+:root{
+  --bg:#f7f9fc; --card:#ffffff; --ink:#0b132b; --muted:#6b7280; --ring:#e6ecf8; --ring2:#dfe6f6;
+  --shadow:0 10px 28px rgba(15,23,42,.06);
+  --good:#10b981; --bad:#ef4444; --accent:#2563eb;
+}
+
+/* Typische bouwblokken die je in al je spellen gebruikt */
+/* Ensure default flow layout so sticky headers work across games */
+html,body{min-height:100%}
+body{font-family:Inter,system-ui,Arial,sans-serif; color:var(--ink); display:block !important; align-items:initial !important; justify-content:initial !important; margin:0}
+.wrap{width:min(1200px,96vw); padding:1rem; margin:0 auto}
+
+/* Uniform topbar for all games */
+.topbar, .appbar{
+  position: sticky; top: 0; z-index: 1000;
+  width: 100%; left:0; right:0;
+  background: rgba(255,255,255,.95);
+  backdrop-filter: saturate(140%) blur(6px);
+  border-bottom: 1px solid var(--ring2);
+  box-shadow: var(--shadow);
+  padding: 10px 14px;
+}
+.topbar .row, .appbar .row, .appbar .inner, .topbar .inner{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap }
+.spacer{ flex: 1 }
+.ghostbtn{ border:1px solid var(--ring2); background:#fff; border-radius:12px; padding:.55rem .8rem; font-weight:800; cursor:pointer }
+.ghostbtn:active{ transform: translateY(1px) }
+.pill{ display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--ring2); border-radius:999px; padding:.35rem .7rem; background:#fff; font-weight:800 }
+.pill.good{ color:var(--good); background:#eafaf4; border-color:#c4eedc }
+.pill.bad{  color:var(--bad);  background:#fdeeee; border-color:#ffd7d7 }
+
+/* Make any existing appbar buttons/tags readable on light topbar */
+.appbar .appbtn{ background:#fff; color:#0b132b; border:1px solid var(--ring2); border-radius:12px; padding:.5rem .8rem; font-weight:800 }
+.appbar .tag{ background:#fff; color:#0b132b; border:1px solid var(--ring2) }
+
+/* Disable legacy per-page name overlays in games */
+#nameModal, #nmModal, #startOverlay{ display:none !important }
+
+/* Chips & buttons */
+.chip{
+  background:#fff; border:1px solid var(--ring2); border-radius:999px; padding:.35rem .7rem;
+  box-shadow:var(--shadow); display:inline-flex; gap:.5rem; align-items:center; font-weight:800;
+}
+.chip.btn{cursor:pointer}
+.chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+.chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+.chip.sel{background:#eef3ff; border-color:#cfe0ff}
+.btn{border:1px solid var(--ring2); background:#fff; padding:.6rem .9rem; border-radius:12px; font:800 .98rem Inter,system-ui,Arial; cursor:pointer}
+
+/* Board shell */
+.board{
+  background:#fff; border:1px solid var(--ring); border-radius:24px; box-shadow:var(--shadow); padding:1.2rem;
+  display:grid; gap:1rem;
+}
+.field{
+  background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:.9rem; box-shadow:var(--shadow)
+}
+.lcd{
+  min-height:84px; display:flex; align-items:center; justify-content:center;
+  background:#f8fbff; border:1px solid var(--ring); border-radius:14px;
+  font-weight:900; font-size:clamp(28px,4.6vw,46px); color:#1f2937; padding:.2rem .6rem;
+}
+.lcd.good{ box-shadow:0 0 0 6px rgba(16,185,129,.18) inset }
+.lcd.bad{  box-shadow:0 0 0 6px rgba(239,68,68,.15) inset }
+
+/* Kleine helpers */
+.hidden{display:none !important}
+.center{display:flex; align-items:center; justify-content:center}
+.flash-ok{ background:#f4fdf8 !important; border-color:#c4eedc !important; transition: background .25s, border-color .25s }
+.flash-err{ background:#fff6f6 !important; border-color:#ffd7d7 !important; transition: background .25s, border-color .25s }
+

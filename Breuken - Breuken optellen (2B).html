@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mr Raes: Breuken optellen en aftrekken</title>
+  <!-- Spel-ID voor bewijsje -->
+  <meta name="x-game-id" content="Breuken — Optellen & Aftrekken (2B)">
+  <script>window.GAME_ID = 'breuken_optellen_aftrekken_2b';</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#f7f9fc; --card:#fff; --ink:#0b132b; --muted:#6b7280; --ring:#e6ecf8; --ring2:#dfe6f6; --shadow:0 10px 28px rgba(15,23,42,.06);
+      --good:#10b981; --bad:#ef4444; --accent:#111827; --radius-board:24px; --radius-chip:999px; --radius-tile:14px; --radius-s2:20px;
+      --task-num-minw:66px; --task-font:clamp(28px,5vw,36px); --s1-w:58px; --s1-h:48px; --s1-font:clamp(22px,4.4vw,26px);
+      --s2-w:100px; --s2-h:76px; --s2-font:clamp(30px,6.2vw,46px); --bar-h:3px;
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0; font-family:Inter,system-ui,Arial,sans-serif; color:var(--ink);
+      background:radial-gradient(1200px 600px at 80% -10%, #eef3ff 0%, #f7f9fc 50%, #fbfdff 100%)}
+    .wrap{width:min(1200px,96vw); padding:1rem; margin:0 auto}
+    .topbar{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem}
+    .chip{background:#fff; border:1px solid var(--ring2); border-radius:var(--radius-chip); padding:.35rem .7rem; box-shadow:var(--shadow);
+      display:inline-flex; gap:.5rem; align-items:center; font-weight:800}
+    .chip.btn{cursor:pointer}
+    .chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+    .chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+    .spacer{flex:1}
+    .board{background:#fff; border:1px solid var(--ring); border-radius:var(--radius-board); box-shadow:var(--shadow);
+      padding:1.2rem; display:grid; grid-template-areas:"task" "body"; gap:1rem}
+    .board.flash-ok{background:#f4fdf8!important; border-color:#c4eedc!important; transition:background .25s,border-color .25s}
+    .board.flash-err{background:#fff6f6!important; border-color:#ffd7d7!important; transition:background .25s,border-color .25s}
+    .taskbar{grid-area:task; background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow)}
+    .taskRow{display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap}
+    .F,.frac{display:inline-grid; grid-template-rows:auto var(--bar-h) auto; align-items:center; justify-items:center}
+    .F .bar,.frac .bar{width:100%; height:var(--bar-h); background:#e3e8f5; border-radius:1px}
+    .taskbar .F .num,.taskbar .F .den{min-width:var(--task-num-minw); padding:.15rem .4rem; font-weight:900; font-size:var(--task-font);
+      display:flex; align-items:center; justify-content:center; text-align:center; line-height:1; font-variant-numeric:tabular-nums}
+    .taskbar .frac .num,.taskbar .frac .den{width:var(--s1-w); min-width:var(--s1-w); height:var(--s1-h); min-height:var(--s1-h);
+      background:#f8fbff; border:1px solid var(--ring); border-radius:var(--radius-tile); font-weight:900; font-size:var(--s1-font)}
+    .opLarge,.eqLarge{display:flex; align-items:center; justify-content:center; font-weight:900; font-size:var(--task-font); min-width:28px; padding:0 .2rem}
+    .bodyGrid{grid-area:body; display:grid; grid-template-columns:1.1fr .9fr; gap:1rem}
+    @media (max-width:860px){ .bodyGrid{grid-template-columns:1fr} }
+    .field{background:#fff; text-align:center; align-items:center; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow)}
+    .fieldHead{display:flex; text-align:center; align-items:center; justify-content:space-between; gap:.6rem; margin-bottom:.35rem}
+    .label{font-weight:800; font-size:large; text-align:center; margin-bottom:.5rem}
+    .hint{color:var(--muted); font-size:.95rem; margin-top:.35rem; text-align:center}
+    .resultRow{display:flex; align-items:center; justify-content:center; gap:.8rem; flex-wrap:wrap}
+    .bodyGrid .frac .num,.bodyGrid .frac .den{width:var(--s2-w); min-width:var(--s2-w); height:var(--s2-h); min-height:var(--s2-h)}
+    #s2_num,#s2_den{font-size:var(--s2-font); font-weight:900}
+    .resultRow .frac .num,.resultRow .frac .den{background:#def0ff; border-color:#4dcdfc; color:#060606; border-radius:var(--radius-s2);
+      box-shadow:0 1px 0 rgba(179,208,247,.48), inset 0 0 0 6px rgb(185,185,185); transition:background .2s,border-color .2s,box-shadow .2s}
+    .resultRow .frac .num:focus-within,.resultRow .frac .den:focus-within{box-shadow:0 1px 0 rgba(11,19,43,.03), inset 0 0 0 8px rgba(77,197,252,.28)}
+    .resultRow .frac .bar{height:var(--bar-h); border-radius:999px}
+    .okBox{box-shadow:0 0 0 6px rgba(16,185,129,.18) inset; border-color:#c4eedc}
+    .errBox{box-shadow:0 0 0 6px rgba(239,68,68,.15) inset; border-color:#ffd7d7; background:#fff}
+    .resultRow .okBox{background:#ecfdf5; border-color:#a7f3d0; border-radius:var(--radius-s2)}
+    .resultRow .errBox{background:#fff1f2; border-color:#fecdd3; border-radius:var(--radius-s2)}
+    .ibox{width:100%; height:100%; display:flex; align-items:center; justify-content:center; text-align:center; border:none; outline:none; background:transparent; font:inherit; color:inherit; line-height:1; padding:0}
+    .padwrap{background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow)}
+    .keypad{display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem}
+    .key{user-select:none; cursor:pointer; text-align:center; font-weight:900; font-size:clamp(18px,3.2vw,22px); padding:1rem 0; border-radius:14px; background:#f7faff; border:1px solid var(--ring2);
+      box-shadow:0 6px 16px rgba(15,23,42,.06); transition:transform .06s, box-shadow .12s, background .12s}
+    .key:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+    .key.wide{grid-column:span 2}
+    .key.ok{background:#eafaf4; border-color:#c4eedc}
+    .key.bad{background:#fdeeee; border-color:#ffd7d7}
+    .tips{display:none; margin-top:.6rem}
+    .tips-bottom{margin-top:.8rem}
+    .microchips{display:flex; gap:.5rem; flex-wrap:wrap; justify-content:center}
+    .micro{font-weight:800; padding:.2rem .5rem; border-radius:var(--radius-chip); background:#fff; border:1px solid var(--ring2); box-shadow:var(--shadow); color:#374151}
+    @keyframes btnBump{0%{transform:scale(1)}30%{transform:scale(.96)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+    .btn-pop{animation:btnBump .35s ease-out}
+  </style>
+  <link rel="stylesheet" href="mrraes-shared.css">
+  <script src="mrraes-shared.js"></script>
+</head>
+<body>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button id="startTaak" class="chip btn">📝 Start taak (20)</button>
+    <button id="startToets" class="chip btn">🧪 Start toets (20 / 10 min)</button>
+    <button id="fullBtn" class="chip btn">⤢ Volledig scherm</button>
+    <div class="spacer"></div>
+    <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+    <span class="chip ok">✅ Juist: <span id="okCount">0</span></span>
+    <span class="chip bad">❌ Fout: <span id="errCount">0</span></span>
+  </div>
+
+  <div class="wrap">
+    <div class="board" id="board">
+      <div class="taskbar">
+        <div class="fieldHead">
+          <div class="label">Stap 1: Plaats de breuken op gelijke noemer</div>
+          <button id="tipsBtnTask" class="chip btn">💡 Tip</button>
+        </div>
+        <div class="taskRow">
+          <span class="F"><span class="num" id="qA_num">5</span><span class="bar"></span><span class="den" id="qA_den">7</span></span>
+          <span class="opLarge" id="qOp">+</span>
+          <span class="F"><span class="num" id="qB_num">5</span><span class="bar"></span><span class="den" id="qB_den">8</span></span>
+          <span class="eqLarge">=</span>
+          <span class="frac">
+            <span class="num"><input class="ibox" id="s1A_num" inputmode="numeric"></span>
+            <span class="bar"></span>
+            <span class="den"><input class="ibox" id="s1A_den" inputmode="numeric"></span>
+          </span>
+          <span class="opLarge" id="s1Op">+</span>
+          <span class="frac">
+            <span class="num"><input class="ibox" id="s1B_num" inputmode="numeric"></span>
+            <span class="bar"></span>
+            <span class="den"><input class="ibox" id="s1B_den" inputmode="numeric"></span>
+          </span>
+        </div>
+        <div class="tips" id="tipsTaskBox"></div>
+      </div>
+
+      <div class="bodyGrid">
+        <div class="field">
+          <div class="fieldHead">
+            <div class="label">Stap 2: tel/trek af en geef het eindresultaat</div>
+            <button id="tipsBtnBody" class="chip btn">💡 Tip</button>
+          </div>
+          <div class="resultRow">
+            <span class="frac">
+              <span class="num"><input class="ibox" id="s2_num" inputmode="numeric"></span>
+              <span class="bar"></span>
+              <span class="den"><input class="ibox" id="s2_den" inputmode="numeric"></span>
+            </span>
+          </div>
+          <div id="simplifyWarn" class="warn" aria-live="polite" style="display:none; font-weight:800; color:#b45309; background:#fff7ed; border:1px solid #fde68a; padding:.35rem .6rem; border-radius:999px; inline-size:fit-content; margin:.6rem auto 0"></div>
+          <div class="hint" id="lvlHint">Level 1</div>
+          <div class="tips tips-bottom" id="tipsBodyBox">
+            <div class="microchips" id="bodyChips"></div>
+          </div>
+        </div>
+
+        <div class="padwrap">
+          <div class="keypad" id="pad">
+            <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key" data-act="bksp">←</div>
+            <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key" data-act="clr">C</div>
+            <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key" data-act="neg">±</div>
+            <div class="key wide">0</div><div class="key wide ok" id="okKey" data-act="enter">OK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    /* ===== Elements ===== */
+    const board = document.getElementById('board');
+    const okEl = document.getElementById('okCount');
+    const errEl = document.getElementById('errCount');
+    const timeDisp = document.getElementById('timeDisp');
+
+    const startTaak = document.getElementById('startTaak');
+    const startToets = document.getElementById('startToets');
+    const fullBtn = document.getElementById('fullBtn');
+
+    const qA_num = document.getElementById('qA_num');
+    const qA_den = document.getElementById('qA_den');
+    const qB_num = document.getElementById('qB_num');
+    const qB_den = document.getElementById('qB_den');
+    const qOp = document.getElementById('qOp');
+
+    const s1A_num = document.getElementById('s1A_num');
+    const s1A_den = document.getElementById('s1A_den');
+    const s1B_num = document.getElementById('s1B_num');
+    const s1B_den = document.getElementById('s1B_den');
+    const s1Op = document.getElementById('s1Op');
+
+    const s2_num = document.getElementById('s2_num');
+    const s2_den = document.getElementById('s2_den');
+
+    const tipsBtnTask = document.getElementById('tipsBtnTask');
+    const tipsTaskBox = document.getElementById('tipsTaskBox');
+    const tipsBtnBody = document.getElementById('tipsBtnBody');
+    const tipsBodyBox = document.getElementById('tipsBodyBox');
+    const bodyChips = document.getElementById('bodyChips');
+
+    const pad = document.getElementById('pad');
+    const okKey = document.getElementById('okKey');
+
+    /* ===== State ===== */
+    let mode = 'oefen';  // 'oefen'|'taak'|'toets'
+    let total = 0, idx = 0;
+    let ok = 0, err = 0, correctCount = 0;
+    let focusInput = null;
+    let P = null; // {a:{n,d}, b:{n,d}, op, lcm, level, result:{n,d}}
+    const results = [];
+    let runLog = [];
+    let runStartedAt = 0;
+    let timerId = null;
+
+    /* ===== Helpers ===== */
+    const mmss = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+    const gcd = (a,b)=>{a=Math.trunc(Math.abs(a)); b=Math.trunc(Math.abs(b)); while(b){[a,b]=[b,a%b]} return a||1};
+    const lcm = (a,b)=> Math.abs(a*b)/gcd(a,b);
+    const simp = ({n,d})=>{ if(d<0){n=-n; d=-d} const g=gcd(n,d); return {n:n/g, d:d/g} };
+    const randInt = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+    const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+    const flashBoard = (okay)=>{ board.classList.remove('flash-ok','flash-err'); void board.offsetWidth; board.classList.add(okay?'flash-ok':'flash-err'); setTimeout(()=>board.classList.remove('flash-ok','flash-err'),420) };
+    const animateOK = (okay,after)=>{ okKey.classList.remove('ok','bad'); void okKey.offsetWidth; okKey.classList.add(okay?'ok':'bad'); setTimeout(()=>{ okKey.classList.remove('ok','bad'); after&&after(); },320) };
+    const markBoxes = (nodes,cls)=>{ nodes.forEach(n=>{ n.parentElement.classList.remove('okBox','errBox','infoBox'); if(cls) n.parentElement.classList.add(cls); }) };
+    const levelFor = (nCorrect)=> nCorrect<10?1 : nCorrect<20?2 : 3;
+
+    function ensureIdentity(){
+      let nm = localStorage.getItem('mr_name') || '';
+      let kl = localStorage.getItem('mr_class') || '';
+      if(!nm){ nm = prompt('Naam leerling? (voor bewijsje)') || ''; localStorage.setItem('mr_name', nm); }
+      if(!kl){ kl = prompt('Klas (optioneel)') || ''; localStorage.setItem('mr_class', kl); }
+    }
+
+    /* ===== Tips ===== */
+    function updateTips(){
+      const multiples = (d, lcmVal, extraAfter=2, cap=14)=>{ const out=[]; let i=1; const target=lcmVal+extraAfter*d; while(true){ const v=d*i; out.push(v); if(v>=target||out.length>=cap) break; i++; } return out; };
+      const m1 = multiples(P.a.d,P.lcm,2);
+      const m2 = multiples(P.b.d,P.lcm,2);
+      tipsTaskBox.innerHTML = `
+        <div class="microchips"><span class="micro">Bepaal het KGV (kleinste gemeenschappelijke veelvoud):</span></div>
+        <div class="microchips">
+          <span class="micro">Veelvouden van ${P.a.d}: ${m1.join(', ')}...</span>
+          <span class="micro">Veelvouden van ${P.b.d}: ${m2.join(', ')}...</span>
+        </div>`;
+      const sumdiff = (P.op === '+') ? 'tellers optellen' : 'tellers aftrekken';
+      const needSimplify = gcd(
+        (P.op==='+' ? (P.a.n*(P.lcm/P.a.d) + P.b.n*(P.lcm/P.b.d)) : (P.a.n*(P.lcm/P.a.d) - P.b.n*(P.lcm/P.b.d))),
+        P.lcm
+      ) > 1;
+      const body = [`<span class="micro">${sumdiff}, noemer blijft gelijk.</span>`];
+      if(needSimplify) body.push(`<span class="micro">vereenvoudigen waar mogelijk</span>`);
+      bodyChips.innerHTML = body.join('');
+    }
+
+    /* ===== Generator ===== */
+    function genSimplifiedProperFraction(dens){
+      const d = pick(dens); let n = randInt(1,d-1);
+      while(gcd(n,d)!==1) n = randInt(1,d-1);
+      return {n,d};
+    }
+    function genSimplifiedProperFractionRange(dMin,dMax){
+      let d = randInt(dMin,dMax); let n = randInt(1,d-1);
+      while(gcd(n,d)!==1){ d = randInt(dMin,dMax); n = randInt(1,d-1); }
+      return {n,d};
+    }
+    function genProblem(){
+      const L = levelFor(correctCount);
+      let a,b,op='+';
+      if(L===1){
+        const dens=[2,3,4,5,6];
+        do{ a=genSimplifiedProperFraction(dens); do{ b=genSimplifiedProperFraction(dens) }while(b.d===a.d); op='+'; }while(lcm(a.d,b.d)>50);
+      }else if(L===2){
+        let okGen=false, tries=0;
+        while(!okGen && tries<200){
+          a=genSimplifiedProperFractionRange(2,12);
+          do{ b=genSimplifiedProperFractionRange(2,12); }while(b.d===a.d);
+          op = (Math.random()<0.7)? '+' : '-';
+          const LCM=lcm(a.d,b.d);
+          const raw = (op==='+' ? (a.n*(LCM/a.d) + b.n*(LCM/b.d)) : (a.n*(LCM/a.d) - b.n*(LCM/b.d)));
+          if(LCM<=36 && raw>0) okGen=true;
+          tries++;
+        }
+        if(!okGen){
+          const allowed=[2,3,4,5,6,8,9,10,12];
+          const genFromSet=()=>{ const d=pick(allowed); let n=randInt(1,d-1); while(gcd(n,d)!==1) n=randInt(1,d-1); return {n,d}; };
+          a=genFromSet(); do{ b=genFromSet(); }while(b.d===a.d); op='+';
+        }
+      }else{
+        let okGen=false, tries=0;
+        while(!okGen && tries<500){
+          const pickD=()=>randInt(2,12); let d1=pickD(), d2=pickD(); while(d2===d1) d2=pickD();
+          const genN=d=>{ let n=randInt(1,d+4); while(gcd(n,d)!==1) n=randInt(1,d+4); return n; };
+          let aTmp={n:genN(d1), d:d1}, bTmp={n:genN(d2), d:d2};
+          let opSel=(Math.random()<0.4)? '-' : '+';
+          let LCM = lcm(aTmp.d,bTmp.d);
+          if(LCM<12 || LCM>60){ tries++; continue; }
+          let Aeq=aTmp.n*(LCM/aTmp.d), Beq=bTmp.n*(LCM/bTmp.d);
+          if(opSel==='-'){
+            const wantPositive = Math.random()<0.8;
+            if(wantPositive && Aeq<=Beq){ [aTmp,bTmp] = [bTmp,aTmp]; LCM = lcm(aTmp.d,bTmp.d); Aeq=aTmp.n*(LCM/aTmp.d); Beq=bTmp.n*(LCM/bTmp.d); }
+          }
+          const raw = (opSel==='+'? Aeq+Beq : Aeq-Beq);
+          if(raw===0){ tries++; continue; }
+          const needsSimplify = gcd(Math.abs(raw), LCM) > 1;
+          if(!needsSimplify && Math.random()<0.3){ tries++; continue; }
+          a=aTmp; b=bTmp; op=opSel; okGen=true;
+        }
+        if(!okGen){
+          const pickD=()=>randInt(2,12); const genN=d=>{ let n=randInt(1,d+3); while(gcd(n,d)!==1) n=randInt(1,d+3); return n; };
+          do{ a={n:genN(pickD()), d:pickD()}; }while(gcd(a.n,a.d)!==1);
+          do{ b={n:genN(pickD()), d:pickD()}; }while(b.d===a.d || gcd(b.n,b.d)!==1);
+          op=(Math.random()<0.4)? '-' : '+';
+        }
+      }
+      const LCM = lcm(a.d,b.d);
+      const Aeq = { n: a.n*(LCM/a.d), d: LCM };
+      const Beq = { n: b.n*(LCM/b.d), d: LCM };
+      const R = simp({ n: (op==='+'? Aeq.n+Beq.n : Aeq.n-Beq.n), d: LCM });
+      P = { a:{...a}, b:{...b}, op, lcm:LCM, level:L, result:R };
+      document.getElementById('lvlHint').textContent = `Level ${L}`;
+    }
+
+    function fillProblem(){
+      qA_num.textContent=P.a.n; qA_den.textContent=P.a.d;
+      qB_num.textContent=P.b.n; qB_den.textContent=P.b.d;
+      qOp.textContent=P.op; s1Op.textContent=P.op;
+
+      [s1A_num,s1A_den,s1B_num,s1B_den,s2_num,s2_den].forEach(inp=>{
+        inp.value=''; inp.parentElement.classList.remove('okBox','errBox','infoBox');
+      });
+      tipsTaskBox.style.display='none';
+      tipsBodyBox.style.display='none';
+      document.getElementById('simplifyWarn').style.display='none';
+      updateTips();
+      s1A_num.focus(); focusInput = s1A_num;
+    }
+
+    /* ===== Reveal (voor oefenen) ===== */
+    function revealAnswer(){
+      const LCM = P.lcm;
+      const AeqNum = P.a.n*(LCM/P.a.d);
+      const BeqNum = P.b.n*(LCM/P.b.d);
+      s1A_num.value = AeqNum; s1A_den.value = LCM;
+      s1B_num.value = BeqNum; s1B_den.value = LCM;
+      markBoxes([s1A_num,s1A_den,s1B_num,s1B_den],'okBox');
+      s2_num.value = P.result.n; s2_den.value = P.result.d;
+      markBoxes([s2_num,s2_den],'okBox');
+      const warn = document.getElementById('simplifyWarn');
+      warn.textContent = 'Dit is het juiste antwoord.';
+      warn.style.display = 'inline-block';
+    }
+
+    /* ===== Read & Check ===== */
+    const valInt = (inp)=>{ const v=inp.value.trim(); if(v===''||v==='-') return null; const n=Number(v); return Number.isInteger(n)? n : null; };
+
+    function checkStep1(){
+      const read=(nEl,dEl)=>{ const n=valInt(nEl), d0=valInt(dEl); if(n===null||d0===null||d0===0) return {st:'incomplete'}; let n2=n, d2=d0; if(d2<0){ n2=-n2; d2=-d2; } return {st:'ok', n:n2, d:d2}; };
+      const A=read(s1A_num,s1A_den), B=read(s1B_num,s1B_den);
+      markBoxes([s1A_num,s1A_den,s1B_num,s1B_den]); document.getElementById('simplifyWarn').style.display='none';
+
+      if(A.st!=='ok' || B.st!=='ok'){
+        if(A.st!=='ok'){ if(A.n==null) s1A_num.parentElement.classList.add('infoBox'); if(A.d==null) s1A_den.parentElement.classList.add('infoBox'); }
+        if(B.st!=='ok'){ if(B.n==null) s1B_num.parentElement.classList.add('infoBox'); if(B.d==null) s1B_den.parentElement.classList.add('infoBox'); }
+        const w=document.getElementById('simplifyWarn'); w.textContent='Gelieve alles in te vullen.'; w.style.display='inline-block';
+        return {status:'incomplete'};
+      }
+
+      if(A.d !== B.d){ markBoxes([s1A_den,s1B_den],'errBox'); return {status:'wrong'}; }
+
+      const eqA = (P.a.n * A.d === A.n * P.a.d);
+      const eqB = (P.b.n * B.d === B.n * P.b.d);
+      const ok = eqA && eqB;
+      markBoxes([s1A_num,s1A_den,s1B_num,s1B_den], ok?'okBox':'errBox');
+      return {status: ok?'ok':'wrong', A, B};
+    }
+
+    function checkStep2(){
+      const rN=valInt(s2_num), rD=valInt(s2_den);
+      markBoxes([s2_num,s2_den]); document.getElementById('simplifyWarn').style.display='none';
+
+      if(rN===null || rD===null || rD===0){
+        [s2_num,s2_den].forEach(n=>n.parentElement.classList.add('infoBox'));
+        const w=document.getElementById('simplifyWarn'); w.textContent='Gelieve alles in te vullen.'; w.style.display='inline-block';
+        return {status:'incomplete'};
+      }
+      let n=rN, d=rD; if(d<0){ n=-n; d=-d }
+      const gg=gcd(n,d); const givenSimp={n:n/gg, d:d/gg};
+      const R=P.result;
+      const rawEqual = (rN*R.d === rD*R.n);
+      const equalSimp = (givenSimp.n===R.n && givenSimp.d===R.d);
+      const canSimplifyFurther = (gg>1);
+
+      if(!rawEqual){ markBoxes([s2_num,s2_den],'errBox'); return {status:'wrong'}; }
+      if(rawEqual && (!equalSimp || canSimplifyFurther)){
+        [s2_num,s2_den].forEach(n=>n.parentElement.classList.add('infoBox'));
+        const w=document.getElementById('simplifyWarn'); w.textContent='Aub vereenvoudigen.'; w.style.display='inline-block';
+        return {status:'needs_simplify'};
+      }
+      markBoxes([s2_num,s2_den],'okBox'); return {status:'ok'};
+    }
+
+    function recordResult({okStep1, okStep2}){
+      results.push({
+        i:(mode==='oefen' ? (ok+err)+1 : idx+1),
+        mode, lcm:P.lcm, op:P.op, level:P.level,
+        a:{...P.a}, b:{...P.b}, res:{...P.result},
+        s1:{ a:{n:valInt(s1A_num), d:valInt(s1A_den)}, b:{n:valInt(s1B_num), d:valInt(s1B_den)} },
+        s2:{ n:valInt(s2_num), d:valInt(s2_den) },
+        okStep1, okStep2, ok:(okStep1 && okStep2)
+      });
+
+      // Log voor bewijsje
+      const given = (valInt(s2_num)==null || valInt(s2_den)==null) ? '—' : `${valInt(s2_num)}/${valInt(s2_den)}`;
+      runLog.push({
+        q: `${P.a.n}/${P.a.d} ${P.op} ${P.b.n}/${P.b.d}`,
+        correct: `${P.result.n}/${P.result.d}`,
+        given,
+        ok: !!(okStep1 && okStep2),
+        goals: GOALS
+      });
+    }
+
+    /* ===== Handle Check ===== */
+    const GOALS = ['BV1_06.02','06.02.02','06.02.08']; // gelijknamig, optellen/aftrekken, vereenvoudigen/rekenen
+    function handleCheck(){
+      document.getElementById('simplifyWarn').style.display='none';
+      const s1 = checkStep1(); if(s1.status==='incomplete') return;
+
+      if(s1.status==='wrong'){
+        recordResult({okStep1:false, okStep2:false});
+        animateOK(false, ()=>{
+          flashBoard(false);
+          err++; errEl.textContent = err;
+          if(mode==='oefen'){ revealAnswer(); setTimeout(()=>{ genProblem(); fillProblem(); }, 1100); }
+          else { idx++; if(idx>=total) finishRun(); else { genProblem(); fillProblem(); } }
+        });
+        return;
+      }
+
+      const s2 = checkStep2();
+      if(s2.status==='incomplete' || s2.status==='needs_simplify') return;
+
+      const allOk = (s2.status==='ok');
+      recordResult({okStep1:true, okStep2:allOk});
+
+      animateOK(allOk, ()=>{
+        flashBoard(allOk);
+        if(allOk){ ok++; okEl.textContent=ok; correctCount++; } else { err++; errEl.textContent=err; }
+        if(mode==='oefen'){
+          if(!allOk){ revealAnswer(); setTimeout(()=>{ genProblem(); fillProblem(); }, 1100); }
+          else { genProblem(); fillProblem(); }
+        }else{
+          idx++; if(idx>=total) finishRun(); else { genProblem(); fillProblem(); }
+        }
+      });
+    }
+
+    /* ===== Keypad ===== */
+    ;[s1A_num,s1A_den,s1B_num,s1B_den,s2_num,s2_den].forEach(inp=>{
+      inp.addEventListener('focus', ()=>{ focusInput = inp; });
+      inp.addEventListener('keydown', e=>{
+        if(e.key==='Enter'){ e.preventDefault(); handleCheck(); return; }
+        const allowed=['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Enter','-'];
+        if(!/[0-9]/.test(e.key) && !allowed.includes(e.key)) e.preventDefault();
+        if(e.key==='-'){ e.preventDefault(); if(inp.value.startsWith('-')) inp.value=inp.value.slice(1); else inp.value = '-' + (inp.value||''); }
+      });
+    });
+    pad.addEventListener('click', e=>{
+      const k=e.target.closest('.key'); if(!k||!focusInput) return;
+      const act=k.dataset.act||''; const put=t=>{ focusInput.value=(focusInput.value||'')+t; focusInput.focus(); };
+      if(!act){ const txt=k.textContent.trim(); if(/^\d+$/.test(txt)) put(txt); return; }
+      if(act==='bksp'){ focusInput.value=(focusInput.value||'').slice(0,-1); focusInput.focus(); return; }
+      if(act==='clr'){ focusInput.value=''; focusInput.focus(); return; }
+      if(act==='neg'){ if(focusInput.value.startsWith('-')) focusInput.value=focusInput.value.slice(1); else focusInput.value='-'+(focusInput.value||''); focusInput.focus(); return; }
+      if(act==='enter'){ handleCheck(); return; }
+    });
+
+    /* ===== Tips toggles ===== */
+    const toggle=(box,btn)=>{ box.style.display=(box.style.display==='none'||!box.style.display)?'block':'none'; btn.classList.add('btn-pop'); setTimeout(()=>btn.classList.remove('btn-pop'),300); };
+    tipsBtnTask.onclick = ()=> toggle(tipsTaskBox, tipsBtnTask);
+    tipsBtnBody.onclick = ()=> toggle(tipsBodyBox, tipsBtnBody);
+
+    /* ===== Timer ===== */
+    function startTimer(countdownSec){
+      stopTimer();
+      if(mode==='oefen'){ timeDisp.textContent = '—'; return; }
+      timerId = setInterval(()=>{
+        const spent = Math.floor((Date.now()-runStartedAt)/1000);
+        if(mode==='toets' && countdownSec!=null){
+          const rem = Math.max(0, countdownSec - spent);
+          timeDisp.textContent = mmss(rem);
+          if(rem<=0){ stopTimer(); finishRun(); }
+        } else {
+          timeDisp.textContent = mmss(spent);
+        }
+      }, 200);
+    }
+    function stopTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
+
+    /* ===== Run lifecycle ===== */
+    function startRun(newMode){
+      mode=newMode; idx=0; ok=0; err=0; correctCount=0; runLog=[]; runStartedAt=Date.now();
+      okEl.textContent='0'; errEl.textContent='0';
+      total = (mode==='oefen') ? 0 : 20;
+      const tipsEnabled = (mode!=='toets');
+      [tipsBtnTask, tipsBtnBody].forEach(b=>{ if(!b) return; b.disabled=!tipsEnabled; b.setAttribute('aria-disabled', String(!tipsEnabled)); if(!tipsEnabled){ tipsTaskBox.style.display='none'; tipsBodyBox.style.display='none'; }});
+      genProblem(); fillProblem();
+      if(mode==='toets'){ startTimer(10*60); } else { startTimer(null); }
+    }
+
+    function finishRun(){
+      stopTimer();
+      const spent = Math.max(0, Math.round((Date.now()-runStartedAt)/1000));
+      const summary = {
+        name: localStorage.getItem('mr_name')||'',
+        class: localStorage.getItem('mr_class')||'',
+        gameId: window.GAME_ID || '',
+        mode,
+        seconds: spent,
+        score: ok,
+        total: ok+err,
+        questions: runLog.map((r,i)=>({ q:r.q, correct:r.correct, given:r.given, ok:r.ok }))
+      };
+
+      let did = false;
+      try{ if(window.MR_SHARED && MR_SHARED.trySharedProof){ did = MR_SHARED.trySharedProof(summary); } }catch(e){ console.warn(e); }
+      if(!did && window.MR_SHARED && MR_SHARED.cert && MR_SHARED.cert.downloadTable){
+        MR_SHARED.cert.downloadTable({
+          meta: summary,
+          table: {
+            columns: ['#','Opdracht','Correct','Gegeven','✓/✗'],
+            rows: runLog.map((r,i)=>[i+1, r.q, r.correct, r.given, r.ok?'✓':'✗'])
+          }
+        });
+        did = true;
+      }
+
+      alert(`Klaar!\nScore: ${ok}/${ok+err}`);
+      startRun('oefen');
+    }
+
+    // Enter -> OK
+    window.addEventListener('keydown', e=>{
+      if(e.key==='Enter' && document.activeElement && document.activeElement.classList.contains('ibox')){
+        e.preventDefault(); handleCheck();
+      }
+    });
+
+    // Volledig scherm
+    fullBtn.onclick = ()=>{ if(!document.fullscreenElement){ document.documentElement.requestFullscreen?.(); } else { document.exitFullscreen?.(); } };
+
+    // Startknoppen
+    document.addEventListener('DOMContentLoaded', ()=>{
+      startTaak.onclick  = ()=>{
+  if (window.MR_SHARED?.askName){
+    MR_SHARED.askName('taak').then(n => { if (!n) return; studentName = n; startRun('taak'); });
+  } else {
+    // eenvoudige fallback:
+    const n = (prompt('Naam?')||'').trim(); if(!n) return; studentName = n; startRun('taak');
+  }
+};
+
+startToets.onclick = ()=>{
+  if (window.MR_SHARED?.askName){
+    MR_SHARED.askName('toets').then(n => { if (!n) return; studentName = n; startRun('toets'); });
+  } else {
+    const n = (prompt('Naam?')||'').trim(); if(!n) return; studentName = n; startRun('toets');
+  }
+};
+
+      startRun('oefen');
+      timeDisp.textContent='—';
+    });
+  })();
+  </script>
+</body>
+</html>

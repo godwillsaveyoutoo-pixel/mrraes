@@ -1,0 +1,532 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Afronden • Taak & Toets</title>
+
+  <!-- Game-ID voor platform/bewijs -->
+  <meta name="x-game-id" content="Afronden (1LJB)">
+  <script>window.GAME_ID='afronden-1ljb';</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="mrraes-shared.css">
+
+  <style>
+    :root{--bg:#f7f9fc;--card:#fff;--ink:#0b132b;--muted:#6b7280;--ring:#e6ecf8;--ring2:#dfe6f6;
+          --shadow:0 10px 28px rgba(15,23,42,.06);--good:#10b981;--bad:#ef4444}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;font-family:Inter,system-ui,Arial,sans-serif;color:var(--ink);
+      background:radial-gradient(1200px 600px at 80% -10%,#eef3ff 0%,#f7f9fc 50%,#fbfdff 100%);
+      display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start
+    }
+
+    /* Topbar over volledige breedte */
+    .topbar{
+      width:100%;display:flex;align-items:center;justify-content:space-between;
+      gap:.6rem;flex-wrap:wrap;padding:10px 14px;
+      background:#fff;border-bottom:1px solid var(--ring2);box-shadow:var(--shadow);position:sticky;top:0;z-index:50
+    }
+    .chip{
+      background:#fff;border:1px solid var(--ring2);border-radius:999px;
+      padding:.35rem .7rem;box-shadow:var(--shadow);
+      display:inline-flex;gap:.5rem;align-items:center;font-weight:800
+    }
+    .chip.btn{cursor:pointer}
+    .score{display:flex;gap:.6rem;align-items:center}
+    .score .ok{color:var(--good);background:#eafaf4}
+    .score .bad{color:var(--bad);background:#fdeeee}
+
+    .wrap{width:min(1200px,96vw);padding:1rem;margin:0 auto}
+
+    .board{background:#fff;border:1px solid var(--ring);border-radius:24px;box-shadow:var(--shadow);padding:1.2rem}
+    .toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;justify-content:center;margin-bottom:.8rem}
+    .modegrp{background:#fff;border:1px solid var(--ring2);border-radius:12px;padding:.35rem .6rem;display:flex;align-items:center;gap:.5rem;font-weight:800}
+    select{font:inherit;border:1px solid var(--ring2);border-radius:10px;padding:.35rem .5rem;background:#f9fbff}
+
+    .arena{text-align:center}
+    .number{
+      font-weight:900;line-height:1.1;font-size:clamp(46px,10vw,140px);
+      display:inline-block;padding:.5rem 1rem;border-radius:16px;
+      background:linear-gradient(180deg,#fff 0%,#f3f6ff 100%);
+      border:1px solid #ecf0fb;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 8px 18px rgba(0,0,0,.05);
+      margin-bottom:.6rem
+    }
+    .sub{color:#374151;margin:.1rem 0 .8rem}
+    .buttons{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap}
+    button.choice{
+      font-size:clamp(26px,4vw,50px);font-weight:900;cursor:pointer;
+      background:linear-gradient(180deg,#fff 0%,#eef2ff 100%);
+      border:1px solid var(--ring2);border-radius:16px;padding:1rem 1.2rem;min-width:150px;transition:.12s
+    }
+    button.choice:disabled{opacity:.6;cursor:not-allowed}
+    button.choice:active{transform:scale(.97)}
+    .arena.good{box-shadow:0 12px 34px rgba(16,185,129,.25);border-color:#bfe9d7}
+    .arena.bad{ box-shadow:0 12px 34px rgba(239,68,68,.20);border-color:#f4c7c7}
+    .shake{animation:shake .35s ease}
+    @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+
+    .footerbar{margin-top:1rem;display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap}
+    .smallbtn{background:#fff;border:1px solid var(--ring2);border-radius:10px;padding:.4rem .7rem;cursor:pointer;font-weight:800}
+    .hidden{display:none!important}
+
+    /* Fallback naam/klas modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.55);display:none;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(3px)}
+    .modal-backdrop.open{display:flex}
+    .modal{width:min(560px,94vw);background:#fff;border:1px solid var(--ring2);border-radius:18px;box-shadow:0 20px 60px rgba(2,6,23,.25);padding:1.2rem}
+    .modal h3{margin:.2rem 0 .6rem;font-size:1.35rem}
+    .row{display:flex;gap:.6rem;flex-wrap:wrap}
+    .modal input{flex:1 1 220px;min-width:0;padding:.8rem .9rem;border-radius:12px;border:1px solid var(--ring2);font:600 1rem Inter,system-ui,Arial;outline:none}
+    .modal .actions{display:flex;gap:.6rem;justify-content:flex-end;margin-top:.9rem}
+    .btn{border:1px solid var(--ring2);background:#f7faff;padding:.6rem .9rem;border-radius:12px;font:800 .98rem Inter,system-ui,Arial;cursor:pointer}
+    .btn.primary{background:#2563eb;color:#fff;border-color:#215bd9}
+    .btn.ghost{background:#fff}
+
+    /* Patch: MR_SHARED askName popup ooit buiten beeld → forceer goed gedrag */
+    #MR_ASK{position:fixed!important;inset:0;padding:16px;display:flex;align-items:center;justify-content:center;z-index:10000;overflow:auto}
+    #MR_ASK .mr-ask-dialog{width:min(560px,96vw);max-height:92vh;overflow:auto;box-sizing:border-box}
+    #MR_ASK .mr-ask-row{display:flex;gap:10px;flex-wrap:wrap}
+    #MR_ASK #mrAskName,#MR_ASK #mrAskClass{width:100%;flex:1 1 220px;min-width:0;box-sizing:border-box}
+  </style>
+
+  <script src="mrraes-shared.js"></script>
+</head>
+<body>
+  <!-- Topbar -->
+  <div class="topbar">
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+      <button id="taskBtn" class="chip btn">📝 Start taak (30)</button>
+      <button id="testBtn" class="chip btn">🧪 Start toets (30 / 10 min)</button>
+      <button class="chip btn" id="fullBtn" title="Volledig scherm">⛶ Volledig scherm</button>
+      <span class="chip">🧮 Afronden</span>
+      <span class="chip">⏱ <strong id="timerLabel">00:00</strong> <span id="timerMode">(vrij)</span></span>
+    </div>
+    <div class="score">
+      <span class="chip ok">✅ Juist: <span id="right">0</span></span>
+      <span class="chip bad">❌ Fout: <span id="wrong">0</span></span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="board">
+      <div class="toolbar">
+        <div class="modegrp">
+          <label for="modeSel">Afronden op:</label>
+          <select id="modeSel">
+            <option value="tens" selected>Tientallen</option>
+            <option value="hundreds">Honderdtallen</option>
+            <option value="natural">Natuurlijk getal</option>
+          </select>
+        </div>
+      </div>
+
+      <main class="arena" id="arena" aria-live="polite">
+        <div class="number" id="decimal">125</div>
+        <div class="sub" id="hint">Rond af naar de <strong>tientallen</strong>.</div>
+        <div class="buttons" id="choices" role="group" aria-label="Kies het afgeronde antwoord"></div>
+      </main>
+
+      <div class="footerbar">
+        <div class="muted">Spel: <strong>Afronden</strong> • <span id="metaGameId">afronden-1ljb</span></div>
+        <div style="display:flex;align-items:center;gap:.6rem">
+          <button class="smallbtn hidden" id="downloadBtn">Bewijs (PNG)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fallback naam/klas-popup -->
+  <div id="nameModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="nmTitle">
+    <div class="modal">
+      <h3 id="nmTitle">Start</h3>
+      <div class="row" style="margin:.2rem 0 .8rem">
+        <input id="nmName" type="text" placeholder="Naam…" autocomplete="off" />
+        <input id="nmClass" type="text" placeholder="Klas (optioneel)" autocomplete="off" />
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="nmCancel">Annuleren</button>
+        <button class="btn primary" id="nmStart">Starten</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (()=> {
+    const $ = (s)=>document.querySelector(s);
+
+    // === DOM refs (topbar) ===
+    const rightEl = $('#right'), wrongEl = $('#wrong');
+    const fullBtn = $('#fullBtn'), taskBtn = $('#taskBtn'), testBtn = $('#testBtn');
+    const timerLabel = $('#timerLabel'), timerMode = $('#timerMode');
+
+    // === DOM refs (spel) ===
+    $('#metaGameId').textContent = window.GAME_ID || 'afronden-1ljb';
+    const decEl = $('#decimal'), hintEl = $('#hint'), choicesEl = $('#choices'), arena = $('#arena');
+    const modeSel = $('#modeSel');
+    const downloadBtn = $('#downloadBtn');
+
+    // === Fallback modal refs ===
+    const nameModal = $('#nameModal'), nmName = $('#nmName'), nmClass = $('#nmClass');
+    const nmStart = $('#nmStart'), nmCancel = $('#nmCancel');
+
+    // === Config ===
+    const RANGE_MIN = 0, RANGE_MAX = 1000; // vast 0–1000
+    const TOTAL_QUESTIONS = 30;
+    const TEST_SECONDS = 10*60;
+    const GOALS = ['BV1_06.03','06.03.02','06.03.03'];
+
+    // === State ===
+    let right=0, wrong=0;
+    let currentMode='tens', baseUsed=10;
+    let shownValue=null, currentAns=null;
+
+    let flow='vrij'; // 'vrij' | 'taak' | 'toets'
+    let qIndex=0, inSession=false;
+    let t=null, tLeft=TEST_SECONDS, tUp=0;
+
+    const answers=[];
+    let platformWired=false;      // of MR_SHARED.wireTopbar actief is
+    let pendingFlow='taak';       // voor fallback-modal
+
+    // === Utils ===
+    const rInt=(a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+    const rDec=(min,max,dec=1)=>{const f=10**dec;return Math.round((Math.random()*(max-min)+min)*f)/f;};
+    const pad2=(n)=> String(Math.max(0,Math.floor(n))).padStart(2,'0');
+    const fmtBE=(n)=> String(n).replace('.',',');
+    const rndToBase=(x,b)=> Math.round(x/b)*b;
+    const modeToBase=(m)=> m==='tens'?10 : m==='hundreds'?100 : 1;
+    const labelFor=(m)=> ({tens:'tientallen',hundreds:'honderdtallen',natural:'natuurlijk getal'})[m];
+
+    // === Ronde ===
+    function newRound(){
+      arena.classList.remove('good','bad','shake');
+      enableChoices(true);
+      currentMode = modeSel.value;
+      hintEl.innerHTML = `Rond af naar de <strong>${labelFor(currentMode)}</strong>.`;
+
+      const min=RANGE_MIN, max=RANGE_MAX;
+      let x;
+      if(currentMode==='natural'){
+        // genereer een getal met 1 decimaal, maar forceer dat het géén geheel getal is
+        do {
+          x = rDec(min, max, 1);
+        } while (Math.abs(x - Math.round(x)) < 1e-9);
+        shownValue = fmtBE(x);
+      }
+      else { x=rInt(min,max); shownValue=String(x); }
+      baseUsed = modeToBase(currentMode);
+      currentAns = Math.max(0, rndToBase(x, baseUsed));
+
+      decEl.textContent = shownValue;
+
+      const opts = buildOptions(currentAns, baseUsed, currentMode==='natural');
+      renderChoices(opts);
+    }
+   function buildOptions(ans, step, natural){
+      // basisopties
+      let opts = [ans, ans-step, ans+step];
+
+      if(natural){
+        // zorg dat we alleen niet-negatieve hele getallen hebben
+        opts = Array.from(new Set(opts.map(v=>Math.max(0, Math.round(v)))));
+        while(opts.length < 3) opts.push(opts[opts.length-1] + step);
+      } else {
+        opts = Array.from(new Set(opts.map(v=>Math.max(0, v))));
+        while(opts.length < 3) opts.push(opts[opts.length-1] + step);
+      }
+
+      // Fisher–Yates shuffle (veilig)
+      for(let i = opts.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [opts[i], opts[j]] = [opts[j], opts[i]];
+      }
+
+      return opts.slice(0,3);
+    }function renderChoices(opts){
+      choicesEl.innerHTML='';
+      opts.forEach((o,i)=>{
+        const b=document.createElement('button');
+        b.className='choice'; b.textContent=String(o);
+        b.setAttribute('aria-label',`Keuze ${i+1}: ${o}`);
+        b.addEventListener('click',()=> pick(o));
+        choicesEl.appendChild(b);
+      });
+    }
+    function enableChoices(on){ choicesEl.querySelectorAll('button.choice').forEach(b=> b.disabled=!on); }
+
+    function pick(choice){
+      const ok = (choice===currentAns);
+
+      try{
+        if(inSession && window.MR_SHARED?.mark){
+          MR_SHARED.mark({
+            q: `${shownValue} → ${labelFor(currentMode)}`,
+            a: String(choice),
+            given: String(choice),
+            correct: String(currentAns),
+            ok: !!ok,
+            goals: GOALS
+          });
+        }
+      }catch(e){}
+
+      enableChoices(false);
+
+      if(flow==='vrij'){
+        if(ok){ right++; rightEl.textContent=right; arena.classList.add('good'); setTimeout(newRound, 600); }
+        else{ wrong++; wrongEl.textContent=wrong; arena.classList.add('bad'); arena.classList.remove('shake'); void arena.offsetWidth; arena.classList.add('shake'); setTimeout(()=>{ arena.classList.remove('bad'); enableChoices(true); }, 240); }
+        return;
+      }
+
+      answers.push({q:qIndex+1, shown:shownValue, target:labelFor(currentMode), chosen:choice, correct:currentAns, ok});
+      if(ok){ right++; rightEl.textContent=right; arena.classList.add('good'); }
+      else { wrong++; wrongEl.textContent=wrong; arena.classList.add('bad'); }
+
+      setTimeout(()=>{ arena.classList.remove('good','bad'); nextOrFinish(); }, 260);
+    }
+
+    function nextOrFinish(){
+      qIndex++;
+      if(qIndex>=TOTAL_QUESTIONS){ finish('done'); } else { newRound(); }
+    }
+
+    // === Sessies ===
+    function setFlow(m){
+      flow=m; inSession=(m!=='vrij'); qIndex=0; answers.length=0;
+      right=0; wrong=0; rightEl.textContent='0'; wrongEl.textContent='0';
+      if(m==='toets'){ tLeft=TEST_SECONDS; renderTimerDown(); startTimerDown(); timerMode.textContent='(toets)'; }
+      else if(m==='taak'){ tUp=0; renderTimerUp(); startTimerUp(); timerMode.textContent='(taak)'; }
+      else { stopTimer(); timerLabel.textContent='00:00'; timerMode.textContent='(vrij)'; }
+      newRound();
+    }
+
+    function finish(reason){
+      stopTimer();
+      const total = answers.length;
+      const okCount = answers.filter(a=>a.ok).length;
+      const errCount = total - okCount;
+
+      const summary = {
+        title:'Afronden',
+        gameId: window.GAME_ID || 'afronden-1ljb',
+        mode: flow,
+        name: (window.MR_SHARED?.getName?.()||''),
+        ok: okCount, err: errCount, total, score: okCount,
+        seconds: flow==='toets' ? (TEST_SECONDS - Math.max(0,tLeft)) : (flow==='taak'? tUp : 0),
+        questions: answers.map(a=>({ q:`${a.shown} → ${a.target}`, a:String(a.chosen), given:String(a.chosen), correct:String(a.correct), ok:!!a.ok })),
+        goals: GOALS
+      };
+
+      let handled=false;
+      try{
+        if(window.MR_SHARED){
+          if(MR_SHARED.trySharedProof?.(summary)){ handled=true; }
+          else if(MR_SHARED.finishSession?.(summary)){ handled=true; }
+        }
+      }catch(e){}
+
+      if(!handled){
+        try{
+          if(window.MR_SHARED?.cert?.downloadTable){
+            downloadCertificate(summary, answers);
+          }else{
+            downloadBtn.classList.remove('hidden');
+          }
+        }catch(e){}
+      }
+
+      setFlow('vrij');
+    }
+
+    // === Timers (fallback) ===
+    function startTimerDown(){ stopTimer(); t=setInterval(()=>{ tLeft--; if(tLeft<=0){ tLeft=0; renderTimerDown(); stopTimer(); finish('timeup'); } else renderTimerDown(); },1000); }
+    function renderTimerDown(){ timerLabel.textContent=`${pad2(Math.floor(tLeft/60))}:${pad2(tLeft%60)}`; }
+    function startTimerUp(){ stopTimer(); t=setInterval(()=>{ tUp++; renderTimerUp(); },1000); }
+    function renderTimerUp(){ timerLabel.textContent=`${pad2(Math.floor(tUp/60))}:${pad2(tUp%60)}`; }
+    function stopTimer(){ if(t){ clearInterval(t); t=null; } }
+
+    // === Cert helper ===
+    function downloadCertificate(summary, rows){
+      const meta = {
+        name: summary.name||'-',
+        mode: summary.mode.charAt(0).toUpperCase()+summary.mode.slice(1),
+        score: summary.ok, total: summary.total,
+        seconds: Math.max(0,Math.round(summary.seconds||0)),
+        date: new Date(), goals: summary.goals
+      };
+      const tableRows = rows.map(r=>({nr:r.q, shown:r.shown, rounding:r.target, gekozen:String(r.chosen), correct:String(r.correct), ok:!!r.ok}));
+      const safe = ((summary.name||'leerling').replace(/[^\w\s-]+/g,'').trim().replace(/\s+/g,'_')||'leerling');
+
+      try{
+        MR_SHARED.cert.downloadTable({
+          width:1200, title:'Bewijs - Afronden', gradient:['#ffffff','#eef3ff'],
+          meta,
+          table:{
+            title:'Oefeningen',
+            columns:[
+              {label:'#',key:'nr',width:60},
+              {label:'Getoond',key:'shown',width:220},
+              {label:'Ronding',key:'rounding',width:220},
+              {label:'Jouw antwoord',key:'gekozen',width:220},
+              {label:'Correct',key:'correct',width:220},
+              {label:'Status',width:120,align:'center',value:r=>r.ok?'Juist':'Fout',color:r=>r.ok?'#16a34a':'#dc2626'}
+            ],
+            rows: tableRows
+          },
+          fileName:`Bewijs_Afronden_${summary.mode}_${safe}.png`
+        });
+      }catch(e){}
+    }
+
+    // === Fallback naam/klas modal ===
+    function openNameModal(nextFlow){
+      pendingFlow = nextFlow || 'taak';
+      nameModal.classList.add('open');
+      nmName.value = (localStorage.getItem('mr_name')||'');
+      nmClass.value = (localStorage.getItem('mr_class')||'');
+      setTimeout(()=> nmName.focus(), 0);
+    }
+    function closeNameModal(){ nameModal.classList.remove('open'); }
+    nmCancel.addEventListener('click', closeNameModal);
+    nmStart.addEventListener('click', ()=>{
+      const name=(nmName.value||'').trim();
+      const klas=(nmClass.value||'').trim();
+      if(!name){ nmName.focus(); return; }
+      try{ localStorage.setItem('mr_name',name); localStorage.setItem('mr_class',klas); }catch(e){}
+      // optioneel aan MR_SHARED doorgeven als beschikbaar
+      try{ if(window.MR_SHARED?.setName) MR_SHARED.setName(name,klas); }catch(e){}
+      closeNameModal();
+      setFlow(pendingFlow);
+    });
+    nmName.addEventListener('keydown', e=>{ if(e.key==='Enter') nmStart.click(); });
+
+    // === Events ===
+    modeSel.addEventListener('change', newRound);
+    window.addEventListener('keydown', (e)=>{
+      if(!choicesEl.children.length) return;
+      if(e.key==='1'||e.key==='2'||e.key==='3'){
+        const i=parseInt(e.key,10)-1; const b=choicesEl.children[i]; if(b) b.click();
+      }
+    });
+    fullBtn.addEventListener('click', ()=>{
+      const el=document.documentElement;
+      if(!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.();
+    });
+
+    // Startknoppen met robuuste fallback:
+    taskBtn.addEventListener('click', async ()=>{
+      if(platformWired) return; // platform regelt popup
+      if(window.MR_SHARED?.askName){
+        const n = await MR_SHARED.askName('taak'); if(!n) return;
+        try{ localStorage.setItem('mr_name', n); localStorage.setItem('mr_class', MR_SHARED.getClass?.()||''); }catch(e){}
+        setFlow('taak');
+      }else{
+        openNameModal('taak');
+      }
+    });
+    testBtn.addEventListener('click', async ()=>{
+      if(platformWired) return;
+      if(window.MR_SHARED?.askName){
+        const n = await MR_SHARED.askName('toets'); if(!n) return;
+        try{ localStorage.setItem('mr_name', n); localStorage.setItem('mr_class', MR_SHARED.getClass?.()||''); }catch(e){}
+        setFlow('toets');
+      }else{
+        openNameModal('toets');
+      }
+    });
+
+    downloadBtn.addEventListener('click', ()=>{
+      const summary = {
+        title:'Afronden', gameId:window.GAME_ID||'afronden-1ljb',
+        mode:'vrij', name:window.MR_SHARED?.getName?.()||'—',
+        ok:right, err:wrong, total:right+wrong, score:right, seconds:0, goals:GOALS
+      };
+      downloadCertificate(summary, answers);
+    });
+
+    // === Init ===
+    setFlow('vrij');
+
+    // === MR_SHARED wireTopbar ===
+    (function wireShared(){
+      function ensure(cb){
+        if(window.MR_SHARED) return cb(true);
+        const s=document.querySelector('script[src*="mrraes-shared.js"]');
+        if(!s) return cb(false);
+        s.addEventListener('load',()=>cb(!!window.MR_SHARED));
+        s.addEventListener('error',()=>cb(false));
+        setTimeout(()=>cb(!!window.MR_SHARED),0);
+      }
+      ensure((ok)=>{
+        if(!ok || !MR_SHARED.wireTopbar) return;
+        MR_SHARED.wireTopbar({
+          gameId:(window.GAME_ID||'afronden-1ljb'),
+          title:'Afronden',
+          selectors:{ taskBtn:'#taskBtn', testBtn:'#testBtn', timerLabel:'#timerLabel' },
+          test:{ countdownSec: TEST_SECONDS },
+
+          onStart(runMode){
+            platformWired=true;
+            right=0; wrong=0; rightEl.textContent='0'; wrongEl.textContent='0';
+            answers.length=0; qIndex=0;
+            flow=runMode; inSession=true;
+            timerMode.textContent = runMode==='toets' ? '(toets)' : '(taak)';
+            newRound();
+          },
+          onReset(runMode){
+            platformWired=true;
+            right=0; wrong=0; rightEl.textContent='0'; wrongEl.textContent='0';
+            answers.length=0; qIndex=0;
+            flow=runMode; inSession=true;
+            timerMode.textContent = runMode==='toets' ? '(toets)' : '(taak)';
+            newRound();
+          },
+          getSummary(){
+            return {
+              title:'Afronden',
+              gameId:(window.GAME_ID||'afronden-1ljb'),
+              mode:flow,
+              name:(MR_SHARED.getName?.()||''),
+              ok:answers.filter(a=>a.ok).length,
+              err:answers.filter(a=>!a.ok).length,
+              total:answers.length,
+              score:answers.filter(a=>a.ok).length,
+              questions:answers.map(a=>({q:`${a.shown} → ${a.target}`,a:String(a.chosen),given:String(a.chosen),correct:String(a.correct),ok:!!a.ok})),
+              goals:GOALS
+            };
+          },
+          onFinish(summary){
+            const local = {
+              title:'Afronden',
+              gameId:(window.GAME_ID||'afronden-1ljb'),
+              mode:flow,
+              name:(MR_SHARED.getName?.()||''),
+              ok:answers.filter(a=>a.ok).length,
+              err:answers.filter(a=>!a.ok).length,
+              total:answers.length,
+              score:answers.filter(a=>a.ok).length,
+              questions:answers.map(a=>({q:`${a.shown} → ${a.target}`,a:String(a.chosen),given:String(a.chosen),correct:String(a.correct),ok:!!a.ok})),
+              goals:GOALS
+            };
+            const merged = {...local, ...summary};
+            try{ MR_SHARED.finishSession?.(merged); }catch(e){}
+            try{
+              if(MR_SHARED.trySharedProof?.(merged)){/* ok */}
+              else if(MR_SHARED.cert?.downloadTable){
+                downloadCertificate(merged, answers);
+              }
+            }catch(e){}
+            flow='vrij'; inSession=false; timerMode.textContent='(vrij)';
+            newRound();
+          }
+        });
+      });
+    })();
+
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,943 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mr Raes: Tekenen van omtrek en oppervlakte</title>
+
+<!-- Game-ID voor MR_SHARED -->
+<meta name="x-game-id" content="Tekenen — Omtrek & Oppervlakte (2B)">
+<script>window.GAME_ID = 'omtrek_oppervlakte_tekenen_2b';</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="mrraes-shared.css">
+<style>
+  :root{
+    --bg:#f7f9fc; --card:#ffffff; --ink:#0b132b; --muted:#6b7280;
+    --ring:#e6ecf8; --ring2:#dfe6f6; --accent:#2563eb; --accent2:#1e40af;
+    --good:#10b981; --bad:#ef4444; --grid:#68c3d3;
+    --cellA:#ef6a5f; /* Oppervlakte (rood) */
+    --cellP:#3b82f6; /* Omtrek (blauw) */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;color:var(--ink);background:var(--bg);}
+
+  /* Sticky topbar */
+  .appbar{
+    position:sticky; top:0; z-index:50;
+    width:100%; background:linear-gradient(90deg,#0f172a,#1e293b);
+    color:#fff; border-bottom:1px solid rgba(255,255,255,.12);
+  }
+  .appbar .inner{
+    max-width:1200px; margin:0 auto; padding:.6rem 1rem;
+    display:flex; align-items:center; gap:.75rem; flex-wrap:wrap;
+  }
+  .tag{display:inline-flex;align-items:center;gap:.5rem;padding:.35rem .7rem;border-radius:999px;
+       background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); font-weight:800}
+  .timer{font-variant-numeric:tabular-nums}
+  .spacer{flex:1}
+  .appbtn{
+    cursor:pointer; user-select:none; padding:.35rem .8rem; border-radius:999px;
+    font-weight:800; background:rgba(255,255,255,.08); color:#fff; border:1px solid rgba(255,255,255,.22);
+  }
+  .appbtn.primary{ background:#22c55e; border-color:#16a34a; color:#07240f }
+  .appbtn.danger{ background:#ef4444; border-color:#b91c1c; color:#fff }
+  .hidden{display:none}
+
+  .wrap{max-width:1200px;margin:1rem auto;padding:0 1rem}
+  .boardShell{
+    background:var(--card); border:1px solid var(--ring); border-radius:20px; box-shadow:0 12px 30px rgba(15,23,42,.08);
+    overflow:hidden;
+  }
+  .boardHeader{
+    background:linear-gradient(180deg,#f8faff,#eef4ff);
+    border-bottom:1px solid var(--ring);
+    padding:.8rem 1rem; font-weight:900; display:flex; align-items:center; gap:.6rem
+  }
+  .board{ display:grid; grid-template-columns:1fr 1fr; gap:0; }
+  @media (max-width:860px){ .board{grid-template-columns:1fr} }
+  .side{ padding:1rem; position:relative; }
+  .side + .side{ border-left:1px dashed #e5e7eb; }
+
+  /* Grid wrappers */
+  .gridwrap{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1px solid var(--ring)}
+  .gridwrap::before{
+    content:"";position:absolute;inset:0;background:
+      linear-gradient(to right, rgba(104,195,211,.6) 1px, transparent 1px) 0 0/10% 100%,
+      linear-gradient(to bottom, rgba(104,195,211,.6) 1px, transparent 1px) 0 0/100% 10%;
+    pointer-events:none;
+  }
+  svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  .boardFooter{ padding:.8rem 1rem; border-top:1px solid var(--ring); display:flex; gap:.6rem; justify-content:flex-end; }
+  .btn{ cursor:pointer; user-select:none; border:1px solid var(--ring2); background:#fff; color:#0b132b;
+        border-radius:12px; padding:.6rem .9rem; font-weight:900; box-shadow:0 8px 18px rgba(15,23,42,.06); }
+  .btn.primary{ background:#eafaf4; border-color:#c4eedc; color:#065f46 }
+  .btn:disabled{opacity:.6; cursor:not-allowed}
+
+  /* Tekenen */
+  .border{fill:none;stroke:#111827;stroke-width:1;vector-effect:non-scaling-stroke;shape-rendering:crispEdges}
+  .seg{stroke:#111827;stroke-width:3;stroke-linecap:round;vector-effect:non-scaling-stroke}
+  .seg.lock{stroke-width:3}
+  .cell{opacity:.9}
+  .pulse{animation:pulse .45s}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,0)}50%{box-shadow:0 0 0 14px rgba(16,185,129,.18)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+</style>
+<script src="mrraes-shared.js"></script>
+</head>
+<body>
+
+<header class="appbar">
+  <div class="inner">
+    <span class="tag"><strong>Oppervlakte & Omtrek</strong></span>
+    <span id="modeTag" class="tag">Modus: Oefenen</span>
+    <span id="progressTag" class="tag">Oefenen - Level 1a</span>
+    <span id="kindTag" class="tag">Type: Oppervlakte</span>
+    <span class="spacer"></span>
+
+    <button id="btnArea" class="appbtn">Oppervlakte</button>
+    <button id="btnPerim" class="appbtn">Omtrek</button>
+
+    <button id="btnStartTaak" class="appbtn">Start Taak (10 vragen)</button>
+    <button id="btnStartToets" class="appbtn primary">Start Toets (10 vragen)</button>
+    <button id="btnStop" class="appbtn danger hidden">Stop</button>
+    <span id="timerTag" class="tag timer">00:00</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="boardShell" id="boardShell">
+    <div class="boardHeader"><span id="taskTitle" style="font-weight:900">Maak de oppervlakte gelijk</span></div>
+    <div class="board">
+      <div class="side">
+        <div id="leftLabel" style="font-weight:900;margin:0 0 .4rem">Bepaal de oppervlakte:</div>
+        <div class="gridwrap">
+          <svg id="left" viewBox="0 0 10 10" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+      <div class="side" id="rightPanel">
+        <div id="rightLabel" style="font-weight:900;margin:0 0 .4rem">Maak een figuur met dezelfde oppervlakte:</div>
+        <div class="gridwrap" id="rightWrap">
+          <svg id="right" viewBox="0 0 10 10" preserveAspectRatio="none"></svg>
+          <svg id="overlay" viewBox="0 0 10 10" preserveAspectRatio="none" style="pointer-events:auto">
+            <rect x="0" y="0" width="10" height="10" fill="transparent"></rect>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="boardFooter">
+      <button id="resetBtn" class="btn" type="button">Leegmaken</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Config ----------
+  const N=10;
+  const TOTAL_QUESTIONS = 10;
+  const TIME_PER_Q = 120;
+
+  const SUB = ['a','b','c'];
+  const LEVELS = [
+    { name:'1', area:[10,15], perim:[10,14], subs:[
+      { isoMax:1.15, compactMin:0.75 },
+      { isoMax:1.22, compactMin:0.70 },
+      { isoMax:1.28, compactMin:0.65 },
+    ]},
+    { name:'2', area:[15,20], perim:[14,18], subs:[
+      { isoMax:1.35, compactMin:0.62 },
+      { isoMax:1.42, compactMin:0.58 },
+      { isoMax:1.48, compactMin:0.55 },
+    ]},
+    { name:'3', area:[20,30], perim:[18,24], subs:[
+      { isoMax:1.55, compactMin:0.52 },
+      { isoMax:1.62, compactMin:0.48 },
+      { isoMax:1.68, compactMin:0.45 },
+    ]},
+  ];
+
+  // Seeder-instellingen
+  const SEED_RATIO = 0.4;
+  const SEED_JITTER = 0.005;
+  const MIN_SEED_SEGMENTS = 4;
+  const MIN_REMAIN_TO_CLOSE = 4;
+
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const key=(x,y)=>x+','+y;
+
+  // ---------- DOM ----------
+  const leftSVG=document.getElementById('left');
+  const rightSVG=document.getElementById('right');
+  const overlay=document.getElementById('overlay');
+
+  const taskTitle=document.getElementById('taskTitle');
+  const leftLabel=document.getElementById('leftLabel');
+  const rightLabel=document.getElementById('rightLabel');
+
+  const resetBtn=document.getElementById('resetBtn');
+  const progressTag=document.getElementById('progressTag');
+  const timerTag=document.getElementById('timerTag');
+  const modeTag=document.getElementById('modeTag');
+  const kindTag=document.getElementById('kindTag');
+
+  const btnArea=document.getElementById('btnArea');
+  const btnPerim=document.getElementById('btnPerim');
+
+  const btnStartTaak=document.getElementById('btnStartTaak');
+  const btnStartToets=document.getElementById('btnStartToets');
+  const btnStop=document.getElementById('btnStop');
+
+  // ---------- State ----------
+  let H,V,lockH,lockV;
+  let targetArea=0, targetPerim=0, currentCells=null;
+  let qNumber=1, correct=0, wrong=0;
+  let mode='Oefen'; // 'Oefen' | 'Taak' | 'Toets'
+  let pendingMode='Toets';
+  let naam='', klas='';
+  let timer=null, remain=0, startedAt=null;
+  let practiceTimer=null, practiceStart=null;
+  let results=[];
+  let levelIdx=0, subIdx=0;
+
+  let measure='A'; // 'A' of 'P'
+
+  // ---------- Helpers ----------
+  function clear(svg){ while(svg.lastChild) svg.removeChild(svg.lastChild); }
+  function line(x1,y1,x2,y2,cls){
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',x1); ln.setAttribute('y1',y1);
+    ln.setAttribute('x2',x2); ln.setAttribute('y2',y2);
+    ln.setAttribute('class',cls); return ln;
+  }
+  function cell(x,y, fillColor=null){
+    const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    r.setAttribute('x',x+.02); r.setAttribute('y',y+.02);
+    r.setAttribute('width',.96); r.setAttribute('height',.96); r.setAttribute('rx',.08);
+    r.setAttribute('class','cell');
+    r.setAttribute('fill', fillColor || 'var(--cellA)');
+    return r;
+  }
+  function fmtTime(s){ const m=Math.floor(s/60), ss=String(s%60).padStart(2,'0'); return `${m}:${ss}`; }
+
+  function stopAllTimers(){
+    if(timer){ clearInterval(timer); timer=null; }
+    if(practiceTimer){ clearInterval(practiceTimer); practiceTimer=null; }
+  }
+
+  function getMaxSegStrokePx(){
+    const tmp1=document.createElementNS('http://www.w3.org/2000/svg','line');
+    tmp1.setAttribute('x1',0); tmp1.setAttribute('y1',0); tmp1.setAttribute('x2',1); tmp1.setAttribute('y2',0); tmp1.setAttribute('class','seg');
+    rightSVG.appendChild(tmp1);
+    const sw1=parseFloat(getComputedStyle(tmp1).strokeWidth)||2; rightSVG.removeChild(tmp1);
+    const tmp2=document.createElementNS('http://www.w3.org/2000/svg','line');
+    tmp2.setAttribute('x1',0); tmp2.setAttribute('y1',0); tmp2.setAttribute('x2',1); tmp2.setAttribute('y2',0); tmp2.setAttribute('class','seg lock');
+    rightSVG.appendChild(tmp2);
+    const sw2=parseFloat(getComputedStyle(tmp2).strokeWidth)||sw1; rightSVG.removeChild(tmp2);
+    return Math.max(sw1,sw2);
+  }
+  function pickNearestSegment(rx, ry){
+    const pxPerUnit = overlay.getBoundingClientRect().width / 10;
+    const tolUnits = (getMaxSegStrokePx()/2 + 3) / pxPerUnit;
+    const vIdx=Math.round(rx), hIdx=Math.round(ry);
+    const distV=Math.abs(rx-vIdx), distH=Math.abs(ry-hIdx);
+    let best=null;
+    if(distV<=tolUnits && vIdx>=0 && vIdx<=N){
+      const ix=vIdx, iy=Math.min(Math.max(Math.floor(ry),0),N-1); best={T:'V',x:ix,y:iy,d:distV};
+    }
+    if(distH<=tolUnits && hIdx>=0 && hIdx<=N){
+      const iy=hIdx, ix=Math.min(Math.max(Math.floor(rx),0),N-1); const cand={T:'H',x:ix,y:iy,d:distH};
+      if(!best) best=cand; else if(cand.d<best.d) best=cand;
+      else if(cand.d===best.d){
+        const ph=canPlace('H',cand.x,cand.y); const pv=canPlace(best.T,best.x,best.y);
+        if(ph && !pv) best=cand;
+      }
+    }
+    return best;
+  }
+
+  // ---------- Polyomino & metrics ----------
+  const dirs4=[[1,0],[-1,0],[0,1],[0,-1]];
+  function growPoly(area){
+    const sx=rnd(2,N-3), sy=rnd(2,N-3);
+    const S=new Set([key(sx,sy)]), cells=[[sx,sy]];
+    while(cells.length<area){
+      const [cx,cy]=cells[rnd(0,cells.length-1)];
+      const [dx,dy]=dirs4[rnd(0,3)];
+      const nx=cx+dx, ny=cy+dy;
+      if(nx<1||ny<1||nx>N-2||ny>N-2) continue;
+      const k=key(nx,ny);
+      if(!S.has(k)){ S.add(k); cells.push([nx,ny]); }
+    }
+    return cells;
+  }
+  function perimeterFromCells(cells){
+    const set=new Set(cells.map(c=>key(c[0],c[1])));
+    const eH=new Set(), eV=new Set();
+    for(const [x,y] of cells){
+      if(!set.has(key(x,y-1))) eH.add(`${y}:${x}`);
+      if(!set.has(key(x,y+1))) eH.add(`${y+1}:${x}`);
+      if(!set.has(key(x-1,y))) eV.add(`${x}:${y}`);
+      if(!set.has(key(x+1,y))) eV.add(`${x+1}:${y}`);
+    }
+    return {eH,eV};
+  }
+  function bboxOfCells(cells){
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    for(const [x,y] of cells){ if(x<minX)minX=x; if(y<minY)minY=y; if(x>maxX)maxX=x; if(y>maxY)maxY=y; }
+    return { w: maxX-minX+1, h: maxY-minY+1 };
+  }
+  function metricsFor(cells){
+    const A = cells.length;
+    const {eH,eV} = perimeterFromCells(cells);
+    const P = eH.size + eV.size;
+    const iso = P / (4*Math.sqrt(A));
+    const {w,h} = bboxOfCells(cells);
+    const compact = A / (w*h);
+    return { A, P, iso, compact };
+  }
+
+  // — hulpfuncties A/P ranges —
+  function areaFromPerim(P, ref='square'){ return ref==='square' ? (P/4)*(P/4) : (P/(2*Math.PI))**2 * Math.PI; }
+  function perimFromArea(A, ref='square'){ return ref==='square' ? 4*Math.sqrt(A) : 2*Math.sqrt(Math.PI*A); }
+  function deriveAreaRangeFromPerim([Pmin,Pmax], ref='square', slack=0.30){
+    const A1 = areaFromPerim(Pmin, ref), A2 = areaFromPerim(Pmax, ref);
+    const lo = Math.max(4, Math.floor(Math.min(A1,A2) * (1 - slack)));
+    const hi = Math.min(N*N-4, Math.ceil(Math.max(A1,A2) * (1 + slack)));
+    return [lo, hi];
+  }
+  function perimRange(level){
+    if (level.perim && level.perim.length===2) return level.perim;
+    const [Amin, Amax] = level.area;
+    const p1 = Math.round(perimFromArea(Amin));
+    const p2 = Math.round(perimFromArea(Amax));
+    const lo = Math.max(4, Math.min(p1,p2)-2);
+    const hi = Math.min(4*N, Math.max(p1,p2)+2);
+    return [lo, hi];
+  }
+  function areaRangeFor(level){ return level.area ? level.area : deriveAreaRangeFromPerim(perimRange(level)); }
+
+  // ---------- Solver-heuristiek ----------
+  function edgeKey(x1,y1,x2,y2){ return (x1<x2 || (x1===x2 && y1<=y2)) ? `${x1},${y1}|${x2},${y2}` : `${x2},${y2}|${x1},${y1}`; }
+  function buildUsedEdgeSet(){
+    const used=new Set();
+    for(let y=0;y<=N;y++) for(let x=0;x<N;x++) if(H[y][x]) used.add(edgeKey(x,y,x+1,y));
+    for(let y=0;y<N;y++) for(let x=0;x<=N;x++) if(V[y][x]) used.add(edgeKey(x,y,x,y+1));
+    return used;
+  }
+  function cloneDeg(deg){ return deg.map(row=>row.slice()); }
+
+  function buildDegrees(){
+    const deg=Array.from({length:N+1},()=>Array(N+1).fill(0));
+    for(let y=0;y<=N;y++) for(let x=0;x<N;x++) if(H[y][x]){ deg[y][x]++; deg[y][x+1]++; }
+    for(let y=0;y<N;y++) for(let x=0;x<=N;x++) if(V[y][x]){ deg[y][x]++; deg[y+1][x]++; }
+    return deg;
+  }
+  function endpointsFromDeg(deg){ const ends=[]; for(let y=0;y<=N;y++) for(let x=0;x<=N;x++) if(deg[y][x]===1) ends.push([x,y]); return ends; }
+  function edgeVerts(T,x,y){ return T==='H' ? [[x,y],[x+1,y]] : [[x,y],[x,y+1]]; }
+  function canPlace(T,x,y){
+    if (totalSegCount() === 0) return true;
+    if (T==='H' ? H[y][x] : V[y][x]) return true; // verwijderen
+    const deg=buildDegrees();
+    const [a,b]=edgeVerts(T,x,y);
+    const aDeg=deg[a[1]][a[0]], bDeg=deg[b[1]][b[0]];
+    const ends=endpointsFromDeg(deg);
+    if(aDeg>=2 || bDeg>=2) return false; // geen vertakking
+    const aIsEnd=aDeg===1, bIsEnd=bDeg===1;
+    const extendFromA=aIsEnd && bDeg===0;
+    const extendFromB=bIsEnd && aDeg===0;
+    const closing=aIsEnd && bIsEnd && ends.length===2 &&
+      ((a[0]===ends[0][0]&&a[1]===ends[0][1]&&b[0]===ends[1][0]&&b[1]===ends[1][1])||
+       (a[0]===ends[1][0]&&a[1]===ends[1][1]&&b[0]===ends[0][0]&&b[1]===ends[0][1]));
+    return extendFromA || extendFromB || closing;
+  }
+
+  // ---------- Walls / rendering ----------
+  function initWalls(){
+    H=Array.from({length:N+1},()=>Array(N).fill(false));
+    V=Array.from({length:N},()=>Array(N+1).fill(false));
+    lockH=Array.from({length:N+1},()=>Array(N).fill(false));
+    lockV=Array.from({length:N},()=>Array(N+1).fill(false));
+  }
+  function clearWalls(){
+    for(let y=0;y<=N;y++) for(let x=0;x<N;x++){ H[y][x]=false; lockH[y][x]=false; }
+    for(let y=0;y<N;y++) for(let x=0;x<=N;x++){ V[y][x]=false; lockV[y][x]=false; }
+  }
+  function totalSegCount(){ return H.flat().filter(Boolean).length + V.flat().filter(Boolean).length; }
+
+  function renderLeft(cells){
+    clear(leftSVG);
+    leftSVG.appendChild(line(0,0,10,0,'border'));
+    leftSVG.appendChild(line(10,0,10,10,'border'));
+    leftSVG.appendChild(line(10,10,0,10,'border'));
+    leftSVG.appendChild(line(0,10,0,0,'border'));
+
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    const fillColor = (measure==='P') ? 'var(--cellP)' : 'var(--cellA)';
+    for(const [x,y] of cells) g.appendChild(cell(x,y, fillColor));
+    leftSVG.appendChild(g);
+
+    const {eH,eV}=perimeterFromCells(cells);
+    const gb=document.createElementNS('http://www.w3.org/2000/svg','g');
+    for(const s of eH){ const [yy,xx]=s.split(':').map(Number); gb.appendChild(line(xx,yy,xx+1,yy,'seg lock')); }
+    for(const s of eV){ const [xx,yy]=s.split(':').map(Number); gb.appendChild(line(xx,yy,xx,yy+1,'seg lock')); }
+    leftSVG.appendChild(gb);
+  }
+  function renderRight(){
+    clear(rightSVG);
+    rightSVG.appendChild(line(0,0,10,0,'border'));
+    rightSVG.appendChild(line(10,0,10,10,'border'));
+    rightSVG.appendChild(line(10,10,0,10,'border'));
+    rightSVG.appendChild(line(0,10,0,0,'border'));
+
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    const EPS=0.01;
+    for(let y=0;y<=N;y++){
+      for(let x=0;x<N;x++){
+        if(!H[y][x]) continue;
+        let yy=y; if(y===0) yy+=EPS; if(y===N) yy-=EPS;
+        g.appendChild(line(x,yy,x+1,yy, lockH[y][x]?'seg lock':'seg'));
+      }
+    }
+    for(let y=0;y<N;y++){
+      for(let x=0;x<=N;x++){
+        if(!V[y][x]) continue;
+        let xx=x; if(x===0) xx+=EPS; if(x===N) xx-=EPS;
+        g.appendChild(line(xx,y,xx,y+1, lockV[y][x]?'seg lock':'seg'));
+      }
+    }
+    rightSVG.appendChild(g);
+  }
+
+  // ---------- Seeding ----------
+  function forceMinimalSeedCenter(len=MIN_SEED_SEGMENTS){
+    clearWalls();
+    const horiz = Math.random() < 0.5;
+    if(horiz){
+      const y = Math.floor(N/2);
+      const maxStart = N - len;
+      const x0 = Math.max(1, Math.min(maxStart-1, Math.floor(N/2)-Math.floor(len/2)));
+      for(let i=0;i<len;i++){ H[y][x0+i]=true; lockH[y][x0+i]=true; }
+    }else{
+      const x = Math.floor(N/2);
+      const maxStart = N - len;
+      const y0 = Math.max(1, Math.min(maxStart-1, Math.floor(N/2)-Math.floor(len/2)));
+      for(let i=0;i<len;i++){ V[y0+i][x]=true; lockV[y0+i][x]=true; }
+    }
+  }
+  function seedOpenWalkSimple(L, tries=120){
+    clearWalls();
+    for(let t=0;t<tries;t++){
+      const placed=[]; const visited=new Set();
+      const margin=1;
+      let sx=rnd(margin,N-margin), sy=rnd(margin,N-margin);
+      visited.add(key(sx,sy));
+      let vx=sx, vy=sy;
+
+      function put(dx,dy){
+        const nx=vx+dx, ny=vy+dy;
+        if(nx<0||ny<0||nx>N||ny>N) return false;
+        const nk=key(nx,ny);
+        if(visited.has(nk)) return false;
+        if(dx===1){ if(H[vy][vx]) return false; H[vy][vx]=true; lockH[vy][vx]=true; placed.push({T:'H',x:vx,y:vy}); }
+        else if(dx===-1){ if(H[vy][vx-1]) return false; H[vy][vx-1]=true; lockH[vy][vx-1]=true; placed.push({T:'H',x:vx-1,y:vy}); }
+        else if(dy===1){ if(V[vy][vx]) return false; V[vy][vx]=true; lockV[vy][vx]=true; placed.push({T:'V',x:vx,y:vy}); }
+        else { if(V[vy-1][vx]) return false; V[vy-1][vx]=true; lockV[vy-1][vx]=true; placed.push({T:'V',x:vx,y:vy-1}); }
+        vx=nx; vy=ny; visited.add(nk); return true;
+      }
+
+      let ok=true;
+      for(let step=0; step<L; step++){
+        const dirsPref=[[1,0],[-1,0],[0,1],[0,-1]];
+        let opts=[];
+        for(const [dx,dy] of dirsPref){
+          const nx=vx+dx, ny=vy+dy;
+          if(nx<margin||ny<margin||nx> N-margin||ny> N-margin) continue;
+          if(visited.has(key(nx,ny))) continue;
+          opts.push([dx,dy]);
+        }
+        if(opts.length===0){
+          for(const [dx,dy] of dirsPref){
+            const nx=vx+dx, ny=vy+dy;
+            if(nx<0||ny<0||nx> N||ny> N) continue;
+            if(visited.has(key(nx,ny))) continue;
+            opts.push([dx,dy]);
+          }
+        }
+        if(opts.length===0){ ok=false; break; }
+        const [dx,dy]=opts[rnd(0,opts.length-1)];
+        if(!put(dx,dy)){ ok=false; break; }
+      }
+      if (ok && (H.flat().some(Boolean) || V.flat().some(Boolean))) return true;
+      for(const s of placed){
+        if(s.T==='H'){ H[s.y][s.x]=false; lockH[s.y][s.x]=false; }
+        else { V[s.y][s.x]=false; lockV[s.y][s.x]=false; }
+      }
+    }
+    return false;
+  }
+  function seedOpenWalkWithClosure(L, targetPerim, tries=160){
+    clearWalls();
+    for(let t=0;t<tries;t++){
+      const placed=[]; const visited=new Set();
+      const margin=1;
+      let sx=rnd(margin,N-margin), sy=rnd(margin,N-margin);
+      visited.add(key(sx,sy));
+      let vx=sx, vy=sy;
+
+      function put(dx,dy){
+        const nx=vx+dx, ny=vy+dy;
+        if(nx<0||ny<0||nx>N||ny>N) return false;
+        const nk=key(nx,ny);
+        if(visited.has(nk)) return false;
+        if(dx===1){ if(H[vy][vx]) return false; H[vy][vx]=true; lockH[vy][vx]=true; placed.push({T:'H',x:vx,y:vy}); }
+        else if(dx===-1){ if(H[vy][vx-1]) return false; H[vy][vx-1]=true; lockH[vy][vx-1]=true; placed.push({T:'H',x:vx-1,y:vy}); }
+        else if(dy===1){ if(V[vy][vx]) return false; V[vy][vx]=true; lockV[vy][vx]=true; placed.push({T:'V',x:vx,y:vy}); }
+        else { if(V[vy-1][vx]) return false; V[vy-1][vx]=true; lockV[vy-1][vx]=true; placed.push({T:'V',x:vx,y:vy-1}); }
+        vx=nx; vy=ny; visited.add(nk); return true;
+      }
+
+      let ok=true;
+      for(let step=0; step<L; step++){
+        const dirsPref=[[1,0],[-1,0],[0,1],[0,-1]];
+        const opts=[];
+        for(const [dx,dy] of dirsPref){
+          const nx=vx+dx, ny=vy+dy;
+          if(nx<margin||ny<margin||nx> N-margin||ny> N-margin) continue;
+          if(visited.has(key(nx,ny))) continue;
+          opts.push([dx,dy]);
+        }
+        if(opts.length===0){ ok=false; break; }
+        const [dx,dy]=opts[rnd(0,opts.length-1)];
+        if(!put(dx,dy)){ ok=false; break; }
+      }
+      if(!ok){
+        for(const s of placed){
+          if(s.T==='H'){ H[s.y][s.x]=false; lockH[s.y][s.x]=false; }
+          else { V[s.y][s.x]=false; lockV[s.y][s.x]=false; }
+        }
+        continue;
+      }
+
+      // heuristiek: kan de lijn nog sluiten met de resterende lengte?
+      if (canCloseByHeuristic(targetPerim)){
+        return true;
+      }
+
+      // rollback
+      for(const s of placed){
+        if(s.T==='H'){ H[s.y][s.x]=false; lockH[s.y][s.x]=false; }
+        else { V[s.y][s.x]=false; lockV[s.y][s.x]=false; }
+      }
+    }
+    return false;
+  }
+  function canCloseByHeuristic(targetPerim){
+    const deg0 = buildDegrees();
+    const ends = endpointsFromDeg(deg0);
+    if(ends.length!==2) return false;
+    const [ax,ay] = ends[0];
+    const [bx,by] = ends[1];
+    const used0 = buildUsedEdgeSet();
+    const totalUsed = used0.size;
+    const remainTarget = targetPerim - totalUsed;
+    if (remainTarget < MIN_REMAIN_TO_CLOSE) return false;
+    const md = Math.abs(ax-bx) + Math.abs(ay-by);
+    if (md > remainTarget) return false;
+    if ( (remainTarget - md) % 2 !== 0 ) return false;
+    const inBounds = (x,y)=> x>=0 && y>=0 && x<=N && y<=N;
+
+    for(let attempt=0; attempt<200; attempt++){
+      let deg = deg0.map(r=>r.slice());
+      let used = new Set(used0);
+      let A=[ax,ay], B=[bx,by];
+      let remain = remainTarget;
+
+      function stepOptions(from, other){
+        const [x,y]=from;
+        const neigh=[[x+1,y],[x-1,y],[x,y+1],[x,y-1]].filter(([nx,ny])=>inBounds(nx,ny));
+        const opts=[];
+        for(const [nx,ny] of neigh){
+          const ek = edgeKey(x,y,nx,ny);
+          if(used.has(ek)) continue;
+          if(deg[ny][nx]!==0) continue;
+          opts.push([nx,ny,ek]);
+        }
+        opts.sort((u,v)=>{
+          const d1 = Math.abs(u[0]-other[0])+Math.abs(u[1]-other[1]);
+          const d2 = Math.abs(v[0]-other[0])+Math.abs(v[1]-other[1]);
+          return d1 - d2;
+        });
+        if (opts.length>1 && Math.random()<0.25){
+          const i=rnd(0,opts.length-1), j=rnd(0,opts.length-1);
+          [opts[i],opts[j]]=[opts[j],opts[i]];
+        }
+        return opts;
+      }
+
+      let ok=false;
+      for(let step=0; step<800; step++){
+        if (remain===1){
+          const neighA=[[A[0]+1,A[1]],[A[0]-1,A[1]],[A[0],A[1]+1],[A[0],A[1]-1]];
+          const canClose = neighA.some(([nx,ny])=> nx===B[0] && ny===B[1] && !used.has(edgeKey(A[0],A[1],B[0],B[1])));
+          if (canClose){ ok=true; break; }
+          break;
+        }
+        const chooseA = Math.random()<0.5;
+        const from = chooseA ? A : B;
+        const other = chooseA ? B : A;
+
+        let opts = stepOptions(from, other);
+        if (opts.length===0){
+          opts = stepOptions(other, from);
+          if (opts.length===0) break;
+        }
+        const [nx,ny,ek] = opts[0];
+        const fx=from[0], fy=from[1];
+        used.add(ek);
+        deg[fy][fx]++; deg[ny][nx]++;
+        if (from===A){ A=[nx,ny]; } else { B=[nx,ny]; }
+        remain--;
+        if (deg[fy][fx]>2 || deg[ny][nx]>2){ ok=false; break; }
+      }
+      if (ok) return true;
+    }
+    return false;
+  }
+
+  // ---------- Klikken ----------
+  overlay.addEventListener('click',(e)=>{
+    const pt=overlay.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
+    const p=pt.matrixTransform(overlay.getScreenCTM().inverse());
+    const rx=p.x, ry=p.y;
+    if(rx<0||rx>10||ry<0||ry>10) return;
+
+    const seg=pickNearestSegment(rx,ry);
+    if(!seg) return;
+
+    if(seg.T==='V'){
+      const ix=seg.x, iy=seg.y;
+      if(lockV[iy][ix]) return;
+      if(V[iy][ix]) V[iy][ix]=false;
+      else if(canPlace('V',ix,iy)) V[iy][ix]=true; else return pulseErr();
+    }else{
+      const ix=seg.x, iy=seg.y;
+      if(lockH[iy][ix]) return;
+      if(H[iy][ix]) H[iy][ix]=false;
+      else if(canPlace('H',ix,iy)) H[iy][ix]=true; else return pulseErr();
+    }
+    renderRight();
+    computeAndMaybeWin();
+  });
+
+  function pulseErr(){
+    const p=document.getElementById('rightPanel');
+    p.classList.remove('pulse'); void p.offsetWidth; p.classList.add('pulse');
+  }
+
+  // ---------- Binnengebied ----------
+  function computeInterior(){
+    const W=N,Hc=N;
+    const visited=Array.from({length:Hc+2},()=>Array(W+2).fill(false));
+    const q=[[0,0]]; visited[0][0]=true;
+    while(q.length){
+      const [ai,aj]=q.shift(); const i=ai-1, j=aj-1;
+      const mv=[[1,0],[-1,0],[0,1],[0,-1]];
+      for(const [dx,dy] of mv){
+        const bi=ai+dx, bj=aj+dy;
+        if(bi<0||bj<0||bi>W+1||bj>Hc+1) continue;
+        if(visited[bj][bi]) continue;
+        let blocked=false;
+        if(dx===1){ const x=i+1,y=j; if(y>=0&&y<Hc&&x>=0&&x<=W) blocked=V[y][x]; }
+        else if(dx===-1){ const x=i,y=j; if(y>=0&&y<Hc&&x>=0&&x<=W) blocked=V[y][x]; }
+        else if(dy===1){ const y=j+1,x=i; if(x>=0&&x<W&&y>=0&&y<=Hc) blocked=H[y][x]; }
+        else { const y=j,x=i; if(x>=0&&x<W&&y>=0&&y<=Hc) blocked=H[y][x]; }
+        if(!blocked){ visited[bj][bi]=true; q.push([bi,bj]); }
+      }
+    }
+    const inside=[];
+    for(let y=0;y<Hc;y++) for(let x=0;x<W;x++) if(!visited[y+1][x+1]) inside.push([x,y]);
+    return inside;
+  }
+
+  // ---------- Check & win ----------
+  function computeAndMaybeWin(){
+    const cells=computeInterior();
+    let okNow=false;
+
+    if(measure==='A'){
+      okNow = (cells.length===targetArea) && (cells.length>0);
+    }else{
+      if(cells.length>0){
+        const {eH,eV} = perimeterFromCells(cells);
+        const Pnow = eH.size + eV.size;
+        okNow = (Pnow === targetPerim);
+      }
+    }
+
+    if(okNow){
+      const old=rightSVG.querySelector('#fill'); if(old) old.remove();
+      const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.id='fill';
+      for(const [x,y] of cells) g.appendChild(cell(x,y));
+      rightSVG.appendChild(g);
+      finishQuestion('juist');
+    }
+  }
+
+  // ---------- Ronde ----------
+  function uiLevelLabel(){ return `Level ${LEVELS[levelIdx].name}${SUB[subIdx]}`; }
+
+  function pickMeasureForRound(){
+    if(mode==='Oefen') return measure;
+    return (Math.random() < 0.5) ? 'A' : 'P';
+  }
+
+  function applyMeasureUI(){
+    if(measure==='A'){
+      taskTitle.textContent = 'Maak de oppervlakte gelijk';
+      leftLabel.textContent = 'Bepaal de oppervlakte:';
+      rightLabel.textContent = 'Maak een figuur met dezelfde oppervlakte:';
+      kindTag.textContent = 'Type: Oppervlakte';
+    }else{
+      taskTitle.textContent = 'Maak de omtrek gelijk';
+      leftLabel.textContent = 'Bepaal de omtrek:';
+      rightLabel.textContent = 'Maak een figuur met dezelfde omtrek:';
+      kindTag.textContent = 'Type: Omtrek';
+    }
+  }
+
+  function startRound(pulse=false){
+    if(pulse){ const shell=document.getElementById('boardShell'); shell.classList.add('pulse'); setTimeout(()=>shell.classList.remove('pulse'),450); }
+
+    const L = LEVELS[levelIdx];
+    const S = L.subs[subIdx];
+
+    measure = pickMeasureForRound();
+    applyMeasureUI();
+
+    if(mode==='Oefen'){
+      progressTag.textContent = `Oefenen - ${uiLevelLabel()}`;
+      modeTag.textContent = 'Modus: Oefenen';
+      stopAllTimers();
+      practiceStart = Date.now();
+      timerTag.textContent = '00:00';
+      practiceTimer = setInterval(()=>{ const secs = Math.floor((Date.now()-practiceStart)/1000); timerTag.textContent = fmtTime(secs); },1000);
+    }else{
+      progressTag.textContent = `${uiLevelLabel()} — Vraag ${qNumber}/${TOTAL_QUESTIONS}`;
+      modeTag.textContent = 'Modus: ' + mode + ' • ' + (measure==='A'?'Oppervlakte':'Omtrek');
+      stopAllTimers();
+      startTimer(TIME_PER_Q);
+    }
+
+    const picked = growPolyWithConstraints(L, S, measure);
+    currentCells = picked.cells;
+    targetArea = picked.area;
+    const mLeft = metricsFor(currentCells);
+    targetPerim = mLeft.P;
+
+    renderLeft(currentCells);
+
+    // Seed rechts
+    initWalls();
+    const jitter = (Math.random()*2 - 1) * SEED_JITTER;
+    const ratio  = Math.max(0, SEED_RATIO + jitter);
+    const baseP  = targetPerim;
+    let Lseed    = Math.round(baseP * ratio);
+    Lseed = Math.max(MIN_SEED_SEGMENTS, Math.min(baseP - MIN_REMAIN_TO_CLOSE, Lseed));
+
+    let ok=false;
+    if (measure==='A'){
+      ok = seedOpenWalkSimple(Lseed);
+      if(!ok) forceMinimalSeedCenter(MIN_SEED_SEGMENTS);
+      renderRight();
+    }else{
+      ok = seedOpenWalkWithClosure(Lseed, targetPerim);
+      if(!ok) clearWalls();
+      renderRight();
+    }
+  }
+
+  function growPolyWithConstraints(level, sub, measure = 'A', maxTries = 250){
+    const [Amin, Amax] = level.area || [10,20];
+    const [Pmin, Pmax] = perimRange(level);
+    let best = null, bestMiss = Infinity;
+
+    for (let t = 0; t < maxTries; t++) {
+      const A = rnd(Amin, Amax);
+      const cells = growPoly(A);
+      const m = metricsFor(cells);
+      if (m.iso > sub.isoMax || m.compact < sub.compactMin) continue;
+
+      if (measure === 'A') {
+        return { cells, area: A };
+      } else {
+        if (m.P >= Pmin && m.P <= Pmax) return { cells, area: A };
+        const miss = (m.P < Pmin) ? (Pmin - m.P) : (m.P - Pmax);
+        if (miss < bestMiss) { best = { cells, area: A }; bestMiss = miss; }
+      }
+    }
+    if (best) return best;
+    return growPolyWithConstraints(level, sub, 'A', Math.max(80, Math.floor(maxTries/2)));
+  }
+
+  // ---------- Timer / flow ----------
+  function startTimer(allowed){
+    remain = allowed;
+    startedAt = Date.now();
+    timerTag.textContent = fmtTime(remain);
+    timer = setInterval(()=>{
+      remain--; if(remain<0) remain=0;
+      timerTag.textContent = fmtTime(remain);
+      if(remain===0){ stopAllTimers(); finishQuestion('tijd op'); }
+    },1000);
+  }
+
+  function advanceOnResult(wasCorrect){
+    if(!wasCorrect) return;
+    if(levelIdx===2 && subIdx===2) return;
+    if(subIdx<2){ subIdx++; } else { levelIdx++; subIdx=0; }
+  }
+
+  function finishQuestion(result){
+    const wasCorrect = (result==='juist');
+
+    if(mode==='Oefen'){
+      stopAllTimers();
+      advanceOnResult(wasCorrect);
+      startRound(true);
+      return;
+    }
+
+    // Taak/Toets
+    stopAllTimers();
+    const allowed = TIME_PER_Q;
+    const used = Math.min(allowed, Math.round((Date.now()-startedAt)/1000));
+    const ts = new Date().toLocaleString('nl-BE', { timeZone: 'Europe/Brussels' });
+
+    const goalVal = (measure==='A') ? targetArea : targetPerim;
+    results.push({
+      q:qNumber, lvl:LEVELS[levelIdx].name, sub:SUB[subIdx],
+      kind:(measure==='A'?'Oppervlakte':'Omtrek'),
+      goal:goalVal, allowed, used, result, ts
+    });
+    if(wasCorrect) correct++; else wrong++;
+
+    advanceOnResult(wasCorrect);
+
+    if(qNumber>=TOTAL_QUESTIONS){
+      finishRun(false);
+    }else{
+      qNumber++;
+      startRound(true);
+    }
+  }
+
+  // ---------- Start/Stop via gedeelde popup ----------
+  function askNameAndStart(thenMode){
+    // MR_SHARED.askName geeft string of {name,...} terug
+    if(window.MR_SHARED && MR_SHARED.askName){
+      const key = (thenMode==='Taak') ? 'taak' : 'toets';
+      MR_SHARED.askName(key).then(n=>{
+        const nm = (typeof n==='string' ? n : (n && n.name) || '').trim();
+        if(!nm) return;
+        naam = nm;
+        try{ if(MR_SHARED.getClass) klas = (MR_SHARED.getClass()||'').trim(); }catch(_){}
+        mode=thenMode;
+        btnStop.classList.remove('hidden');
+        qNumber=1; correct=0; wrong=0; results=[]; levelIdx=0; subIdx=0;
+        startRound(false);
+      });
+    } else {
+      const n=(prompt('Naam?')||'').trim();
+      if(!n) return;
+      naam=n; mode=thenMode;
+      btnStop.classList.remove('hidden');
+      qNumber=1; correct=0; wrong=0; results=[]; levelIdx=0; subIdx=0;
+      startRound(false);
+    }
+  }
+
+  btnStartTaak.addEventListener('click', ()=>{ askNameAndStart('Taak'); });
+  btnStartToets.addEventListener('click', ()=>{ askNameAndStart('Toets'); });
+  btnStop.addEventListener('click', ()=>{ if(mode==='Oefen') return; finishRun(true); });
+
+  // ---------- Controls ----------
+  resetBtn.addEventListener('click', ()=>{
+    for(let y=0;y<=N;y++) for(let x=0;x<N;x++) if(!lockH[y][x]) H[y][x]=false;
+    for(let y=0;y<N;y++) for(let x=0;x<=N;x++) if(!lockV[y][x]) V[y][x]=false;
+    renderRight();
+  });
+  btnArea.addEventListener('click', ()=>{
+    if(mode!=='Oefen') return;
+    measure='A'; applyMeasureUI(); startRound(true);
+  });
+  btnPerim.addEventListener('click', ()=>{
+    if(mode!=='Oefen') return;
+    measure='P'; applyMeasureUI(); startRound(true);
+  });
+
+  // ---------- Eind / bewijs via MR_SHARED ----------
+  const GOALS = ['BV1_06.06','06.06.01','06.06.02','06.06.03','06.06.04','06.06.05','06.06.06','06.06.07'];
+
+  function finishRun(early=false){
+    stopAllTimers();
+
+    // totaal-seconden: som van gebruikte tijden (test) of oplopend (taak)
+    const secondsFromLog = (results||[]).reduce((acc,r)=>acc + (r && Number.isFinite(r.used) ? r.used : 0), 0);
+    const totalSeconds =
+      (mode==='Taak') ? secondsFromLog :                 // optelling is ok in beide gevallen
+      (mode==='Toets') ? secondsFromLog :
+      0;
+
+    const summary = {
+      title: 'Tekenen van omtrek en oppervlakte',
+      gameId: (window.GAME_ID||'omtrek_oppervlakte_tekenen_2b'),
+      mode: (mode==='Taak'?'taak': mode==='Toets'?'toets':'oefen'),
+      name: (naam||''),
+      class: (klas||''),
+      ok: correct,
+      err: wrong,
+      total: (early ? qNumber : TOTAL_QUESTIONS),
+      score: correct,
+      seconds: totalSeconds,
+      goals: GOALS.slice(),
+      questions: (results||[]).map(r=>({
+        q: r.q,
+        a: r.goal,           // we loggen de doelwaarde; (vorm is grafisch)
+        given: r.goal,       // geen tekstinvoer in dit spel
+        correct: r.goal,
+        ok: (r.result==='juist')
+      }))
+    };
+
+    // 1) Probeer platform-flow (popup & registratie) via MR_SHARED
+    let handled=false;
+    try{
+      if(window.MR_SHARED && typeof MR_SHARED.finishSession==='function'){
+        MR_SHARED.finishSession(summary);
+        handled=true;
+      }
+    }catch(e){ console.error('MR_SHARED finishSession failed', e); }
+
+    // 2) Geen eigen eindpopup meer: we vertrouwen op shared.
+    //    Eventueel zou je hier nog een mini-alert kunnen zetten als fallback.
+    if(!handled){
+      alert('Sessie afgerond. (Shared helper niet beschikbaar voor bewijsje.)');
+    }
+
+    // terug naar oefen
+    mode='Oefen'; btnStop.classList.add('hidden');
+    qNumber=1; results=[]; correct=0; wrong=0; levelIdx=0; subIdx=0; naam=''; klas='';
+    startRound(false);
+  }
+
+  // ---------- Init ----------
+  startRound(false);
+})();
+</script>
+</body>
+</html>

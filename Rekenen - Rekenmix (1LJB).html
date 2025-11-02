@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mr Raes: Rekenen — BV1_06.02</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f7f9fc;--card:#fff;--ink:#0b132b;--muted:#6b7280;--ring:#e6ecf8;--ring2:#dfe6f6;
+      --shadow:0 10px 28px rgba(15,23,42,.06);--good:#10b981;--bad:#ef4444;--accent:#2563eb
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;font-family:Inter,system-ui,Arial,sans-serif;color:var(--ink);
+      background:radial-gradient(1200px 600px at 80% -10%,#eef3ff 0%,#f7f9fc 50%,#fbfdff 100%);
+      display:flex;align-items:flex-start;justify-content:center
+    }
+    .wrap{width:min(1200px,96vw);padding:1rem}
+
+    /* Topbar zoals grote lengtespel */
+    .topbar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem}
+    .chip{
+      background:#fff;border:1px solid var(--ring2);border-radius:999px;padding:.35rem .7rem;box-shadow:var(--shadow);
+      display:inline-flex;gap:.5rem;align-items:center;font-weight:800
+    }
+    .chip.btn{cursor:pointer}
+    .chip.ok{background:#eafaf4;color:var(--good);border-color:#c4eedc}
+    .chip.bad{background:#fdeeee;color:var(--bad);border-color:#ffd7d7}
+    .spacer{flex:1}
+
+    .board{
+      position:relative;
+      background:#fff;border:1px solid var(--ring);border-radius:24px;box-shadow:var(--shadow);padding:1.2rem;
+      display:grid;grid-template-areas:"task task" "left right";grid-template-columns:1.15fr .85fr;gap:1rem;
+      align-items:stretch
+    }
+    .board-actions{ position:absolute;top:10px;right:10px;display:flex;gap:.5rem;z-index:5 }
+    .chip select{
+      font: inherit; font-weight: 900; border: none; outline: none; background: transparent; cursor: pointer;
+    }
+
+    .taskbar{grid-area:task;background:#fff;border:1px solid var(--ring2);border-radius:18px;padding:.9rem;box-shadow:var(--shadow)}
+    .task{font-weight:900;line-height:1.1;font-size:clamp(36px,5.6vw,72px);text-align:center;margin:.2rem 0 0}
+
+    .left,.right{padding:.4rem .6rem 1rem; display:flex; align-items:stretch}
+    .left{grid-area:left}
+    .right{grid-area:right}
+
+    .field,.padwrap{width:100%; display:flex; flex-direction:column; justify-content:center; height:100%}
+    .field{background:#fff;border:1px solid var(--ring2);border-radius:18px;padding:1rem;box-shadow:var(--shadow)}
+    .label{font-weight:800;margin-bottom:.35rem; text-align:center}
+    .lcd{
+      min-height:84px;display:flex;align-items:center;justify-content:center;background:#f8fbff;border:1px solid var(--ring);
+      border-radius:14px;font-weight:900;font-size:clamp(34px,5vw,46px);color:#1f2937;padding:.2rem .6rem
+    }
+    .lcd.good{box-shadow:0 0 0 6px rgba(16,185,129,.18) inset}
+    .lcd.bad{box-shadow:0 0 0 6px rgba(239,68,68,.15) inset}
+    .sub{color:var(--muted);font-size:.92rem;margin-top:.45rem;display:flex;align-items:center;justify-content:center;gap:.6rem}
+    .streakbar{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-top:.6rem}
+    .streakcell{height:10px;border-radius:999px;background:#eef3ff;border:1px solid var(--ring2)}
+    .streakcell.fill{background:#cde9ff;border-color:#b7dbff}
+    .hint{margin-top:.6rem;color:#374151;text-align:center}
+
+    .padwrap{background:#fff;border:1px solid var(--ring2);border-radius:18px;padding:1rem;box-shadow:var(--shadow)}
+    .keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem; align-content:center; height:100%}
+    .key{
+      user-select:none;cursor:pointer;text-align:center;font-weight:900;font-size:clamp(18px,3.2vw,22px);padding:1rem 0;border-radius:14px;
+      background:#f7faff;border:1px solid var(--ring2);box-shadow:0 6px 16px rgba(15,23,42,.06);
+      transition:transform .06s ease,box-shadow .12s ease,background .12s ease
+    }
+    .key:active{transform:translateY(1px);box-shadow:0 4px 12px rgba(15,23,42,.08)}
+    .key.wide{grid-column:span 2}
+    .key.ok{background:#eafaf4;border-color:#c4eedc}
+    .key.ok:active{background:#dff5ea}
+
+    @media (max-width:860px){
+      .board{grid-template-columns:1fr}
+      .left,.right{min-height:unset}
+      .keypad{height:auto}
+    }
+
+    .helper{
+      margin-bottom:.6rem;text-align:center;font-weight:700;font-size:1.05rem;background:#fff;border:1px solid var(--ring2);
+      border-radius:12px;padding:.6rem;box-shadow:var(--shadow)
+    }
+    .helper p{margin:.35rem 0}
+    .helper .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+
+    /* Modals (naam & einde & maaltafel) */
+    .modal.hidden{display:none}
+    .modal{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:1000}
+    .modal-card{width:min(620px,94vw);background:#fff;border:1px solid var(--ring2);border-radius:18px;box-shadow:var(--shadow);padding:1rem 1.1rem 1.1rem}
+    .modal-card h2{margin:.2rem 0 .6rem 0;font-size:1.4rem}
+    .modal-card p{margin:.2rem 0 .8rem 0;color:#374151}
+    .nameField{width:100%;padding:.8rem 1rem;border:1px solid var(--ring2);border-radius:12px;font:inherit;font-weight:800}
+    .row{display:flex;gap:.6rem;justify-content:flex-end;margin-top:.9rem}
+
+    /* Maaltafel grid */
+    .tablewrap{overflow:auto;max-height:60vh;border:1px solid var(--ring2);border-radius:12px}
+    .mtable{border-collapse:collapse;width:100%;min-width:520px}
+    .mtable th,.mtable td{border:1px solid var(--ring2);padding:.5rem .6rem;text-align:center}
+    .mtable thead th{background:#f3f7ff;font-weight:800;position:sticky;top:0}
+    .mtable tbody th{background:#f9fbff;font-weight:800}
+    .mtable td{background:#fff}
+  </style>
+  <link rel="stylesheet" href="mrraes-shared.css">
+  <script src="mrraes-shared.js"></script>
+</head>
+<body>
+ 
+
+    <!-- TOPBAR (zoals grote lengtespel) -->
+    <div class="topbar">
+      <button id="startTaak" class="chip btn">📝 Start taak (50)</button>
+      <button id="startToets" class="chip btn">🧭 Start toets (50 / 15 min)</button>
+      <button class="chip btn" id="fullBtn" title="Volledig scherm">⤢ Volledig scherm</button>
+  <span class="chip btn">
+          Soort:&nbsp;
+          <select id="typeSel" aria-label="Kies vraagtype">
+            <option value="mix" selected>Mix</option>
+            <option value="1">Plus (10–999)</option>
+            <option value="2">Plus (nullen)</option>
+            <option value="3">Min (E)</option>
+            <option value="4">Min (T)</option>
+            <option value="5">Min (nullen)</option>
+            <option value="6">Maaltafels</option>
+            <option value="7">Woorden</option>
+            <option value="8">Maal 10(0(0))</option>
+            <option value="9">Maal+, 10(0(0))</option>
+            <option value="10">Maal (nullen)</option>
+            <option value="11">Deeltafels</option>
+            <option value="12">Delen 10(0(0))</option>
+            <option value="13">Delen+, 10(0(0))</option>
+          </select>
+        </span>
+      <div class="spacer"></div>
+      <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+      <span class="chip ok">✅ Juist: <span id="okCount">0</span></span>
+      <span class="chip bad">❌ Fout: <span id="errCount">0</span></span>
+    </div>
+ <div class="wrap">
+    <div class="board">
+      <!-- Board actions: hulp, maaltafel, soort-keuze (alleen visueel hier) -->
+      <div class="board-actions">
+        <button id="toggleHelp" class="chip btn" aria-expanded="false" title="Toon/verberg tips">ℹ️ Hulp</button>
+        <button id="tablesBtn" class="chip btn" title="Toon maaltafel">× Maaltafel</button>
+
+      
+      </div>
+
+      <div class="taskbar">
+        <div id="helperTop" class="helper" style="display:none"></div>
+        <div class="task" id="qText">—</div>
+      </div>
+
+      <div class="left">
+        <div class="field">
+          <div class="label" id="labelQ">Antwoord</div>
+          <div class="lcd" id="lcd"><span id="buffer">0</span></div>
+          <div class="sub">
+            <span id="levelInfo">Soort —</span>
+          </div>
+
+          <div class="streakbar" id="streakbar">
+            <div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div>
+            <div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div>
+          </div>
+
+          <div class="hint" id="hint">Enter of OK om te controleren.</div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="padwrap">
+          <div class="keypad" id="keypad">
+            <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key">←</div>
+            <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">,</div>
+            <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">00</div>
+            <div class="key wide">0</div><div class="key wide ok">OK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Naam-popup -->
+  <div id="nameModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="nameTitle">
+    <div class="modal-card">
+      <h2 id="nameTitle">Start <span id="nameKind">—</span></h2>
+      <p>Vul je naam in en klik <strong>Starten</strong>.</p>
+      <input id="nameField" class="nameField" placeholder="Naam leerling" autocomplete="off" />
+      <div class="row">
+        <button class="chip btn" id="cancelName">Annuleren</button>
+        <button class="chip btn" id="startName">Starten</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Eind-popup -->
+  <div id="endModal" class="modal hidden" role="alertdialog" aria-modal="true" aria-labelledby="endTitle">
+    <div class="modal-card">
+      <h2 id="endTitle">Run beëindigd</h2>
+      <p id="endMsg">Je hebt X/50 behaald.</p>
+      <p>📄 Het bewijsje is automatisch gemaakt. Lever dit in.</p>
+      <div class="row">
+        <button class="chip btn" id="closeEnd">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Maaltafel-popup -->
+  <div id="tablesModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tablesTitle">
+    <div class="modal-card">
+      <h2 id="tablesTitle">Maaltafel 1–10</h2>
+      <div class="tablewrap">
+        <table class="mtable" aria-label="Maaltafel 1 tot en met 10">
+          <thead><tr id="mt-head"></tr></thead>
+          <tbody id="mt-body"></tbody>
+        </table>
+      </div>
+      <div class="row">
+        <button class="chip btn" id="closeTables">Sluiten</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    // ====== Modes & constants ======
+    const MODE_FREE = "vrij";
+    const MODE_TASK = "taak";
+    const MODE_TEST = "toets";
+    const TARGET_COUNT = 50;
+    const LIMIT_MS = 15 * 60 * 1000; // 15 min
+
+    // Voor label weergave (Soort X — …)
+    const TYPE_LABELS = {
+      1:"Optelling (10–999)",
+      2:"Optelling (nullen)",
+      3:"Aftrekking (eenheden)",
+      4:"Aftrekking (splits 2c)",
+      5:"Aftrekking (nullen)",
+      6:"Tafels (1–10)",
+      7:"Keer/Dubbel (woorden)",
+      8:"× 10/100/1000 (N)",
+      9:"Komma × 10/100/1000",
+      10:"Vermenigvuldigen (nullen)",
+      11:"Deeltafels",
+      12:"Delen door 10/100/1000 (N)",
+      13:"Komma × 10/100/1000"
+    };
+    const ALL_KINDS = Object.keys(TYPE_LABELS).map(n => Number(n));
+
+    // ====== State ======
+    let mode = MODE_FREE;
+    let right = 0, wrong = 0;
+    let qThisRun = 0, runRight = 0, runWrong = 0;
+    let buf = "";
+    let cur = null; // {question, kind, type, scale, ansScaled, ansView, _ansNum?}
+    let taskTimerId = null, testTimerId = null, startedAt = 0, endsAt = 0;
+    let proofDownloadedThisRun = false;
+    let studentName = "";
+
+    const history = [];
+
+    // ====== DOM ======
+    const tablesModal = document.getElementById('tablesModal');
+    const qText = document.getElementById('qText');
+    const okEl = document.getElementById('okCount');
+    const errEl = document.getElementById('errCount');
+    const typeSel = document.getElementById('typeSel');
+    const levelInfo = document.getElementById('levelInfo');
+    const lcd = document.getElementById('lcd');
+    const bufEl = document.getElementById('buffer');
+    const hint = document.getElementById('hint');
+    const streakbar = document.getElementById('streakbar');
+    const timeDisp = document.getElementById('timeDisp');
+
+    const endModal = document.getElementById('endModal');
+    const endMsg = document.getElementById('endMsg');
+    const closeEndBtn = document.getElementById('closeEnd');
+
+    const helperTop = document.getElementById('helperTop');
+
+    // Naam modal
+    const nameModal = document.getElementById('nameModal');
+    const nameField = document.getElementById('nameField');
+    const nameKind = document.getElementById('nameKind');
+    const cancelName = document.getElementById('cancelName');
+    const startName = document.getElementById('startName');
+
+    // ====== Utils ======
+    function roundTo3(n){ return Math.round(n * 1000) / 1000; }
+    function formatMax3(n){ return fmtComma(roundTo3(n), {max:3}); }
+    const pad2 = n => String(n).padStart(2, '0');
+    function fmtComma(n, {max=3, min=0} = {}) {
+      let s = Number(n).toFixed(max);
+      if (max > min){
+        s = s.replace(/(\.\d*?[1-9])0+$/,'$1').replace(/\.$/,'');
+        const parts = s.split('.');
+        if (parts[1]) {
+          while (parts[1].length < min) parts[1] += '0';
+          s = parts.join('.');
+        }
+      }
+      return s.replace('.', ',');
+    }
+    function resetScoreUI(){
+      right = 0; wrong = 0;
+      okEl.textContent = '0'; errEl.textContent = '0';
+      updateStreakBar();
+    }
+    function setTimeDisp(ms){
+      const sec = Math.max(0, Math.round(ms/1000));
+      const m = Math.floor(sec/60), s = sec % 60;
+      timeDisp.textContent = `${pad2(m)}:${pad2(s)}`;
+    }
+    function updateStreakBar(){
+      const k = right % 10;
+      Array.from(streakbar.children).forEach((c,i)=>c.classList.toggle('fill', i < k));
+    }
+
+    // ====== Answer buffer ======
+    function normBuf(){ let s = buf.replace(/^0+(?=\d)/,''); if (s.startsWith(',')) s = '0'+s; return s; }
+    function renderBuf(){ bufEl.textContent = normBuf() || "0"; }
+    function pushDigit(d){ if (buf.length < 18){ buf += d; renderBuf(); } }
+    function pushComma(){ if (!buf.includes(',')){ buf = buf.length ? buf+',' : '0,'; renderBuf(); } }
+    function push00(){ buf = buf.length ? buf+"00" : "0"; renderBuf(); }
+    function back(){ buf = buf.slice(0,-1); renderBuf(); }
+
+    // ====== Timers ======
+    function stopAllTimers(){
+      if (taskTimerId){ clearInterval(taskTimerId); taskTimerId = null; }
+      if (testTimerId){ clearInterval(testTimerId); testTimerId = null; }
+    }
+    function startTaskTimerUp(){
+      stopAllTimers();
+      startedAt = Date.now();
+      const update = () => {
+        const elapsed = Date.now() - startedAt;
+        setTimeDisp(elapsed);
+      };
+      setTimeDisp(0);
+      update();
+      taskTimerId = setInterval(update, 250);
+    }
+    function startTestTimerDown(){
+      stopAllTimers();
+      startedAt = Date.now();
+      endsAt = startedAt + LIMIT_MS;
+      const update = () => {
+        const left = Math.max(0, endsAt - Date.now());
+        setTimeDisp(left);
+        if (left <= 0) { endRun(false); }
+      };
+      update();
+      testTimerId = setInterval(update, 250);
+    }
+
+    // ====== Random helpers ======
+    function rint(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+    function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+    const tens   = () => rint(2,999)*10;
+    const hunds  = () => rint(1,999)*100;
+    const thous  = () => rint(1,10)*1000;
+
+    // ====== Question generators (1..13) ======
+    function gen_1(){ const a=rint(10,999), b=rint(10,999); return {kind:1, question:`${a} + ${b}`, type:"Optelling (10–999)", scale:1, ansScaled:a+b, ansView:String(a+b)}; }
+    function gen_2(){
+      const form = pick(['t','h','th']); let A,B;
+      if (form==='t'){ A=tens(); B=tens(); }
+      else if (form==='h'){ A=hunds(); B=hunds(); }
+      else { A=thous(); B=thous(); }
+      return {kind:2, question:`${A} + ${B}`, type:"Optelling (nullen)", scale:1, ansScaled:A+B, ansView:String(A+B)};
+    }
+    function gen_3(){ const A=rint(10,999), B=rint(1,9); const M=A>B?A:B+10; return {kind:3, question:`${M} − ${B}`, type:"Aftrekking (eenheden)", scale:1, ansScaled:M-B, ansView:String(M-B)}; }
+    function gen_4(){ let A=rint(10,999), B=rint(10,99); if (B>A) [A,B]=[B,A]; return {kind:4, question:`${A} − ${B}`, type:"Aftrekking (splits 2c)", scale:1, ansScaled:A-B, ansView:String(A-B)}; }
+    function gen_5(){ let A=rint(2,500)*100, B=rint(1,499)*100; if (B>A) [A,B]=[B,A]; return {kind:5, question:`${A} − ${B}`, type:"Aftrekking (nullen)", scale:1, ansScaled:A-B, ansView:String(A-B)}; }
+    function gen_6(){ const a=rint(1,10), b=rint(1,10); return {kind:6, question:`${a} × ${b}`, type:"Tafels (1–10)", scale:1, ansScaled:a*b, ansView:String(a*b)}; }
+    function gen_7(){
+      if (Math.random()<0.5){ const a=rint(2,10), b=rint(2,10); return {kind:7, question:`${a} keer ${b}`, type:"Keer (woorden)", scale:1, ansScaled:a*b, ansView:String(a*b)}; }
+      const n=rint(2,999); return {kind:7, question:`het dubbel van ${n}`, type:"Dubbel (woorden)", scale:1, ansScaled:2*n, ansView:String(2*n)};
+    }
+    function gen_8(){ const N=rint(1,999), M=pick([10,100,1000]); return {kind:8, question:`${N} × ${M}`, type:"Maal 10/100/1000 (N)", scale:1, ansScaled:N*M, ansView:String(N*M)}; }
+
+    // Komma × 10/100/1000 — vergelijk op 3 decimalen
+    function gen_9(){
+      const M=pick([10,100,1000]);
+      const d=rint(0,3);
+      const base=rint(1,9999)/Math.pow(10,d);
+      const val=parseFloat(base.toFixed(Math.min(3,d)));
+      const ans = roundTo3(val*M);
+      return {
+        kind:9,
+        question:`${fmtComma(val,{max:d,min:d})} × ${M}`,
+        type:"Komma × 10/100/1000",
+        scale:1000,
+        _ansNum: ans,
+        ansScaled: Math.round(ans*1000),
+        ansView: formatMax3(ans)
+      };
+    }
+
+    function gen_10(){
+      function one(){ const z=pick([1,2,3]); return rint(1,9)*Math.pow(10,z); }
+      const pattern=pick([0,1,2]); let A,B;
+      if (pattern===0){ A=one(); B=one(); }
+      else if (pattern===1){ A=one(); B=rint(2,9); }
+      else { A=rint(2,9); B=one(); }
+      return {kind:10, question:`${A} × ${B}`, type:"Vermenigvuldigen (nullen)", scale:1, ansScaled:A*B, ansView:String(A*B)};
+    }
+    function gen_11(){ const d=rint(2,10), q=rint(2,10), n=d*q; return {kind:11, question:`${n} : ${d}`, type:"Deeltafels", scale:1, ansScaled:q, ansView:String(q)}; }
+    function gen_12(){ const D=pick([10,100,1000]); let N=rint(10,1000)*D; if (N<100) N=100; if (N>10000) N=10000; return {kind:12, question:`${N} : ${D}`, type:"Delen door 10/100/1000 (N)", scale:1, ansScaled:N/D, ansView:String(N/D)}; }
+
+    // Komma ÷ 10/100/1000 — vergelijk op 3 decimalen
+    function gen_13(){
+      const D = pick([10,100,1000]);
+      const d = rint(1,3);
+      const base = rint(1,9999) / Math.pow(10,d);
+      const val = parseFloat(base.toFixed(Math.min(3,d)));
+      const ansNum = roundTo3(val / D);
+      return {
+        kind:13,
+        question: `${fmtComma(val,{max:d,min:d})} : ${D}`,
+        type: "Komma × 10/100/1000",
+        scale: 1000,
+        _ansNum: ansNum,
+        ansScaled: Math.round(ansNum * 1000),
+        ansView: formatMax3(ansNum)
+      };
+    }
+
+    const GENERATORS = [gen_1,gen_2,gen_3,gen_4,gen_5,gen_6,gen_7,gen_8,gen_9,gen_10,gen_11,gen_12,gen_13];
+
+    // ====== Slimme hulp per soort ======
+    function makeHelp(g){
+      const mono = s => `<span class="mono">${s}</span>`;
+      switch (g.kind){
+        case 1: return `<p>${mono(g.question)}</p><p>Tip: tel H bij H, T bij T en E bij E.</p>`;
+        case 2: return `<p>${mono(g.question)}</p><p>Tip: denk nullen weg → reken uit → zet nullen terug.</p>`;
+        case 3: return `<p>${mono(g.question)}</p><p>Tip: splits de tweede term (bv. 35 − 7 = 35 − 5 − 2).</p>`;
+        case 4: return `<p>${mono(g.question)}</p><p>Tip: splits de tweede term (bv. 42 − 29 = 42 − 22 − 7).</p>`;
+        case 5: return `<p>${mono(g.question)}</p><p>Tip: denk nullen weg → reken uit → nullen terug.</p>`;
+        case 6: return `<p>${mono(g.question)}</p><p>Tip: kijk naar de maaltafel-tabel.</p>`;
+        case 7: return `<p>${mono(g.question)}</p><p>Tip: ‘keer’ = maal | ‘dubbel’ = twee keer.</p>`;
+        case 8: return `<p>${mono(g.question)}</p><p>Tip: ×10 → +1 nul | ×100 → +2 | ×1000 → +3.</p>`;
+        case 9: return `<p>${mono(g.question)}</p><p>Tip: ×10 → komma 1 plaats rechts; ×100 → 2; ×1000 → 3.</p>`;
+        case 10:return `<p>${mono(g.question)}</p><p>Tip: denk nullen weg, reken uit, zet álle nullen terug.</p>`;
+        case 11:return `<p>${mono(g.question)}</p><p>Tip: welke tafel levert het deeltal op?</p>`;
+        case 12:return `<p>${mono(g.question)}</p><p>Tip: ÷10 → 1 nul weg | ÷100 → 2 | ÷1000 → 3.</p>`;
+        case 13:return `<p>${mono(g.question)}</p><p>Tip: ÷10 → komma 1 links; ÷100 → 2; ÷1000 → 3.</p>`;
+        default: return `<p>Tip: schat eerst, controleer met de omgekeerde bewerking.</p>`;
+      }
+    }
+
+    // ====== Dropdown-filter ======
+    function allowedKinds(){
+      if (mode !== MODE_FREE) return ALL_KINDS;          // taak/toets = altijd mix
+      const v = typeSel.value;
+      if (v === 'mix') return ALL_KINDS;
+      const k = Number(v);
+      return ALL_KINDS.includes(k) ? [k] : ALL_KINDS;
+    }
+
+    // ====== Nieuwe vraag ======
+    function newTask(){
+      lcd.classList.remove('good','bad'); buf=""; renderBuf();
+
+      const kinds = allowedKinds();
+      const kindPick = kinds[Math.floor(Math.random()*kinds.length)];
+      const genFn = GENERATORS[kindPick - 1];
+      const g = genFn();
+
+      if (!g.scale) g.scale = 1;
+      if (g.scale === 1 && typeof g.ansScaled !== 'number'){ g.ansScaled = Math.round(Number((g.ansView||"").replace(',','.'))); }
+      cur = g;
+
+      qText.textContent = g.question;
+      levelInfo.textContent = `Soort ${g.kind} — ${TYPE_LABELS[g.kind] || g.type || ''}`;
+      hint.textContent = (mode===MODE_FREE) ? "Enter of OK om te controleren." :
+        (mode===MODE_TASK ? "🧪 Taak bezig…" : "🧭 Toets bezig…");
+      helperTop.innerHTML = makeHelp(g);
+      updateStreakBar();
+    }
+
+    // ====== Controleren ======
+    function check(){
+      if (!cur) return;
+      const s = normBuf(); if (!s) return;
+
+      const userNum = Number(s.replace(',','.'));
+      if (Number.isNaN(userNum)) return;
+
+      const scale = cur.scale || 1;
+      const userScaled = Math.round(userNum * scale);
+
+      let ansScaled;
+      if (scale === 1){
+        if (typeof cur._ansNum === 'number') ansScaled = Math.round(cur._ansNum);
+        else if (typeof cur.ansScaled === 'number') ansScaled = Math.round(cur.ansScaled);
+        else ansScaled = Math.round(Number((cur.ansView||"").replace(',','.')));
+      } else {
+        const ansNum = (typeof cur._ansNum === 'number') ? cur._ansNum : Number((cur.ansView||"").replace(',','.'));
+        ansScaled = Math.round(ansNum * scale);
+      }
+
+      const ok = (userScaled === ansScaled);
+
+      const userView = s;
+      let correctViewNum = (scale===1) ? ansScaled : (ansScaled/scale);
+      const correctView = Number.isInteger(correctViewNum) ? String(correctViewNum) : formatMax3(correctViewNum);
+
+      history.push({ idx: history.length+1, kind: cur.kind, type: cur.type, question: cur.question, user: userView, correct: ok, correctView, mode });
+
+      if (ok){
+        right++; okEl.textContent = right;
+        if (mode!==MODE_FREE){ runRight++; }
+        lcd.classList.add('good'); hint.textContent = "✅ Juist!";
+        setTimeout(()=>{ lcd.classList.remove('good'); nextStep(); }, 550);
+      } else {
+        wrong++; errEl.textContent = wrong;
+        if (mode!==MODE_FREE){ runWrong++; }
+        lcd.classList.add('bad'); hint.textContent = `❌ Antwoord: ${correctView}`;
+        setTimeout(()=>{ lcd.classList.remove('bad'); nextStep(); }, 650);
+      }
+    }
+
+    function nextStep(){
+      if (mode !== MODE_FREE) qThisRun++;
+      if ((mode===MODE_TASK || mode===MODE_TEST) && qThisRun >= TARGET_COUNT){ endRun(true); return; }
+      newTask();
+    }
+
+    // ====== Einde run ======
+    function endRun(completedOnCount){
+      const workedMs = Date.now() - startedAt;
+      const wasMode = mode;
+      stopAllTimers();
+
+      if (!proofDownloadedThisRun){
+        renderProofPNG(wasMode, completedOnCount ? "klaar (50 vragen)" : "tijd om", workedMs, runRight, runWrong);
+        proofDownloadedThisRun = true;
+      }
+
+      if (wasMode!==MODE_FREE){
+        endMsg.textContent = (wasMode===MODE_TEST)
+          ? `Toets beëindigd, je hebt ${runRight}/${TARGET_COUNT} behaald.`
+          : `Taak beëindigd, je score: ${runRight}/${TARGET_COUNT}.`;
+        showEndModal();
+      }
+      setMode(MODE_FREE);
+      newTask();
+    }
+
+    // ====== Mode ======
+    function setMode(newMode) {
+      mode = newMode;
+
+      if (mode === MODE_FREE) {
+        stopAllTimers();
+        timeDisp.textContent = "—";
+        typeSel.disabled = false;     // dropdown actief
+
+      } else if (mode === MODE_TASK) {
+        resetScoreUI();
+        qThisRun = 0; runRight = 0; runWrong = 0; proofDownloadedThisRun = false;
+
+        typeSel.value = 'mix';        // altijd mix
+        typeSel.disabled = true;
+
+        setTimeDisp(0);
+        startTaskTimerUp();
+
+      } else { // MODE_TEST
+        resetScoreUI();
+        qThisRun = 0; runRight = 0; runWrong = 0; proofDownloadedThisRun = false;
+
+        typeSel.value = 'mix';        // altijd mix
+        typeSel.disabled = true;
+
+        startTestTimerDown();
+      }
+    }
+
+    // ====== Popups ======
+    function showEndModal(){ endModal.classList.remove('hidden'); }
+    function closeEndModal(){ endModal.classList.add('hidden'); }
+    closeEndBtn?.addEventListener('click', closeEndModal);
+
+    // ====== Naam vragen ======
+    async function askName(kindLabel, onStart){
+      // Probeer gedeelde helper eerst
+      if (window.MR_SHARED && MR_SHARED.askName){
+        try{
+          const key = /toets/i.test(kindLabel) ? 'toets' : (/taak/i.test(kindLabel) ? 'taak' : 'oefen');
+          const n = await MR_SHARED.askName(key);
+          studentName = (n||"").trim();
+          if(!studentName) return; // geannuleerd
+          onStart();
+          return;
+        }catch(e){ /* fallback naar eigen modal */ }
+      }
+      // Eigen modal
+      nameKind.textContent = kindLabel;
+      nameField.value = studentName || "";
+      nameModal.classList.remove('hidden');
+      nameField.focus();
+
+      const start = ()=>{
+        studentName = (nameField.value||"").trim();
+        nameModal.classList.add('hidden');
+        if(!studentName) return;
+        onStart();
+      };
+      startName.onclick = start;
+      nameField.onkeydown = (e)=>{ if(e.key==='Enter') start(); };
+      cancelName.onclick = ()=>{ nameModal.classList.add('hidden'); };
+    }
+
+    // ====== Events ======
+    document.getElementById('keypad').addEventListener('click', e=>{
+      const v = e.target.textContent.trim();
+      if (!v) return;
+      if (v==="OK") check();
+      else if (v==="←") back();
+      else if (v===",") pushComma();
+      else if (v==="00") push00();
+      else if (/^\d$/.test(v)) pushDigit(v);
+    });
+
+    // Dropdown -> direct nieuwe vraag in vrije modus
+    typeSel.addEventListener('change', () => {
+      if (mode === MODE_FREE) newTask();
+    });
+
+    window.addEventListener('keydown', e=>{
+      if (e.key>='0' && e.key<='9') pushDigit(e.key);
+      else if (e.key===',' || e.key==='.') { e.preventDefault(); pushComma(); }
+      else if (e.key==='Backspace') back();
+      else if (e.key==='Enter') {
+        if (!endModal.classList.contains('hidden')) { e.preventDefault(); closeEndModal(); }
+        else if (!nameModal.classList.contains('hidden')) { e.preventDefault(); startName.click(); }
+        else { e.preventDefault(); check(); }
+      }
+      else if (e.key==='Escape'){
+        if (!endModal.classList.contains('hidden')) { closeEndModal(); }
+        if (!nameModal.classList.contains('hidden')) { nameModal.classList.add('hidden'); }
+      }
+    });
+
+    document.getElementById('fullBtn').addEventListener('click', ()=>{
+      const el = document.documentElement;
+      if (!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.();
+    });
+
+    // Hulp: tip boven vraag
+    document.getElementById('toggleHelp').addEventListener('click', ()=>{
+      const show = helperTop.style.display === 'none';
+      helperTop.style.display = show ? 'block' : 'none';
+      if (cur) helperTop.innerHTML = makeHelp(cur);
+      const btn = document.getElementById('toggleHelp');
+      btn.textContent = show ? "ℹ️ Hulp verbergen" : "ℹ️ Hulp";
+      btn.setAttribute('aria-expanded', String(show));
+    });
+
+    // Maaltafel popup
+    const headRow = document.getElementById('mt-head');
+    const body = document.getElementById('mt-body');
+    function buildTable(){
+      headRow.innerHTML = '';
+      const th0 = document.createElement('th'); th0.textContent = '×'; headRow.appendChild(th0);
+      for (let c=1;c<=10;c++){ const th=document.createElement('th'); th.textContent=String(c); headRow.appendChild(th); }
+      body.innerHTML = '';
+      for (let r=1;r<=10;r++){
+        const tr=document.createElement('tr');
+        const th=document.createElement('th'); th.textContent=String(r); tr.appendChild(th);
+        for (let c=1;c<=10;c++){ const td=document.createElement('td'); td.textContent=String(r*c); tr.appendChild(td); }
+        body.appendChild(tr);
+      }
+    }
+    function openTables(){ buildTable(); tablesModal.classList.remove('hidden'); }
+    function closeTables(){ tablesModal.classList.add('hidden'); }
+    document.getElementById('tablesBtn').addEventListener('click', openTables);
+    document.getElementById('closeTables').addEventListener('click', closeTables);
+    tablesModal.addEventListener('click', (e)=>{ if(e.target===tablesModal) closeTables(); });
+
+    // Startknoppen
+    document.getElementById('startTaak').addEventListener('click', ()=>{
+      askName('taak (50)', ()=>{
+        setMode(MODE_TASK); resetScoreUI(); qThisRun=0; runRight=0; runWrong=0; newTask();
+      });
+    });
+    document.getElementById('startToets').addEventListener('click', ()=>{
+      askName('toets (50 / 15 min)', ()=>{
+        setMode(MODE_TEST); resetScoreUI(); qThisRun=0; runRight=0; runWrong=0; newTask();
+      });
+    });
+
+    function trySharedProof(summary){
+      try{
+        if(window.MR_SHARED){
+          MR_SHARED.finishSession(summary);
+          return true;
+        }
+      }catch(e){ console.error('shared bewijs failed', e); }
+      return false;
+    }
+
+    function renderProofPNG(runMode="vrij", reason="vrij", workedMs=null, runRightOut=0, runWrongOut=0){
+      const sharedSummary = {
+        goals:['BV1_06.02','06.02.08','06.03.01','06.03.02','06.03.03'],
+        title: 'Rekenmix',
+        gameId: 'rekenmix',
+        mode: (runMode || 'vrij'),
+        name: (studentName || 'leerling'),
+        ok: runRightOut || 0,
+        err: runWrongOut || 0,
+        total: (runRightOut || 0) + (runWrongOut || 0),
+        score: runRightOut || 0,
+        seconds: workedMs != null ? Math.max(0, Math.round(workedMs/1000)) : undefined,
+        questions: (history || []).map(h => ({
+          q: h.question || '',
+          a: h.user,
+          given: h.user,
+          correct: h.correctView,
+          ok: !!h.correct
+        }))
+      };
+      if(trySharedProof(sharedSummary)) return;
+
+      if(!(window.MR_SHARED && MR_SHARED.cert && MR_SHARED.cert.downloadTable)){
+        alert('Bewijsje kon niet automatisch gemaakt worden (helper ontbreekt).');
+        return;
+      }
+
+      const secondsValue = workedMs!=null ? Math.max(0, Math.round(workedMs/1000)) : 0;
+      const minutes = Math.floor(secondsValue/60);
+      const secs = String(secondsValue % 60).padStart(2, '0');
+      const now = new Date();
+      const modeLabels = { vrij:'Vrij', taak:'Taak', toets:'Toets' };
+      const meta = [
+        `Naam: ${studentName || '-'}`,
+        `Modus: ${modeLabels[runMode] || 'Vrij'}`,
+        `Einde: ${reason}`,
+        `Score: ${(runRightOut||0)}/${(runRightOut||0)+(runWrongOut||0)}`,
+        `Tijd: ${minutes}:${secs}`,
+        `Datum: ${now.toLocaleString('nl-BE')}`,
+        `Doelen: ${sharedSummary.goals.join(', ')}`
+      ];
+      if(history && history.length){
+        meta.push(`Vragen gelogd: ${history.length}`);
+      }
+
+      const rows = (history || []).map((entry, idx)=>({
+        nr: entry.idx || idx + 1,
+        soort: entry.kind || '-',
+        type: entry.type || '-',
+        vraag: entry.question || '-',
+        leerling: entry.user || '-',
+        correct: entry.correctView || '-',
+        ok: !!entry.correct
+      }));
+
+      const safeName = (studentName || 'leerling').replace(/[^\w\s-]+/g, '').trim().replace(/\s+/g, '_');
+      const stamp = now.toISOString().replace(/[:T]/g, '-').split('.')[0];
+
+      MR_SHARED.cert.downloadTable({
+        width: 1280,
+        title: 'Bewijsje - Rekenmix',
+        gradient: ['#ffffff', '#f6f9ff'],
+        meta,
+        table: {
+          title: 'Vragen & antwoorden',
+          columns: [
+            { label: '#', key: 'nr', width: 60 },
+            { label: 'Soort', key: 'soort', width: 140 },
+            { label: 'Type', key: 'type', width: 140 },
+            { label: 'Vraag', key: 'vraag', width: 360, wrap: true, lineHeight: 22 },
+            { label: 'Leerling', key: 'leerling', width: 240, wrap: true, lineHeight: 22 },
+            { label: 'Correct', key: 'correct', width: 240, wrap: true, lineHeight: 22 },
+            { label: 'Status', width: 120, align: 'center', value: row => row.ok ? 'Juist' : 'Fout', color: row => row.ok ? '#16a34a' : '#dc2626' }
+          ],
+          rows
+        },
+        footer: [`Sessie: ${modeLabels[runMode] || 'Vrij'} · ${rows.length} vragen · ${reason}`],
+        fileName: `bewijsje_rekenmix_${runMode}_${safeName}_${stamp}.png`
+      });
+    }
+
+    // ====== Init ======
+    function resetSession(){
+      right=0; wrong=0; history.length=0; qThisRun=0; runRight=0; runWrong=0; proofDownloadedThisRun=false;
+      okEl.textContent='0'; errEl.textContent='0'; updateStreakBar();
+      helperTop.style.display = 'none';
+      timeDisp.textContent = "—";
+    }
+    resetSession();
+    setMode(MODE_FREE);
+    newTask();
+
+  })();
+  </script>
+</body>
+</html>

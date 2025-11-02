@@ -1,0 +1,1011 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mr Raes: Lengtespel - BV1_06.02 / BV1_06.06</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="mrraes-shared.css">
+  <script src="mrraes-shared.js"></script>
+
+  <style>
+    :root{
+      --bg:#f7f9fc; --card:#fff; --ink:#0b132b; --muted:#6b7280; --ring:#e6ecf8; --ring2:#dfe6f6;
+      --shadow:0 10px 28px rgba(15,23,42,.06); --good:#10b981; --bad:#ef4444; --accent:#ffffff;
+      --radius-board:24px; --radius-chip:999px; --control-h:56px; --control-h-lg:64px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink); font-family:Inter,system-ui,Arial,sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, #eef3ff 0%, #f7f9fc 50%, #fbfdff 100%);
+    }
+    .wrap{width:min(1200px,96vw); padding:1rem; margin:0 auto}
+
+    /* Topbar */
+    .topbar{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem}
+    .chip{
+      background:#fff; border:1px solid var(--ring2); border-radius:var(--radius-chip);
+      padding:.35rem .7rem; box-shadow:var(--shadow); display:inline-flex; gap:.5rem; align-items:center; font-weight:800;
+    }
+    .chip.btn{cursor:pointer}
+    .chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+    .chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+    .spacer{flex:1}
+    .chip select{font:inherit; font-weight:900; border:none; outline:none; background:transparent; cursor:pointer}
+    .chip.disabled{opacity:.55; pointer-events:none}
+
+    /* Board */
+    .board{
+      background:#fff; border:1px solid var(--ring); border-radius:var(--radius-board); box-shadow:var(--shadow);
+      padding:1rem; display:grid; grid-template-columns:420px 1fr; gap:1rem; align-items:stretch;
+      min-height:clamp(560px,78vh,920px)
+    }
+    .board.flash-ok{background:#f4fdf8!important; border-color:#c4eedc!important; transition:background .25s,border-color .25s}
+    .board.flash-err{background:#fff6f6!important; border-color:#ffd7d7!important; transition:background .25s,border-color .25s}
+
+    /* Left */
+    .leftCol{background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow);
+      display:flex; flex-direction:column; height:100%}
+    .imgbox{
+      flex:1; min-height:0; border-radius:16px; overflow:hidden; background:#fff; border:1px solid var(--ring);
+      display:flex; align-items:center; justify-content:center; height:100%
+    }
+    .imgbox img{width:100%; height:100%; object-fit:contain}
+    .meta{display:flex; justify-content:center; align-items:center; text-align:center; gap:.5rem; flex-wrap:wrap; margin-top:.6rem; color:#374151; font-weight:800}
+    .badge{border:1px solid var(--ring2); border-radius:999px; padding:.25rem .6rem; background:#fff; box-shadow:var(--shadow); margin-top:1rem}
+
+    /* Right */
+    .rightCol{display:grid; grid-template-rows:1fr auto; gap:.75rem; min-height:0}
+    .qCard{
+      position:relative; background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow);
+      display:grid; grid-template-rows:auto 1fr auto; min-height:0
+    }
+
+    .toolBar{position:absolute; top:8px; right:8px; display:flex; gap:.35rem;}
+    .toolBtn{border:1px solid var(--ring2); background:#fff; border-radius:999px; padding:.2rem .6rem; font-weight:900; cursor:pointer; box-shadow:var(--shadow)}
+    .toolBtn[disabled]{opacity:.45; cursor:not-allowed; pointer-events:none; filter:grayscale(1)}
+
+    .qText{
+      white-space:pre-line; align-self:end; justify-self:center; text-align:center; font-weight:900;
+      font-size:clamp(18px,2.2vw,22px); line-height:1.35; min-height:3.2em; padding:.2rem .4rem;
+    }
+    .row{display:flex; align-items:center; justify-content:center; gap:.8rem; flex-wrap:wrap}
+    .ibox{
+      height:var(--control-h); min-width:360px; padding:0 16px; font:900 20px Inter,sans-serif; text-align:center;
+      border-radius:12px; background:#fff; border:1px solid var(--ring2); color:var(--ink); outline:none
+    }
+    #checkBtn.key{height:var(--control-h-lg); padding:0 28px; font-size:20px; border-radius:14px}
+    .status{min-height:28px; font-weight:800}
+    .okTxt{color:var(--good)} .errTxt{color:var(--bad)}
+
+    /* Panels */
+    .helpPanel,.calcPanel,.convPanel{
+      position:absolute; top:46px; right:8px; z-index:5; background:#fff; border:1px solid var(--ring2); border-radius:12px; box-shadow:var(--shadow);
+      padding:.75rem .9rem; display:none; font-weight:800; color:#374151;
+    }
+    .helpPanel{width:min(360px,90%)}
+    .helpPanel .rowp{font-size:13px;line-height:1.35;margin:.25rem 0}
+    .calcPanel{width:min(420px,96%); padding:1rem}
+    .convPanel{width:min(520px,96%)}
+
+    .calcDisplayWrap{border:1px solid var(--ring2); border-radius:12px; box-shadow:var(--shadow); background:#fff; padding:.4rem; margin-bottom:.7rem}
+    .calcDisplay{width:100%; border:none; outline:none; background:transparent; font:900 24px Inter,system-ui,sans-serif; text-align:right; padding:.3rem .4rem; color:var(--ink)}
+    .calcKeys{display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem}
+    .ckey{user-select:none; cursor:pointer; height:56px; border-radius:14px; border:1px solid var(--ring2); background:#f7faff; box-shadow:0 6px 16px rgba(15,23,42,.06); font:900 20px Inter,system-ui,sans-serif; transition:transform .06s, box-shadow .12s, background .12s, border-color .12s}
+    .ckey:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+    .ckey.c-op{background:#eef5ff; border-color:#cfe2ff}
+    .ckey.c-func{background:#fff7ea; border-color:#ffe2b8}
+    .ckey.c-eq{background:#eafaf4; border-color:#c4eedc}
+
+    .convTable{display:grid; grid-template-columns:repeat(10,1fr); gap:.4rem; margin:.4rem 0 .6rem 0}
+    .convHead{font-size:13px; text-align:center; color:#6b7280}
+    .convCell input{width:100%; height:42px; border:1px solid var(--ring2); border-radius:10px; text-align:center; font:900 18px Inter,sans-serif; outline:none; background:#fff}
+    .convCell input:focus{border-color:#b9cdfa; box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+    .convPad{display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; margin-top:.6rem}
+    .key{
+      user-select:none; cursor:pointer; text-align:center; font-weight:900; font-size:clamp(18px,3.2vw,22px);
+      padding:1rem 0; border-radius:14px; background:#f7faff; border:1px solid var(--ring2); box-shadow:0 6px 16px rgba(15,23,42,.06);
+      transition:transform .06s, box-shadow .12s, background .12s
+    }
+    .key.mini{padding:.6rem 0; font-size:18px}
+    .key.wide{grid-column:1 / -1}
+    .key:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+    .key.ok{background:#eafaf4; border-color:#c4eedc}
+    .key.bad{background:#fdeeee; border-color:#ffd7d7}
+
+    /* Grote keypad */
+    .padwrap{align-self:auto; background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow)}
+    .keypad{display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem}
+
+    /* Unit pad (alleen bij soort 'unit') */
+    #unitPad{display:none; grid-template-columns:repeat(7,1fr); gap:.6rem; margin:.6rem auto 0; max-width:560px}
+    #unitPad .key{font-size:18px; padding:.6rem 0}
+
+    @media (max-width:980px){
+      .board{grid-template-columns:1fr; min-height:unset}
+      .leftCol{height:auto}
+      .imgbox{height:420px}
+      .padwrap{align-self:stretch}
+    }
+
+    /* ===== Modal (fallback) + dyscalculie ===== */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.55);display:none;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(3px)}
+    .modal-backdrop.open{display:flex}
+    .modal{width:min(520px,92vw);background:#fff;border:1px solid var(--ring2);border-radius:18px;box-shadow:0 20px 60px rgba(2,6,23,.25);padding:1.2rem}
+    .modal h3{margin:.2rem 0 .6rem;font-size:1.35rem}
+    .modal p{margin:.2rem 0 .8rem;color:#374151}
+    .rowm{display:flex;gap:.6rem;align-items:center;margin:.4rem 0 .2rem}
+    .modal input{flex:1;padding:.8rem .9rem;border-radius:12px;border:1px solid var(--ring2);font:600 1rem Inter,system-ui,Arial;outline:none}
+    .modal .actions{display:flex;gap:.6rem;justify-content:flex-end;margin-top:.8rem}
+    .btn{border:1px solid var(--ring2);background:#f7faff;padding:.6rem .9rem;border-radius:12px;font:800 .98rem Inter,system-ui,Arial;cursor:pointer}
+    .btn.primary{background:#2563eb;color:#fff;border-color:#215bd9}
+    .btn.ghost{background:#fff}
+    .flagline{display:flex;align-items:center;gap:.5rem;margin-top:.6rem;font-weight:800;color:#374151}
+    .flagline input{transform:translateY(1px)}
+  </style>
+</head>
+<body>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button id="startTaak" class="chip btn">📝 Start taak (20)</button>
+    <button id="startToets" class="chip btn">🧭 Start toets (20 / 15 min)</button>
+    <button id="fullBtn" class="chip btn">⤢ Volledig scherm</button>
+
+    <!-- Soort (alleen in oefenen) -->
+    <span class="chip btn" id="practicePicker" title="Kies vraagtype (alleen in oefenen)">
+      Soort:&nbsp;
+      <select id="typeSel" aria-label="Kies vraagtype">
+        <option value="mix" selected>Mix</option>
+        <option value="convert">Zet om naar …</option>
+        <option value="scale">× langer / korter</option>
+        <option value="unit">Kies de eenheid</option>
+        <option value="estimate">Schatten (±40%)</option>
+      </select>
+    </span>
+
+    <span class="chip" id="levelChip">📈 Level: <strong>1 / 3</strong></span>
+    <div class="spacer"></div>
+    <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+    <span class="chip ok">✅ Juist: <span id="okCount">0</span></span>
+    <span class="chip bad">❌ Fout: <span id="errCount">0</span></span>
+  </div>
+
+  <div class="wrap">
+    <div class="board" id="board">
+      <!-- LINKS -->
+      <div class="leftCol">
+        <div class="imgbox"><img id="itemImg" alt="Kaart" /></div>
+      </div>
+
+      <!-- RECHTS -->
+      <div class="rightCol">
+        <div class="qCard">
+          <div class="meta">
+            <span class="badge" id="itemName"></span>
+            <span class="badge" id="lenInfo">lengte:</span>
+          </div>
+
+          <div class="toolBar">
+            <button id="calcBtn" class="toolBtn">🧮 Reken</button>
+            <button id="convBtn" class="toolBtn">Tabel</button>
+            <button id="helpBtn" class="toolBtn">❔ Hulp</button>
+          </div>
+
+          <!-- HELP -->
+          <div id="helpPanel" class="helpPanel">
+            <h4>Eenheden (10 per stap)</h4>
+            <div class="rowp">km - hm - dam <strong> m </strong> dm - cm - mm</div>
+            <div class="rowp">1 km = 1000 m | 1 m = 10 dm = 100 cm = 1000 mm</div>
+          </div>
+
+          <!-- REKENPANEEL -->
+          <div id="calcPanel" class="calcPanel">
+            <h4>Rekentoestel</h4>
+            <div class="calcDisplayWrap">
+              <input id="calcDisplay" class="calcDisplay" type="text" inputmode="decimal" placeholder="0" />
+            </div>
+            <div class="calcKeys" id="calcKeys">
+              <button class="ckey c-func" data-act="ac">AC</button>
+              <button class="ckey c-func" data-act="bksp">←</button>
+              <button class="ckey c-func" data-k="π">π</button>
+              <button class="ckey c-op" data-k="÷">÷</button>
+              <button class="ckey" data-k="7">7</button>
+              <button class="ckey" data-k="8">8</button>
+              <button class="ckey" data-k="9">9</button>
+              <button class="ckey c-op" data-k="×">×</button>
+              <button class="ckey" data-k="4">4</button>
+              <button class="ckey" data-k="5">5</button>
+              <button class="ckey" data-k="6">6</button>
+              <button class="ckey c-op" data-k="−">−</button>
+              <button class="ckey" data-k="1">1</button>
+              <button class="ckey" data-k="2">2</button>
+              <button class="ckey" data-k="3">3</button>
+              <button class="ckey c-op" data-k="+">+</button>
+              <button class="ckey" data-k="0">0</button>
+              <button class="ckey" data-k=",">,</button>
+              <button class="ckey c-eq" data-act="eq">=</button>
+              <button class="ckey c-func" id="calcPaste" title="Plak resultaat in antwoord">⤓</button>
+            </div>
+          </div>
+
+          <!-- OMZETTINGSTABEL -->
+          <div id="convPanel" class="convPanel">
+            <h4>Omzettingstabel</h4>
+            <div class="convTable">
+              <div class="convHead"></div><div class="convHead"></div><div class="convHead"></div>
+              <div class="convHead">km</div><div class="convHead">hm</div><div class="convHead">dam</div>
+              <div class="convHead"><strong>m</strong></div><div class="convHead">dm</div><div class="convHead">cm</div><div class="convHead">mm</div>
+
+              <div class="convCell"><input maxlength="1" id="cell-kmA"></div>
+              <div class="convCell"><input maxlength="1" id="cell-kmB"></div>
+              <div class="convCell"><input maxlength="1" id="cell-kmC"></div>
+              <div class="convCell"><input maxlength="1" id="cell-km"></div>
+              <div class="convCell"><input maxlength="1" id="cell-hm"></div>
+              <div class="convCell"><input maxlength="1" id="cell-dam"></div>
+              <div class="convCell"><input maxlength="1" id="cell-m"></div>
+              <div class="convCell"><input maxlength="1" id="cell-dm"></div>
+              <div class="convCell"><input maxlength="1" id="cell-cm"></div>
+              <div class="convCell"><input maxlength="1" id="cell-mm"></div>
+            </div>
+
+            <div class="convPad" id="convPad">
+              <div class="key mini" data-k="7">7</div><div class="key mini" data-k="8">8</div><div class="key mini" data-k="9">9</div><div class="key mini" data-act="bksp">←</div>
+              <div class="key mini" data-k="4">4</div><div class="key mini" data-k="5">5</div><div class="key mini" data-k="6">6</div><div class="key mini" data-act="left">◀</div>
+              <div class="key mini" data-k="1">1</div><div class="key mini" data-k="2">2</div><div class="key mini" data-k="3">3</div><div class="key mini" data-act="right">▶</div>
+              <div class="key mini" data-act="ac">AC</div><div class="key mini" data-k="0">0</div><div class="key mini" data-act="noop">•</div><div class="key mini" data-act="noop">•</div>
+            </div>
+          </div>
+
+          <!-- VRAAG + ANTWOORD -->
+          <div id="question" class="qText">Klik op “Start taak/toets” of oefen vrij.</div>
+          <div class="row">
+            <input id="answer" class="ibox" type="text" placeholder="jouw antwoord" inputmode="decimal" />
+            <button id="checkBtn" class="key" data-act="enter">OK</button>
+          </div>
+
+          <!-- Unit-pad (alleen bij 'unit') -->
+          <div id="unitPad">
+            <div class="key mini" data-u="mm">mm</div>
+            <div class="key mini" data-u="cm">cm</div>
+            <div class="key mini" data-u="dm">dm</div>
+            <div class="key mini" data-u="m">m</div>
+            <div class="key mini" data-u="dam">dam</div>
+            <div class="key mini" data-u="hm">hm</div>
+            <div class="key mini" data-u="km">km</div>
+          </div>
+
+          <div id="status" class="status"></div>
+        </div>
+
+        <div class="padwrap">
+          <div class="keypad" id="pad">
+            <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key" data-act="bksp">←</div>
+            <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">,</div>
+            <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">0</div>
+            <div class="key wide" id="okKey" data-act="enter">OK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Naam-modal (fallback) -->
+  <div id="nameModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="nmTitle">
+    <div class="modal">
+      <h3 id="nmTitle">Start</h3>
+      <p>Vul je naam in om te beginnen.</p>
+      <div class="rowm"><input id="nameInput" type="text" placeholder="Naam…" autocomplete="off" /></div>
+      <label class="flagline" id="dysRow" style="display:none;">
+        <input type="checkbox" id="dysChk" />
+        <span>Ik heb <strong>dyscalculie</strong>.</span>
+      </label>
+      <div class="actions">
+        <button class="btn ghost" id="cancelModal">Annuleren</button>
+        <button class="btn primary" id="startModal">Starten</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ========= DATA ========= */
+    const ITEMS = [
+      { name: "Deense dog", label: "hoogte", img: ["deense_dog.png"], len: { value: 1.4, unit: "m" } },
+      { name: "Oscar", label: "lengte", img: ["oscar.png"], len: { value: 1.5, unit: "m" } },
+      { name: "Ella", label: "lengte", img: ["ella.png"], len: { value: 1.2, unit: "m" } },
+      { name: "blauwe vinvis", label: "lengte", img: ["blauwe_vinvis.png"], len: { value: 25, unit: "m" } },
+      { name: "chihuahua", label: "hoogte", img: ["chihuahua.png"], len: { value: 0.20, unit: "m" } },
+      { name: "Danyang-Kunshan-brug", label: "lengte", img: ["danyang_kunshan_brug.png"], len: { value: 165.0, unit: "km" } },
+      { name: "Mount Everest", label: "hoogte", img: ["mount_everest.png"], len: { value: 8.850, unit: "km" } },
+      { name: "mier", label: "lengte", img: ["mier.png"], len: { value: 8, unit: "mm" } },
+      { name: "mensenhaar", label: "dikte", img: ["haar.png"], len: { value: 0.07, unit: "mm" } },
+      { name: "kolibrie", label: "lengte", img: ["Kolibri.png"], len: { value: 10, unit: "cm" } },
+      { name: "Burj Khalifa", label: "hoogte", img: ["burj_khalifa.png"], len: { value: 840, unit: "m" } },
+      { name: "Marianentrog", label: "diepte", img: ["marianen_trog.png"], len: { value: 10.9, unit: "km" } },
+      { name: "Mercurius", label: "diameter", img: ["mercurius.png"], len: { value: 4880, unit: "km" } },
+      { name: "appelboom", label: "hoogte", img: ["appelboom.png"], len: { value: 6, unit: "m" } },
+      { name: "kat", label: "lengte", img: ["kat.png"], len: { value: 46, unit: "cm" } },
+      { name: "appel", label: "diameter", img: ["appel.png"], len: { value: 8, unit: "cm" } },
+      { name: "de Nijl", label: "lengte", img: ["nijl.png"], len: { value: 6650, unit: "km" } },
+      { name: "Paedophryne Amauensis", label: "lengte", img: ["paedophryne_amauensis.png"], len: { value: 8, unit: "mm" } },
+      { name: "Peel P50", label: "lengte", img: ["peel_p50.png"], len: { value: 134, unit: "cm" } },
+      { name: "Rafflesia Arnoldii", label: "diameter", img: ["rafflesia_arnoldii.png"], len: { value: 100, unit: "cm" } },
+      { name: "sequoia", label: "hoogte", img: ["sequoia.png"], len: { value: 90, unit: "m" } },
+      { name: "voetbalveld", label: "lengte", img: ["voetbalveld.png"], len: { value: 105, unit: "m" } },
+      { name: "zandkorrel", label: "diameter", img: ["zandkorrel.png"], len: { value: 0.5, unit: "mm" } },
+      { name: "anaconda", label: "lengte", img: ["anaconda.png"], len: { value: 7.67, unit: "m" } },
+      { name: "Robert Wadlow", label: "lengte", img: ["RobertWadlow.png"], len: { value: 2.72, unit: "m" } },
+      { name: "Chandra Bahadur Dangi", label: "lengte", img: ["Chandra_Bahadur_Dangi.png"], len: { value: 54.6, unit: "m" } }, <!-- (je mag dit later corrigeren naar 0.546 m) -->
+      { name: "Angel Falls", label: "hoogte", img: ["angel_falls.png"], len: { value: 979, unit: "m" } },
+      { name: "Paard", label: "hoogte", img: ["Paard.png"], len: { value: 43, unit: "cm" } },
+      { name: "Airlander", label: "lengte", img: ["Airlander10.png"], len: { value: 92, unit: "m" } },
+    ];
+
+    /* ========= HELPERS ========= */
+    const LEN_UNITS = ['mm','cm','dm','m','dam','hm','km'];
+    const LEN_M = { mm:0.001, cm:0.01, dm:0.1, m:1, dam:10, hm:100, km:1000 };
+    const UNIT_IDX = Object.fromEntries(LEN_UNITS.map((u,i)=>[u,i]));
+    const toMeters = (v,u)=> v*LEN_M[u];
+    const fLen = (from,to)=> LEN_M[from]/LEN_M[to];
+    const within = (x,a,b)=> Math.max(a,Math.min(b,x));
+    const round2 = x => Math.round((+x + Number.EPSILON)*100)/100;
+
+    const $ = s=>document.querySelector(s);
+    const byId = id=>document.getElementById(id);
+    const rnd = n=>Math.floor(Math.random()*n);
+    const pick = arr=>arr[rnd(arr.length)];
+
+    const prettyC = (n)=>{
+      if (n==null || Number.isNaN(+n)) return '—';
+      const r = round2(+n);
+      const s = (Math.abs(r - Math.round(r)) < 1e-12 ? String(Math.round(r)) : String(r.toFixed(2)).replace(/\.?0+$/,''));
+      return s.replace('.',',');
+    };
+    const parseNum = (s)=>{
+      if (typeof s!=='string') s=String(s);
+      s = s.replace(/\./g,',').replace(/[^\d,]/g,'');
+      const i = s.indexOf(',');
+      if (i!==-1) s = s.slice(0,i+1) + s.slice(i+1).replace(/,/g,'');
+      return Number(s.replace(',', '.'));
+    };
+
+    // Doeleenheden voor schaal-vragen: max ±1 stap t.o.v. originele eenheid
+    function allowedUnitsScale(fromU){
+      const i = UNIT_IDX[fromU];
+      return [i-1, i, i+1].filter(j => j>=0 && j<LEN_UNITS.length).map(j => LEN_UNITS[j]);
+    }
+
+    async function resolveImage(cands){
+      const BASE = "lengte/";
+      for (const name of (cands||[])){
+        const p = BASE + name;
+        try{
+          await new Promise((res,rej)=>{ const im = new Image(); im.onload=()=>res(p); im.onerror=rej; im.src=p; });
+          return p;
+        }catch(e){}
+      }
+      return (cands && cands[0]) ? (BASE + cands[0]) : "";
+    }
+
+    /* ========= UI refs ========= */
+    const board = byId('board');
+    const okEl = byId('okCount'); const errEl = byId('errCount');
+    const timeDisp = byId('timeDisp');
+    const startTaak = byId('startTaak'); const startToets = byId('startToets'); const fullBtn = byId('fullBtn');
+
+    const typeSel = byId('typeSel'); const practicePicker = byId('practicePicker');
+    const levelChip = byId('levelChip');
+
+    const $img = byId('itemImg'); const $nm = byId('itemName'); const $len = byId('lenInfo');
+    const $q = byId('question'); const $ans = byId('answer'); const $status = byId('status');
+
+    const pad = byId('pad'); const okKey = byId('okKey'); const checkBtn = byId('checkBtn');
+
+    const helpBtn = byId('helpBtn'); const helpPanel = byId('helpPanel');
+    const convBtn = byId('convBtn'); const convPanel = byId('convPanel');
+
+    const convPad = byId('convPad');
+    const convCells = ['cell-kmA','cell-kmB','cell-kmC','cell-km','cell-hm','cell-dam','cell-m','cell-dm','cell-cm','cell-mm'].map(byId);
+
+    const calcBtn = byId('calcBtn'); const calcPanel = byId('calcPanel'); const calcDisplay = byId('calcDisplay'); const calcKeys = byId('calcKeys'); const calcPaste = byId('calcPaste');
+    const unitPad = byId('unitPad');
+
+    /* ========= STATE ========= */
+    let mode = 'oefen'; // 'oefen'|'taak'|'toets'
+    let total = 0, idx = 0, seconds = 0, timer = null, studentName = '';
+    let ok = 0, err = 0;
+    let current = null, correct = null, unitOut = null;
+    let runLog = [];
+    let questionType = 'mix'; // 'mix'|'convert'|'scale'|'unit'|'estimate'
+    let dyscalculie = false;   // << NEW
+
+    // Naam-modal (fallback)
+    const nameModal = byId('nameModal');
+    const nameInput = byId('nameInput');
+    const startModalBtn = byId('startModal');
+    const cancelModalBtn = byId('cancelModal');
+    const dysRow = byId('dysRow');
+    const dysChk = byId('dysChk');
+    let pendingMode = 'taak';
+
+    function openNameModal(modeWanted){
+      pendingMode = modeWanted || 'taak';
+      nameModal.classList.add('open');
+      nameInput.value='';
+      if (pendingMode==='toets'){ dysRow.style.display='flex'; dysChk.checked=false; }
+      else { dysRow.style.display='none'; dysChk.checked=false; }
+      setTimeout(()=>nameInput.focus(),0);
+    }
+    function closeNameModal(){ nameModal.classList.remove('open'); }
+    startModalBtn.addEventListener('click', ()=>{
+      const nm=(nameInput.value||'').trim();
+      if (!nm){ nameInput.focus(); return; }
+      studentName = nm;
+      dyscalculie = (pendingMode==='toets') ? !!dysChk.checked : false;
+      startRun(pendingMode);
+      closeNameModal();
+    });
+    cancelModalBtn.addEventListener('click', closeNameModal);
+    nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); startModalBtn.click(); } });
+
+    // Levels (1..3)
+    const MAX_LEVEL = 3;
+    let level = 1;
+    function setLevel(n){
+      level = within(n,1,MAX_LEVEL);
+      levelChip.querySelector('strong').textContent = `${level} / ${MAX_LEVEL}`;
+    }
+    setLevel(1);
+
+    // Toon/verberg exact-len badge
+    function setLenInfoVisible(show){ $len.style.display = show ? '' : 'none'; }
+
+    function askPrefix(label){
+      switch(label){
+        case 'hoogte': return 'Hoe hoog';
+        case 'diepte': return 'Hoe diep';
+        case 'dikte':  return 'Hoe dik';
+        case 'diameter': return 'Hoe groot';
+        default: return 'Hoe lang';
+      }
+    }
+    function scalePhrase(label,factor,bigger){
+      const k = `${factor} keer`;
+      switch(label){
+        case 'hoogte':   return bigger ? `${k} hoger`     : `${k} lager`;
+        case 'lengte':   return bigger ? `${k} langer`    : `${k} korter`;
+        case 'diepte':   return bigger ? `${k} dieper`    : `${k} minder diep`;
+        case 'dikte':    return bigger ? `${k} dikker`    : `${k} dunner`;
+        case 'diameter': return bigger ? `${k} groter`    : `${k} kleiner`;
+        default:         return bigger ? `${k} groter`    : `${k} kleiner`;
+      }
+    }
+    function flashBoard(okay){
+      board.classList.remove('flash-ok','flash-err'); void board.offsetWidth;
+      board.classList.add(okay?'flash-ok':'flash-err');
+      setTimeout(()=>board.classList.remove('flash-ok','flash-err'),420);
+    }
+    function animateOK(okay,after){
+      [okKey,checkBtn].forEach(el=>{ el.classList.remove('ok','bad'); void el.offsetWidth; el.classList.add(okay?'ok':'bad'); });
+      setTimeout(()=>{ [okKey,checkBtn].forEach(el=>el.classList.remove('ok','bad')); after&&after(); },320);
+    }
+    const fmtTime = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+
+    async function showItem(it){
+      const src = await resolveImage(it.img||[]);
+      $img.src=src; $img.alt=it.name; $nm.textContent=it.name;
+      $len.textContent = `${it.label}: ${prettyC(it.len.value)} ${it.len.unit}`;
+    }
+
+    /* ========= SOORT 1: Zet om naar ========= */
+    function allowedTargetUnits_convert(fromU, level){
+      const fromIdx = UNIT_IDX[fromU];
+      const deltas = [];
+      for (let d=-level; d<=level; d++){
+        if (d===0) continue;
+        const i = fromIdx + d;
+        if (i>=0 && i<LEN_UNITS.length) deltas.push(LEN_UNITS[i]);
+      }
+      return deltas;
+    }
+    function Q_convert(it){
+      const fromU = it.len.unit;
+      const base = it.len.value;
+      const pool = allowedTargetUnits_convert(fromU, level);
+      if (!pool.length) return null;
+      unitOut = pick(pool);
+      const ans = round2(base * fLen(fromU, unitOut));
+      return {
+        kind:'convert',
+        txt:`Zet de ${it.label} van de ${it.name} om naar ${unitOut}.`,
+        ans,
+        goals:["BV1_06.06.06 – Eenheden herleiden","BV1_06.06.05 – Gepaste grootheden/eenheden hanteren","BV1_06.02.08 – Eenvoudige berekeningen in context"]
+      };
+    }
+
+    /* ========= SOORT 2: × langer/ korter ========= */
+    const FACTORS_BY_LEVEL = {
+      1: { grow:[2],         shrink:[2] },
+      2: { grow:[2,3,4],     shrink:[2,3,4] },
+      3: { grow:[2,3,4,5,6], shrink:[2,3,4,5,6] },
+    };
+    const DISABLE_SCALE_FOR = new Set(['Mount Everest','Mercurius','Danyang–Kunshan-brug']);
+    const DISABLE_SHRINK_FOR = new Set(['zandkorrel','Paedophryne Amauensis','mensenhaar','mier']);
+
+    function Q_scale(it){
+      if (DISABLE_SCALE_FOR.has(it.name)) return null;
+
+      const fromU = it.len.unit, base = it.len.value;
+      const poolUnits = allowedUnitsScale(fromU); // max ±1 stap t.o.v. originele eenheid
+
+      let smaller = Math.random()<0.5;
+      if (DISABLE_SHRINK_FOR.has(it.name)) smaller=false;
+
+      const facs = FACTORS_BY_LEVEL[level];
+
+      if (!smaller){
+        const factor = pick(facs.grow);
+        unitOut = pick(poolUnits);
+        const phrase = scalePhrase(it.label, factor, true);
+        const ans = round2((base * factor) * fLen(fromU, unitOut));
+        return {
+          kind:'scale',
+          txt:`Stel dat de ${it.name} ${phrase} is.\n${askPrefix(it.label)} is het dan in ${unitOut}?`,
+          ans,
+          goals:[
+            "BV1_06.02.04 – Verhouding (× groter/kleiner)",
+            "BV1_06.06.05 – Gepaste grootheden/eenheden hanteren",
+            "BV1_06.02.08 – Eenvoudige berekeningen in context"
+          ]
+        };
+      } else {
+        const factor = pick(facs.shrink);
+        unitOut = pick(poolUnits);
+        const phrase = scalePhrase(it.label, factor, false);
+        const valInOut = (base / factor) * fLen(fromU, unitOut);
+        return {
+          kind:'scale',
+          txt:`Stel dat de ${it.name} ${phrase} is.\n${askPrefix(it.label)} is het dan in ${unitOut}?`,
+          ans: round2(valInOut),
+          goals:[
+            "BV1_06.02.04 – Verhouding (× groter/kleiner)",
+            "BV1_06.06.05 – Gepaste grootheden/eenheden hanteren",
+            "BV1_06.02.08 – Eenvoudige berekeningen in context"
+          ]
+        };
+      }
+    }
+
+    /* ========= SOORT 3: Kies de eenheid ========= */
+    function pickUnitOffset(fromU, maxSteps){
+      const fromIdx = UNIT_IDX[fromU];
+      let offsets = [];
+      if (maxSteps===0) offsets = [0];
+      else {
+        for (let d=1; d<=maxSteps; d++){ offsets.push(-d, +d); }
+      }
+      const candidates = offsets
+        .map(d=>fromIdx+d)
+        .filter(i=>i>=0 && i<LEN_UNITS.length)
+        .filter(i=>i!==fromIdx || maxSteps===0);
+      if (!candidates.length) return fromIdx;
+      return pick(candidates);
+    }
+    function Q_unitChoice(it){
+      const fromU = it.len.unit;
+      const base = it.len.value;
+      const maxSteps = (level===1 ? 0 : (level===2 ? 1 : 2));
+      const tgtIdx = pickUnitOffset(fromU, maxSteps);
+      const tgtU = LEN_UNITS[tgtIdx];
+
+      const shownVal = round2(base * fLen(fromU, tgtU));
+      unitOut = null; // enkel unit-antwoord
+
+      return {
+        kind:'unit',
+        txt:`De ${it.label} van de ${it.name} is ${prettyC(shownVal)} …\n`,
+        ansU: tgtU,
+        goals:["BV1_06.06.05 – Gepaste grootheden/eenheden hanteren"]
+      };
+    }
+
+    /* ========= SOORT 4: Schatten ========= */
+    function Q_estimate(it){
+      const fromU = it.len.unit;
+      const base = it.len.value;
+      const maxSteps = (level===1 ? 0 : (level===2 ? 1 : 2));
+      const tgtIdx = pickUnitOffset(fromU, maxSteps);
+      const tgtU = LEN_UNITS[tgtIdx];
+
+      const actualInTarget = round2(base * fLen(fromU, tgtU));
+      unitOut = tgtU;
+
+      return {
+        kind:'estimate',
+        txt:`Ik schat dat de ${it.label} van de ${it.name} … ${tgtU} is.\n(Je mag er ~40% naast zitten.)`,
+        ans: actualInTarget,
+        goals:["BV1_06.06.05 – Gepaste grootheden/eenheden hanteren","BV1_06.02.08 – Eenvoudige berekeningen in context"]
+      };
+    }
+
+    const Q_POOL_MAP = { convert:Q_convert, scale:Q_scale, unit:Q_unitChoice, estimate:Q_estimate };
+    const ALL_POOL = Object.values(Q_POOL_MAP);
+
+    /* ========= VRAAG OPBOUW ========= */
+    async function newQuestion(){
+      const it = ITEMS[rnd(ITEMS.length)];
+      await showItem(it);
+
+      const pool = (mode==='oefen'
+                    ? (questionType==='mix' ? ALL_POOL : [Q_POOL_MAP[questionType]])
+                    : ALL_POOL);
+
+      let q=null, tries=0;
+      while(!q && tries<20){
+        const cand = pick(pool)(it);
+        if (cand) q=cand;
+        tries++;
+      }
+      if (!q) q = Q_convert(it);
+
+      current = { it, q };
+      correct = (q.kind==='unit') ? q.ansU : q.ans;
+
+      $q.textContent = q.txt;
+      $status.textContent=''; $status.className='status';
+      $ans.value=''; $ans.focus();
+
+      updateUIForKind(q.kind);
+      closeAssistPanels();
+    }
+
+    function updateUIForKind(kind){
+      if (kind==='unit'){
+        unitPad.style.display = 'grid';
+        $ans.placeholder = 'typ of kies eenheid (mm, cm, dm, m, dam, hm, km)';
+        $ans.setAttribute('inputmode','text');
+      } else {
+        unitPad.style.display = 'none';
+        $ans.placeholder = 'jouw antwoord';
+        $ans.setAttribute('inputmode','decimal');
+      }
+      setLenInfoVisible(!(kind==='unit' || kind==='estimate'));
+    }
+
+    /* ========= CHECK ========= */
+    function check(){
+      if (!current) return;
+
+      if (current.q.kind === 'unit'){
+        const raw = ($ans.value||'').trim().toLowerCase().replace(/[^a-z]/g,'');
+        if (!raw){
+          $status.textContent = '⚠️ Kies/typ een eenheid (mm, cm, dm, m, dam, hm, km).';
+          $status.className = 'status errTxt';
+          return;
+        }
+        if (!LEN_UNITS.includes(raw)){
+          $status.textContent = '⚠️ Onbekende eenheid. Gebruik mm, cm, dm, m, dam, hm of km.';
+          $status.className = 'status errTxt';
+          return;
+        }
+        const oky = (raw === current.q.ansU);
+        afterCheck(oky, raw);
+        return;
+      }
+
+      const v = parseNum($ans.value);
+      if (Number.isNaN(v)){
+        $status.textContent = '⚠️ Vul een getal in met een komma.';
+        $status.className = 'status errTxt';
+        return;
+      }
+      const relTol = (current.q.kind==='estimate') ? 0.40 : 0.001;
+      const tol = Math.max(0.001, Math.abs(correct) * relTol);
+      const oky = Math.abs(v - correct) <= tol;
+
+      afterCheck(oky, v);
+    }
+
+    function updateLevelProgress(){
+      if (ok >= 15) setLevel(3);
+      else if (ok >= 10) setLevel(2);
+      else setLevel(1);
+    }
+
+    function afterCheck(oky, givenVal){
+      $status.textContent = oky ? '✅ Juist!' : '❌ Fout!';
+      $status.className = 'status ' + (oky ? 'okTxt' : 'errTxt');
+
+      if (mode!=='oefen'){
+        runLog.push({
+          qNum: idx+1,
+          item: current.it.name,
+          qText: current.q.txt,
+          unitOut: unitOut || '',
+          correct: correct,
+          given: givenVal,
+          ok: oky,
+          goals: current.q.goals || []
+        });
+      }
+
+      animateOK(oky, ()=>{
+        flashBoard(oky);
+        if (oky){ ok++; okEl.textContent = ok; } else { err++; errEl.textContent = err; }
+        updateLevelProgress();
+
+        if (mode==='oefen'){ newQuestion(); }
+        else{
+          idx++;
+          if (total && idx>=total){ finishRun(); }
+          else { newQuestion(); }
+        }
+      });
+    }
+
+    /* ========= KEYPADS ========= */
+    pad.addEventListener('click', e=>{
+      const k = e.target.closest('.key'); if (!k) return;
+      const act = k.dataset.act || '';
+      const put = t => { $ans.value = ($ans.value||'') + t; $ans.dispatchEvent(new Event('input')); $ans.focus(); };
+      if (!act){
+        const t = k.textContent.trim();
+        if (/^[0-9]$/.test(t)) { put(t); return; }
+        if (t === ',') { put(','); return; }
+        return;
+      }
+      if (act==='bksp'){ $ans.value = ($ans.value||'').slice(0,-1); $ans.focus(); return; }
+      if (act==='enter'){ check(); return; }
+    });
+    checkBtn.onclick = check;
+    $ans.addEventListener('keydown', e=>{ if (e.key==='Enter'){ e.preventDefault(); check(); } });
+    $ans.addEventListener('input', ()=>{
+      if (current?.q?.kind==='unit') return; // tekstmodus
+      let v = $ans.value;
+      v = v.replace(/\./g,',').replace(/[^\d,]/g,'');
+      const i = v.indexOf(',');
+      if (i!==-1) v = v.slice(0,i+1) + v.slice(i+1).replace(/,/g,'');
+      $ans.value = v;
+    });
+    unitPad.addEventListener('click', e=>{
+      const btn = e.target.closest('.key'); if (!btn) return;
+      const u = btn.dataset.u; if (!u) return;
+      $ans.value = u;
+      check();
+    });
+
+    /* ========= TIMER & MODES ========= */
+    function startTimerUp(){
+      stopTimer(); seconds=0; timeDisp.textContent = fmtTime(seconds);
+      timer = setInterval(()=>{ seconds++; timeDisp.textContent = fmtTime(seconds); }, 1000);
+    }
+    function startTimerDown(){
+      stopTimer(); seconds=15*60; timeDisp.textContent = fmtTime(seconds);
+      timer = setInterval(()=>{ seconds--; timeDisp.textContent = fmtTime(Math.max(0,seconds)); if (seconds<0){ finishRun(); } },1000);
+    }
+    function stopTimer(){ if (timer){ clearInterval(timer); timer=null; } }
+
+    function setPracticeEnabled(enabled){
+      typeSel.disabled = !enabled;
+      practicePicker.classList.toggle('disabled', !enabled);
+    }
+
+    // Assist (help/tabel) toestaan?
+    function helpAllowed(){ return mode !== 'toets' || !!dyscalculie; }
+    function closeAssistPanels(){ helpPanel.style.display='none'; convPanel.style.display='none'; calcPanel.style.display='none'; }
+    function setToolsEnabled(on){
+      [helpBtn, convBtn].forEach(btn=>{
+        if (!btn) return;
+        if (on) btn.removeAttribute('disabled'); else btn.setAttribute('disabled','');
+      });
+      if (!on) closeAssistPanels();
+    }
+
+    function startRun(newMode){
+      mode = newMode; idx=0; ok=0; err=0; runLog=[];
+      okEl.textContent='0'; errEl.textContent='0';
+      setLevel(1);
+
+      if (mode==='oefen'){ total=0; stopTimer(); timeDisp.textContent='—'; setPracticeEnabled(true); }
+      if (mode==='taak'){ total=20; startTimerUp(); setPracticeEnabled(false); }
+      if (mode==='toets'){ total=20; startTimerDown(); setPracticeEnabled(false); }
+
+      // hulppanelen al dan niet toestaan
+      setToolsEnabled(helpAllowed());
+
+      if (mode!=='oefen'){ questionType='mix'; typeSel.value='mix'; }
+      newQuestion();
+    }
+
+    function finishRun(){
+      stopTimer();
+      if (mode==='taak' || mode==='toets'){
+        const answered = ok + err;
+        const totalShown = total || answered || 20;
+        let spent = 0;
+        if (mode==='toets') spent = (15*60) - Math.max(0, seconds);
+        else if (mode==='taak') spent = Math.max(0, seconds);
+
+        const sharedSummary = {
+          goals: ['BV1_06.06','06.04.04','06.04.05','06.06.05','06.06.06'],
+          title: 'Lengtes & Schaal',
+          gameId: 'grote-lengtespel',
+          mode,
+          name: studentName || '—',
+          ok,
+          err: (totalShown - ok),
+          total: totalShown,
+          score: ok,
+          seconds: spent,
+          // NEW: flags / accommodations
+          flags: { dyscalculie: !!dyscalculie },
+          accommodations: dyscalculie ? ['dyscalculie'] : undefined,
+          questions: (runLog||[]).map(r=>({
+            q: r.qText || '',
+            a: (r.given==null ? '-' : (typeof r.given==='number' ? `${prettyC(r.given)}${r.unitOut?' '+r.unitOut:''}` : String(r.given))),
+            given: (r.given==null ? '-' : (typeof r.given==='number' ? `${prettyC(r.given)}${r.unitOut?' '+r.unitOut:''}` : String(r.given))),
+            correct: (r.correct==null ? '-' : (typeof r.correct==='number' ? `${prettyC(r.correct)}${r.unitOut?' '+r.unitOut:''}` : String(r.correct))),
+            ok: !!r.ok
+          }))
+        };
+        try{ if (window.MR_SHARED){ MR_SHARED.finishSession(sharedSummary); } }catch(e){}
+        alert(`Klaar!\nScore: ${ok}/${ok+err}`);
+        startRun('oefen');
+      }else{
+        alert(`Klaar!\nScore: ${ok}/${ok+err}`);
+        startRun('oefen');
+      }
+    }
+
+    // Startknoppen
+    startTaak.onclick = ()=>{
+      if (window.MR_SHARED?.askName){
+        MR_SHARED.askName('taak').then(n=>{
+          if(!n) return;
+          studentName = (typeof n==='string') ? n : (n.name||'');
+          dyscalculie = false; // geen vlag in taak
+          startRun('taak');
+        });
+      }else{
+        openNameModal('taak');
+      }
+    };
+    startToets.onclick = ()=>{
+      if (window.MR_SHARED?.askName){
+        MR_SHARED.askName('toets', { extraFlags:[{id:'dyscalculie', label:'Ik heb dyscalculie'}] }).then(n=>{
+          if(!n) return;
+          if (typeof n==='string'){ studentName=n; dyscalculie=false; }
+          else { studentName=(n.name||''); dyscalculie=!!(n.flags && n.flags.dyscalculie); }
+          startRun('toets');
+        });
+      }else{
+        openNameModal('toets');
+      }
+    };
+    fullBtn.onclick = ()=>{ if (!document.fullscreenElement){ document.documentElement.requestFullscreen?.(); } else { document.exitFullscreen?.(); } };
+
+    // Help / Conv toggles (respecteren blokkering)
+    function toggle(el){ el.style.display = (el.style.display==='block' ? 'none' : 'block'); }
+    helpBtn.addEventListener('click', ()=>{
+      if (!helpAllowed()) return;
+      closeAssistPanels(); toggle(helpPanel);
+    });
+    convBtn.addEventListener('click', ()=>{
+      if (!helpAllowed()) return;
+      closeAssistPanels(); toggle(convPanel);
+      if (convPanel.style.display==='block') convCells[6]?.focus(); // m-cel
+    });
+    document.addEventListener('click', (e)=>{
+      if (!e.target.closest('#helpBtn') && !e.target.closest('#helpPanel')
+          && !e.target.closest('#convBtn') && !e.target.closest('#convPanel')
+          && !e.target.closest('#calcBtn') && !e.target.closest('#calcPanel')) {
+        closeAssistPanels();
+      }
+    });
+
+    // Rekenpaneel
+    let calcOpen=false;
+    function toggleCalcPanel(force){ calcOpen = (typeof force==='boolean') ? force : !calcOpen; calcPanel.style.display = calcOpen ? 'block':'none'; if (calcOpen){ helpPanel.style.display='none'; convPanel.style.display='none'; calcDisplay.focus(); } }
+    calcBtn.addEventListener('click', ()=>toggleCalcPanel());
+    function insertToDisplay(str){
+      if (str==='π'){ const piStr = String(Math.PI.toFixed(4)).replace('.',','); calcDisplay.value += piStr; }
+      else{ calcDisplay.value += str; }
+      calcDisplay.focus();
+    }
+    function bksp(){ calcDisplay.value = calcDisplay.value.slice(0,-1); calcDisplay.focus(); }
+    function ac(){ calcDisplay.value = ''; calcDisplay.focus(); }
+    function normalizeExpr(expr){
+      return String(expr||'').normalize('NFKC')
+        .replace(/\s+/g,'').replace(/,/g,'.')
+        .replace(/[x×]/gi,'*').replace(/[÷:]/g,'/')
+        .replace(/[−–—]/g,'-').replace(/π/gi, String(Math.PI));
+    }
+    function compute(expr){
+      const norm = normalizeExpr(expr); if (!norm) return NaN;
+      const parts = norm.split(/([+\-*/])/).filter(Boolean); if (!parts.length) return NaN;
+      const tokens = parts.map(p=>/[+\-*/]/.test(p)?p:Number(p)); if (Number.isNaN(tokens[0])) return NaN;
+      let stack=[tokens[0]];
+      for (let i=1;i<tokens.length;i+=2){
+        const op=tokens[i], rhs=tokens[i+1]; if (typeof rhs!=='number'||Number.isNaN(rhs)) return NaN;
+        const lhs = stack[stack.length-1];
+        if (op==='*'||op==='/'){ stack[stack.length-1] = (op==='*') ? (lhs*rhs) : (lhs/rhs); }
+        else { stack.push(op, rhs); }
+      }
+      let result = stack[0];
+      for (let i=1;i<stack.length;i+=2){ result = (stack[i]==='+') ? (result+stack[i+1]) : (result-stack[i+1]); }
+      return Math.round((result + Number.EPSILON)*100)/100;
+    }
+    function doEquals(){ const r = compute(calcDisplay.value); if (!Number.isNaN(r)){ calcDisplay.value = String(r).replace('.',','); } }
+    calcKeys.addEventListener('click', e=>{
+      const btn=e.target.closest('.ckey'); if (!btn) return;
+      const act=btn.dataset.act; const ch=btn.dataset.k;
+      if (act==='ac') return ac();
+      if (act==='bksp') return bksp();
+      if (act==='eq') return doEquals();
+      if (ch!==undefined) return insertToDisplay(ch);
+    });
+    calcDisplay.addEventListener('keydown', e=>{
+      const okKeys = '0123456789+-/*,:.÷×−';
+      if (e.key==='Enter'){ e.preventDefault(); return doEquals(); }
+      if (e.key==='Escape'){ e.preventDefault(); return ac(); }
+      if (e.key==='Backspace'){ return; }
+      if (!okKeys.includes(e.key)){ e.preventDefault(); return; }
+      if (e.key==='.'){ e.preventDefault(); insertToDisplay(','); }
+    });
+    calcPaste.addEventListener('click', ()=>{
+      const r = compute(calcDisplay.value);
+      if (!Number.isNaN(r)){ $ans.value = String(r).replace('.',','); $ans.dispatchEvent(new Event('input')); $ans.focus(); }
+    });
+
+    // Omzettingstabel
+    let convOpen=false, convIdx=6;
+    function toggleConvPanel(force){
+      if (!helpAllowed()) return;
+      convOpen = (typeof force==='boolean') ? force : !convOpen;
+      convPanel.style.display = convOpen ? 'block':'none';
+      if (convOpen){ helpPanel.style.display='none'; calcPanel.style.display='none'; convCells[convIdx].focus(); }
+    }
+    convCells.forEach((inp,i)=>{
+      inp.addEventListener('focus', ()=>convIdx=i);
+      inp.addEventListener('input', ()=>{ inp.value=(inp.value||'').replace(/\D/g,'').slice(0,1); if (inp.value && i<convCells.length-1){ convCells[i+1].focus(); } });
+      inp.addEventListener('keydown', (e)=>{
+        if (e.key==='ArrowLeft'){ e.preventDefault(); if (i>0) convCells[i-1].focus(); }
+        if (e.key==='ArrowRight'){ e.preventDefault(); if (i<convCells.length-1) convCells[i+1].focus(); }
+        if (e.key==='Backspace' && !inp.value && i>0){ e.preventDefault(); convCells[i-1].value=''; convCells[i-1].focus(); }
+      });
+    });
+    function convInsertDigit(d){ const inp=convCells[convIdx]; if (!/^\d$/.test(d)) return; inp.value=d; if (convIdx<convCells.length-1){ convIdx++; convCells[convIdx].focus(); } }
+    function convMove(dx){ let n=convIdx+dx; n=Math.max(0, Math.min(convCells.length-1,n)); convIdx=n; convCells[convIdx].focus(); }
+    function convBack(){ const inp=convCells[convIdx]; if (inp.value){ inp.value=''; return; } if (convIdx>0){ convIdx--; convCells[convIdx].value=''; convCells[convIdx].focus(); } }
+    function convClear(){ convCells.forEach(c=>c.value=''); convIdx=3; convCells[convIdx].focus(); }
+    convPad.addEventListener('click', e=>{
+      const k=e.target.closest('.key'); if (!k) return;
+      const ch=k.dataset.k, act=k.dataset.act;
+      if (ch!==undefined){ convInsertDigit(ch); return; }
+      if (act==='left'){ convMove(-1); return; }
+      if (act==='right'){ convMove(1); return; }
+      if (act==='bksp'){ convBack(); return; }
+      if (act==='ac'){ convClear(); return; }
+    });
+    document.addEventListener('keydown', (e)=>{
+      if (!convOpen) return;
+      if (/^Digit\d$/.test(e.code) || /^Numpad\d$/.test(e.code)){ e.preventDefault(); convInsertDigit(e.code.slice(-1)); return; }
+      if (e.key==='Backspace'){ e.preventDefault(); convBack(); return; }
+      if (e.key==='Delete'){ e.preventDefault(); convClear(); return; }
+      if (e.key==='ArrowLeft'){ e.preventDefault(); convMove(-1); return; }
+      if (e.key==='ArrowRight'){ e.preventDefault(); convMove(1); return; }
+    });
+
+    // Soort-kiezer
+    typeSel.addEventListener('change', ()=>{
+      questionType = typeSel.value || 'mix';
+      if (mode==='oefen') newQuestion();
+    });
+
+    // Start in oefenen
+    startRun('oefen');
+  </script>
+</body>
+</html>

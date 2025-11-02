@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mr Raes: BreukenMix</title>
+  <!-- ✅ Spel-ID + meta voor bewijsje -->
+  <meta name="x-game-id" content="BreukenMix (2B)">
+  <script>window.GAME_ID = 'breukenmix_2b';</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --card: #fff;
+      --ink: #0b132b;
+      --muted: #6b7280;
+      --ring: #e6ecf8;
+      --ring2: #dfe6f6;
+      --shadow: 0 10px 28px rgba(15, 23, 42, .06);
+      --good: #10b981;
+      --bad: #ef4444;
+      --accent: #2563eb
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, Arial, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(1200px 600px at 80% -10%, #eef3ff 0%, #f7f9fc 50%, #fbfdff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .wrap {
+      width: min(1100px, 96vw);
+      padding: 1rem
+    }
+
+    .topbar{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem}
+
+
+    .chip {
+      background: #fff;
+      border: 1px solid var(--ring2);
+      border-radius: 999px;
+      padding: .35rem .7rem;
+      box-shadow: var(--shadow);
+      display: inline-flex;
+      gap: .5rem;
+      align-items: center;
+      font-weight: 800;
+      line-height: 1;
+      user-select: none
+    }
+
+    .chip.btn {
+      cursor: pointer;
+      transition: transform .06s, box-shadow .12s, background .12s
+    }
+
+    .chip.btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 6px 18px rgba(15, 23, 42, .08)
+    }
+
+    .chip.ok {
+      border-color: rgba(16, 185, 129, .35)
+    }
+
+    .chip.bad {
+      border-color: rgba(239, 68, 68, .35)
+    }
+
+    .board {
+      background: #fff;
+      border: 1px solid var(--ring);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 1.2rem;
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 1rem;
+      transition: background .25s, border-color .25s
+    }
+
+    @media (max-width:860px) {
+      .board {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .left,
+    .right {
+      padding: .4rem .6rem 1rem
+    }
+
+    .field {
+      background: #fff;
+      border: 1px solid var(--ring2);
+      border-radius: 18px;
+      padding: .9rem;
+      box-shadow: var(--shadow)
+    }
+
+    .board.flash-ok {
+      background: #f4fdf8 !important;
+      border-color: #c4eedc !important
+    }
+
+    .board.flash-err {
+      background: #fff6f6 !important;
+      border-color: #ffd7d7 !important
+    }
+
+    .inline-task {
+      font-weight: 900;
+      line-height: 1.15;
+      font-size: clamp(28px, 5vw, 44px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      flex-wrap: wrap;
+      user-select: none;
+      text-align: center
+    }
+
+    .eq {
+      font-weight: 900;
+      font-size: 1em;
+      padding: 0 .2rem
+    }
+
+    .vfrac {
+      display: inline-grid;
+      grid-template-rows: auto 6px auto;
+      align-items: center;
+      justify-items: center;
+      margin: 0 .18em
+    }
+
+    .vfrac .num,
+    .vfrac .den {
+      font-weight: 900;
+      line-height: 1
+    }
+
+    .vfrac .bar {
+      width: 100%;
+      height: 6px;
+      background: var(--ink);
+      border-radius: 4px
+    }
+
+    .lcd {
+      min-height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fbff;
+      border: 1px solid var(--ring);
+      border-radius: 14px;
+      font-weight: 900;
+      font-size: clamp(30px, 4.6vw, 44px);
+      color: #1f2937;
+      padding: .2rem .6rem;
+      cursor: pointer;
+      user-select: none
+    }
+
+    .lcd.small {
+      min-height: 56px;
+      font-size: clamp(22px, 3.8vw, 32px)
+    }
+
+    .lcd.good {
+      box-shadow: 0 0 0 6px rgba(16, 185, 129, .18) inset
+    }
+
+    .lcd.bad {
+      box-shadow: 0 0 0 6px rgba(239, 68, 68, .15) inset
+    }
+
+    .active {
+      outline: 3px solid #cfe2ff;
+      box-shadow: 0 0 0 6px rgba(99, 102, 241, .12) inset
+    }
+
+    .ans-vfrac.compact {
+      display: inline-grid;
+      grid-template-rows: auto 5px auto;
+      align-items: center;
+      justify-items: center;
+      gap: .3rem
+    }
+
+    .ans-vfrac.compact .lcd.small {
+      width: 72px;
+      min-width: 72px;
+      min-height: 52px;
+      border-radius: 12px;
+      padding: .25rem .3rem;
+      font-size: clamp(22px, 3.6vw, 30px)
+    }
+
+    .ans-vfrac.compact .bar {
+      width: 100%;
+      max-width: 72px;
+      height: 5px;
+      background: var(--ink);
+      border-radius: 4px;
+      opacity: .85
+    }
+
+    .hint {
+      margin-top: .6rem;
+      color: #374151;
+      text-align: center
+    }
+
+    .padwrap {
+      background: #fff;
+      border: 1px solid var(--ring2);
+      border-radius: 18px;
+      padding: .9rem;
+      box-shadow: var(--shadow)
+    }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: .6rem
+    }
+
+    .key {
+      user-select: none;
+      cursor: pointer;
+      text-align: center;
+      font-weight: 900;
+      font-size: clamp(18px, 3.2vw, 22px);
+      padding: 1rem 0;
+      border-radius: 14px;
+      background: #f7faff;
+      border: 1px solid var(--ring2);
+      box-shadow: 0 6px 16px rgba(15, 23, 42, .06);
+      transition: transform .06s, box-shadow .12s, background .12s
+    }
+
+    .key:active {
+      transform: translateY(1px);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, .08)
+    }
+
+    .key.wide {
+      grid-column: span 2
+    }
+
+    .key.ok {
+      background: #eafaf4;
+      border-color: #c4eedc
+    }
+
+    .key.ok:active {
+      background: #dff5ea
+    }
+
+    /* Dropdown */
+    .dropdown {
+      position: relative
+    }
+
+    .dropdown-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem
+    }
+
+    .dropdown-caret {
+      font-weight: 900;
+      opacity: .7
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      background: #fff;
+      border: 1px solid var(--ring2);
+      border-radius: 12px;
+      box-shadow: 0 18px 48px rgba(15, 23, 42, .1);
+      padding: .4rem;
+      min-width: 240px;
+      display: none;
+      z-index: 20
+    }
+
+    .dropdown-menu.open {
+      display: block
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .48rem .6rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 800;
+      color: #111827
+    }
+
+    .dropdown-item:hover {
+      background: #eef3ff
+    }
+
+    .dropdown-item .check {
+      margin-left: auto;
+      opacity: 0;
+      transition: opacity .12s
+    }
+
+    .dropdown-item.active .check {
+      opacity: 1
+    }
+
+    .ico {
+      width: 1.25em;
+      display: inline-flex;
+      justify-content: center
+    }
+
+    .dropdown.disabled {
+      pointer-events: none;
+      opacity: .55
+    }
+
+    .dropdown.disabled .dropdown-toggle {
+      cursor: not-allowed
+    }
+  </style>
+  <script src="mrraes-shared.js"></script>
+  <link rel="stylesheet" href="mrraes-shared.css">
+</head>
+
+<body>
+  
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <button id="startTaak" class="chip btn" title="Start taak (30 vragen)">📝 Start taak (30)</button>
+      <button id="startToets" class="chip btn" title="Start toets (30 vragen, 10 min)">🧪 Start toets (30 / 10 min)</button>
+      <button id="fullBtn" class="chip btn">⤢ Volledig scherm</button>
+      <!-- Dropdown voor oefeningstype -->
+      <div class="dropdown" id="modeDropdown" aria-disabled="false">
+        <button id="modeDD" class="chip btn dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+          <span>Oefening: <strong id="modeLabel">Mix</strong></span>
+          <span class="dropdown-caret">▾</span>
+        </button>
+        <div id="modeMenu" class="dropdown-menu" role="menu" aria-labelledby="modeDD">
+          <div class="dropdown-item active" data-mode="mix" role="menuitem"><span class="ico">🔀</span> Mix <span
+              class="check">✓</span></div>
+          <div class="dropdown-item" data-mode="t1" role="menuitem"><span class="ico">🧩</span> Een deel van (a/b van N)
+            <span class="check">✓</span></div>
+          <div class="dropdown-item" data-mode="t2" role="menuitem"><span class="ico">🧹</span> Vereenvoudigen <span
+              class="check">✓</span></div>
+          <div class="dropdown-item" data-mode="t3" role="menuitem"><span class="ico">🟰</span> Gelijkwaardige breuk
+            <span class="check">✓</span></div>
+        </div>
+      </div>
+
+      <div class="spacer"></div>
+
+      <div class="topbar-end">
+        <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+        <span class="chip ok">✅ Juist: <span id="okCount">0</span></span>
+        <span class="chip bad">❌ Fout: <span id="errCount">0</span></span>
+      </div>
+    </div>
+<div class="wrap"></div>
+    <!-- BOARD -->
+    <div class="board" id="board">
+      <div class="left">
+        <div class="field">
+          <div class="inline-task" id="inlineTask"></div>
+        </div>
+        <div class="hint" id="hint"></div>
+      </div>
+
+      <div class="right">
+        <div class="padwrap">
+          <div class="keypad" id="keypad">
+            <div class="key">7</div>
+            <div class="key">8</div>
+            <div class="key">9</div>
+            <div class="key">←</div>
+            <div class="key">4</div>
+            <div class="key">5</div>
+            <div class="key">6</div>
+            <div class="key">,</div>
+            <div class="key">1</div>
+            <div class="key">2</div>
+            <div class="key">3</div>
+            <div class="key">00</div>
+            <div class="key wide">0</div>
+            <div class="key wide ok">OK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="exportCanvas" width="1200" height="800" style="display:none"></canvas>
+
+  <script>
+    (function () {
+      // Polyfills
+      if (!Number.isInteger) Number.isInteger = n => typeof n === 'number' && isFinite(n) && Math.floor(n) === n;
+      if (!Math.trunc) Math.trunc = x => x < 0 ? Math.ceil(x) : Math.floor(x);
+
+      // ===== Helpers
+      const $ = id => document.getElementById(id);
+      const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+      const setText = (id, val) => { const el = $(id); if (el) el.textContent = val; };
+      const pad2 = n => { n = Math.floor(Math.max(0, n)); return (n < 10 ? '0' : '') + n; };
+      const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) { const t = a % b; a = b; b = t; } return a || 1; };
+      const rint = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+      const simplify = (n, d) => { const g = gcd(n, d); return { n: Math.trunc(n / g), d: Math.trunc(d / g) }; };
+      const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+      const vfracHTML = (n, d) => `<span class="vfrac" aria-label="${n} over ${d}"><span class="num">${n}</span><span class="bar"></span><span class="den">${d}</span></span>`;
+      const lcd = (content, cls) => `<div class="lcd${cls ? (' ' + cls) : ''}">${content}</div>`;
+      const userFrac = (n, d) => `${n}/${d}`;
+      const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+      function ensureIdentity() {
+        let nm = localStorage.getItem('mr_name') || '';
+        let kl = localStorage.getItem('mr_class') || '';
+        if (!nm) { nm = prompt('Naam leerling? (voor bewijsje)') || ''; localStorage.setItem('mr_name', nm); }
+        if (!kl) { kl = prompt('Klas (optioneel)') || ''; localStorage.setItem('mr_class', kl); }
+        return { name: nm, class: kl };
+      }
+
+      // Flash helper
+      const boardEl = $('board');
+      function flashBoard(kind) {
+        if (!boardEl) return;
+        boardEl.classList.remove('flash-ok', 'flash-err'); void boardEl.offsetWidth;
+        boardEl.classList.add(kind === 'ok' ? 'flash-ok' : 'flash-err');
+        clearTimeout(flashBoard._t);
+        flashBoard._t = setTimeout(() => boardEl.classList.remove('flash-ok', 'flash-err'), 420);
+      }
+
+      // Levels
+      const LEVELS = [{ lvl: 1, denomCap: 20 }, { lvl: 2, denomCap: 40 }, { lvl: 3, denomCap: 60 }, { lvl: 4, denomCap: 100 }];
+
+      // State
+      const MODE_FREE = "vrij", MODE_TASK = "taak", MODE_TEST = "toets";
+      let studentName = "", studentClass = "", mode = MODE_FREE, right = 0, wrong = 0, curLvl = 1;
+      let cur = null, activeField = 'single', bufSingle = '', bufNum = '', bufDen = '';
+      let history = [], qThisRun = 0, targetCount = 0, qFilter = 'mix';
+      let USE_SHARED = false;
+
+      // Timer (fallback)
+      let runStartedAt = 0, timerId = null, countdown = null; // countdown in sec voor toets
+      function startTimer() {
+        stopTimer();
+        runStartedAt = Date.now();
+        if (mode === MODE_TEST) { countdown = 10 * 60; }
+        timerId = setInterval(() => {
+          if (mode === MODE_TEST) {
+            const rem = Math.max(0, countdown - Math.floor((Date.now() - runStartedAt) / 1000));
+            setText('timeDisp', mmss(rem));
+            if (rem <= 0) { stopTimer(); finalizeRun('toets'); }
+          } else if (mode === MODE_TASK) {
+            const spent = Math.floor((Date.now() - runStartedAt) / 1000);
+            setText('timeDisp', mmss(spent));
+          } else {
+            setText('timeDisp', '—');
+          }
+        }, 200);
+      }
+      function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
+
+      // DOM
+      const inlineTask = $('inlineTask'), hint = $('hint'), okCountEl = $('okCount'), errCountEl = $('errCount');
+      const startToetsBtn = $('startToets'), startTaakBtn = $('startTaak'), timeDispEl = $('timeDisp'), fullBtn = $('fullBtn');
+
+      // UI helpers
+      function setActive(which) {
+        activeField = which;
+        const all = inlineTask ? inlineTask.querySelectorAll('.lcd') : [];
+        all.forEach(e => e.classList.remove('active'));
+        if (!inlineTask) return;
+        if (which === 'single') { const e = inlineTask.querySelector('.lcd.single'); if (e) e.classList.add('active'); }
+        if (which === 'num') { const e = inlineTask.querySelector('.lcd.num'); if (e) e.classList.add('active'); }
+        if (which === 'den') { const e = inlineTask.querySelector('.lcd.den'); if (e) e.classList.add('active'); }
+      }
+      function showGood() {
+        if (!inlineTask) return;
+        const el = inlineTask.querySelector('.lcd.active') || inlineTask.querySelector('.lcd');
+        if (!el) return;
+        el.classList.remove('bad'); el.classList.add('good');
+        setTimeout(() => el.classList.remove('good'), 650);
+        flashBoard('ok');
+      }
+      function showBad(msg) {
+        if (!inlineTask) return;
+        const el = inlineTask.querySelector('.lcd.active') || inlineTask.querySelector('.lcd');
+        if (el) { el.classList.remove('good'); el.classList.add('bad'); setTimeout(() => el.classList.remove('bad'), 600); }
+        if (hint) hint.textContent = msg || '❌ Niet juist.';
+        flashBoard('err');
+      }
+      function updateLevel() {
+        const idx = Math.min(LEVELS.length - 1, Math.floor(right / 10));
+        curLvl = LEVELS[idx].lvl;
+      }
+
+      // Goals per type
+      const GOALS_BASE = ['BV1_06.02', '06.02.08'];
+      const GOALS_BY_TYPE = {
+        1: [...GOALS_BASE, '06.02.03'], // a/b van N
+        2: [...GOALS_BASE, '06.02.02'], // vereenvoudigen
+        3: [...GOALS_BASE, '06.02.03']  // gelijkwaardige breuk
+      };
+
+      // Filter & Dropdown helpers
+      function setFilter(k) {
+        qFilter = k;
+        if (window.syncDropdownModeLabel) window.syncDropdownModeLabel(k);
+      }
+      function lockDropdown(lock) {
+        if (window.setDropdownLocked) window.setDropdownLocked(!!lock);
+      }
+
+      // Generators
+      function genType1() {
+        let a, b; do { b = rint(2, 10); a = rint(1, b - 1); } while (gcd(a, b) !== 1);
+        const mult = b, caps = [20, 40, 60, 100], Nmax = caps[curLvl - 1] || 20;
+        const tMax = Math.max(1, Math.floor(Nmax / mult)), t = rint(1, tMax), N = mult * t;
+        const ans = (a * N) / b;
+        return {
+          type: 1,
+          renderInlineHTML: `${vfracHTML(a, b)} <span>van</span> <span class="N">${N}</span> <span class="eq">=</span> ${lcd('<span id="bufSingle">0</span>', 'single')}`,
+          meta: { a, b, N, answer: ans }, correctView: String(ans), levelAt: curLvl,
+          check: u => Number.isInteger(u && u.x) && u.x === ans
+        };
+      }
+      function genType2() {
+        const cap = (LEVELS[curLvl - 1] && LEVELS[curLvl - 1].denomCap) || 20, kSoft = [8, 10, 12, 12];
+        let n0, d0, k, p, q, tries = 0;
+        while (true) {
+          tries++; if (tries > 5000) { d0 = 2; n0 = 1; k = 2; p = n0 * k; q = d0 * k; break; }
+          d0 = rint(2, cap - 1); n0 = rint(1, d0 - 1); if (gcd(n0, d0) !== 1) continue;
+          const kMaxCap = Math.floor((cap - 1) / d0); if (kMaxCap < 2) continue;
+          const kMax = Math.min(kMaxCap, kSoft[curLvl - 1] || 8);
+          k = rint(2, kMax); p = n0 * k; q = d0 * k; if (q < cap) break;
+        }
+        return {
+          type: 2,
+          renderInlineHTML: `${vfracHTML(p, q)} <span class="eq">=</span>
+          <span class="ans-vfrac compact">
+            ${lcd('<span id="bufNum">0</span>', 'small num')}
+            <span class="bar" aria-hidden="true"></span>
+            ${lcd('<span id="bufDen">0</span>', 'small den')}
+          </span>`,
+          meta: { p, q, ansN: n0, ansD: d0 }, correctView: `${n0}/${d0}`, levelAt: curLvl,
+          check: u => {
+            if (!u) return false; if (!Number.isInteger(u.n) || !Number.isInteger(u.d) || u.d === 0) return false;
+            const s = simplify(u.n, u.d); return s.n === n0 && s.d === d0;
+          }
+        };
+      }
+      function genType3() {
+        const capLevel = (LEVELS[curLvl - 1] && LEVELS[curLvl - 1].denomCap) || 20;
+        let n0, d0, k, P, D, missing, tries = 0;
+        while (true) {
+          tries++; if (tries > 2000) { n0 = 1; d0 = 2; k = 2; break; }
+          d0 = rint(2, Math.min(12, capLevel)); n0 = rint(1, d0 - 1);
+          if (gcd(n0, d0) !== 1) continue;
+          const kMaxBy100 = Math.floor(100 / Math.max(n0, d0)), kMax = clamp(kMaxBy100, 2, 9);
+          if (kMax < 2) continue; k = rint(2, kMax); break;
+        }
+        P = n0 * k; D = d0 * k; missing = Math.random() < 0.5 ? 'num' : 'den';
+        if (missing === 'num') {
+          return {
+            type: 3,
+            renderInlineHTML: `${vfracHTML(n0, d0)} <span class="eq">=</span>
+            <span class="ans-vfrac compact">
+              ${lcd('<span id="bufNum">0</span>', 'small num')}
+              <span class="bar" aria-hidden="true"></span>
+              <span class="lcd small static">${D}</span>
+            </span>`,
+            meta: { n0, d0, P, D, missing: 'num' }, correctView: String(P), levelAt: curLvl,
+            check: u => u && Number.isInteger(u.n) && u.n === P
+          };
+        } else {
+          return {
+            type: 3,
+            renderInlineHTML: `${vfracHTML(n0, d0)} <span class="eq">=</span>
+            <span class="ans-vfrac compact">
+              <span class="lcd small static">${P}</span>
+              <span class="bar" aria-hidden="true"></span>
+              ${lcd('<span id="bufDen">0</span>', 'small den')}
+            </span>`,
+            meta: { n0, d0, P, D, missing: 'den' }, correctView: String(D), levelAt: curLvl,
+            check: u => u && Number.isInteger(u.d) && u.d === D
+          };
+        }
+      }
+
+      // Flow
+      function updateLevelAndResetScore() { right = 0; wrong = 0; history.length = 0; updateLevel(); setText('okCount', '0'); setText('errCount', '0'); }
+      function pickQuestionByFilter() {
+        if (qFilter === 't1') return genType1();
+        if (qFilter === 't2') return genType2();
+        if (qFilter === 't3') return genType3();
+        const r = Math.random(); if (r < 1 / 3) return genType1(); if (r < 2 / 3) return genType2(); return genType3();
+      }
+      function newQuestion() {
+        updateLevel();
+        const t = pickQuestionByFilter(); cur = t;
+        if (inlineTask) inlineTask.innerHTML = t.renderInlineHTML;
+        if (hint) {
+          if (t.type === 1) hint.textContent = 'Natuurlijk getal!';
+          else if (t.type === 2) hint.textContent = 'Vereenvoudigde breuk!';
+          else hint.textContent = (t.meta.missing === 'num' ? 'Vul de teller in!' : 'Vul de noemer in!');
+        }
+        bufSingle = bufNum = bufDen = '';
+        if (!inlineTask) return;
+        if (t.type === 1) {
+          const s = inlineTask.querySelector('.lcd.single'); on(s, 'click', () => setActive('single')); setActive('single');
+        } else if (t.type === 2) {
+          const n = inlineTask.querySelector('.lcd.num'); const d = inlineTask.querySelector('.lcd.den');
+          on(n, 'click', () => setActive('num')); on(d, 'click', () => setActive('den')); setActive('num');
+        } else {
+          if (t.meta.missing === 'num') { const n2 = inlineTask.querySelector('.lcd.num'); on(n2, 'click', () => setActive('num')); setActive('num'); }
+          else { const d2 = inlineTask.querySelector('.lcd.den'); on(d2, 'click', () => setActive('den')); setActive('den'); }
+        }
+      }
+
+      // Buffers & input
+      const normStr = s => s.replace(/^0+(?=\d)/, '');
+      function renderBuffers() {
+        if (!cur) return;
+        if (cur.type === 1) { const s = bufSingle.length ? normStr(bufSingle) : '0'; setText('bufSingle', s); }
+        else {
+          const a = bufNum.length ? normStr(bufNum) : '0';
+          const b = bufDen.length ? normStr(bufDen) : '0';
+          setText('bufNum', a); setText('bufDen', b);
+        }
+      }
+      function pushDigit(d) {
+        if (!cur) return;
+        if (cur.type === 1 && activeField === 'single') { if (bufSingle.length < 8) { bufSingle += d; renderBuffers(); } return; }
+        if (cur.type === 2 || cur.type === 3) {
+          if (activeField === 'num' && bufNum.length < 8) { bufNum += d; renderBuffers(); return; }
+          if (activeField === 'den' && bufDen.length < 8) { bufDen += d; renderBuffers(); return; }
+        }
+      }
+      function push00() {
+        if (!cur) return;
+        if (cur.type === 1 && activeField === 'single') { if (!bufSingle) bufSingle = '0'; if (bufSingle.length <= 6) { bufSingle += '00'; renderBuffers(); } return; }
+        if (cur.type === 2 || cur.type === 3) {
+          if (activeField === 'num') { if (!bufNum) bufNum = '0'; if (bufNum.length <= 6) { bufNum += '00'; renderBuffers(); } return; }
+          if (activeField === 'den') { if (!bufDen) bufDen = '0'; if (bufDen.length <= 6) { bufDen += '00'; renderBuffers(); } return; }
+        }
+      }
+      function back() {
+        if (!cur) return;
+        if (cur.type === 1 && activeField === 'single') { bufSingle = bufSingle.slice(0, -1); renderBuffers(); return; }
+        if (cur.type === 2 || cur.type === 3) {
+          if (activeField === 'num') { bufNum = bufNum.slice(0, -1); renderBuffers(); return; }
+          if (activeField === 'den') { bufDen = bufDen.slice(0, -1); renderBuffers(); return; }
+        }
+      }
+      function parseUser() {
+        if (!cur) return {};
+        if (cur.type === 1) { const s = normStr(bufSingle || '0'); const x = Number(s); return { x: (isFinite(x) ? x : NaN) }; }
+        else if (cur.type === 2) { const sn = normStr(bufNum || '0'), sd = normStr(bufDen || '0'); const n = Number(sn), d = Number(sd); return { n: (isFinite(n) ? n : NaN), d: (isFinite(d) ? d : NaN) }; }
+        else {
+          if (cur.meta.missing === 'num') { const sn2 = normStr(bufNum || '0'); const n2 = Number(sn2); return { n: (isFinite(n2) ? n2 : NaN) }; }
+          else { const sd2 = normStr(bufDen || '0'); const d2 = Number(sd2); return { d: (isFinite(d2) ? d2 : NaN) }; }
+        }
+      }
+
+      // ===== Check & per-vraag logging
+      function check() {
+        if (!cur) return;
+        const user = parseUser();
+        if (cur.type === 2 && user.d === 0) { showBad('Noemer mag niet 0 zijn.'); return; }
+        if (cur.type === 1 && (!Number.isInteger(user.x))) { showBad('Natuurlijk getal invullen.'); return; }
+        if (cur.type === 2 && (!Number.isInteger(user.n) || !Number.isInteger(user.d))) { showBad('Alleen natuurlijke getallen.'); return; }
+        if (cur.type === 3) {
+          if (cur.meta.missing === 'num' && !Number.isInteger(user.n)) { showBad('Vul een natuurlijk getal in.'); return; }
+          if (cur.meta.missing === 'den' && !Number.isInteger(user.d)) { showBad('Vul een natuurlijk getal in.'); return; }
+        }
+
+        const ok = cur.check(user);
+        const shownStr =
+          cur.type === 1 ? `${userFrac(cur.meta.a, cur.meta.b)} van ${cur.meta.N} = …` :
+            cur.type === 2 ? `${userFrac(cur.meta.p, cur.meta.q)} = … / …` :
+              (cur.meta.missing === 'num'
+                ? `${userFrac(cur.meta.n0, cur.meta.d0)} = …/${cur.meta.D}`
+                : `${userFrac(cur.meta.n0, cur.meta.d0)} = ${cur.meta.P}/…`);
+
+        const userShown = (cur.type === 1) ? String(user.x)
+          : (cur.type === 2) ? `${user.n}/${user.d}`
+            : (cur.meta.missing === 'num' ? String(user.n) : String(user.d));
+
+        const entry = {
+          idx: history.length + 1, level: cur.levelAt, type: cur.type,
+          shown: shownStr, user: userShown, correct: ok, correctView: cur.correctView, mode,
+          goals: GOALS_BY_TYPE[cur.type] || GOALS_BASE
+        };
+        history.push(entry);
+
+        if (window.MR_SHARED && MR_SHARED.mark) {
+          MR_SHARED.mark({ ok, q: shownStr, a: userShown, correct: cur.correctView, goals: entry.goals });
+        }
+
+        if (ok) { right++; if (okCountEl) okCountEl.textContent = String(right); showGood(); if (hint) hint.textContent = '✅ Juist!'; }
+        else { wrong++; if (errCountEl) errCountEl.textContent = String(wrong); showBad('Antwoord: ' + cur.correctView); }
+
+        if (mode !== MODE_FREE) qThisRun++;
+        if (!maybeFinish()) setTimeout(newQuestion, 600);
+      }
+
+      // ===== Finish & proof
+      function buildSummary(modeText, seconds) {
+        const runHistory = history.slice(history.length - qThisRun);
+        return {
+          name: studentName || '',
+          class: studentClass || '',
+          title: 'BreukenMix',
+          gameId: window.GAME_ID || 'breukenmix',
+          mode: modeText,
+          seconds: Math.max(0, Math.round(seconds || 0)),
+          ok: runHistory.filter(h => !!h.correct).length,
+          err: runHistory.filter(h => !h.correct).length,
+          total: runHistory.length,
+          score: runHistory.filter(h => !!h.correct).length,
+          questions: runHistory.map(h => ({ q: h.shown, a: h.user, given: h.user, correct: h.correctView, ok: !!h.correct })),
+          goals: ['BV1_06.02', '06.02.02', '06.02.03', '06.02.08']
+        };
+      }
+
+      function finalizeRun(modeText) {
+        stopTimer();
+        const secondsSpent = (mode === MODE_FREE) ? 0 : Math.floor((Date.now() - runStartedAt) / 1000);
+        const summary = buildSummary(modeText, secondsSpent);
+
+        let handled = false;
+        try { if (window.MR_SHARED && MR_SHARED.trySharedProof) { handled = !!MR_SHARED.trySharedProof(summary); } } catch (e) { console.warn(e); }
+
+        if (!handled && window.MR_SHARED && MR_SHARED.cert && MR_SHARED.cert.downloadTable) {
+          const now = new Date();
+          const rows = (summary.questions || []).map((h, idx) => ({
+            nr: idx + 1,
+            type: (history[history.length - qThisRun + idx]?.type === 1 ? 'Een deel van' : history[history.length - qThisRun + idx]?.type === 2 ? 'Vereenvoudigen' : 'Gelijkwaardige breuk'),
+            vraag: h.q, leerling: h.a, correct: h.correct, doelen: (summary.goals || []).join(', '), ok: h.ok
+          }));
+          const safe = (summary.name || 'leerling').replace(/[^\w\s-]+/g, '').trim().replace(/\s+/g, '_');
+          const stamp = now.toISOString().replace(/[:T]/g, '-').split('.')[0];
+          MR_SHARED.cert.downloadTable({
+            width: 1240,
+            title: 'Bewijsje - BreukenMix',
+            gradient: ['#ffffff', '#eef3ff'],
+            meta: {
+              name: summary.name || '-',
+              class: summary.class || '',
+              gameId: summary.gameId || 'breukenmix',
+              mode: summary.mode,
+              seconds: summary.seconds,
+              score: summary.ok,
+              total: summary.total,
+              goals: summary.goals,
+              date: now
+            },
+            table: {
+              title: 'Vragen & antwoorden',
+              columns: [
+                { label: '#', key: 'nr', width: 60 },
+                { label: 'Type', key: 'type', width: 160 },
+                { label: 'Vraag', key: 'vraag', width: 360, wrap: true, lineHeight: 22 },
+                { label: 'Leerling', key: 'leerling', width: 180 },
+                { label: 'Correct', key: 'correct', width: 180 },
+                { label: 'Doelen', key: 'doelen', width: 200, wrap: true, lineHeight: 20 },
+                { label: 'Status', width: 120, align: 'center', value: row => row.ok ? 'Juist' : 'Fout', color: row => row.ok ? '#16a34a' : '#dc2626' }
+              ],
+              rows
+            },
+            fileName: `bewijsje_breukenmix_${summary.mode}_${safe}_${stamp}.png`
+          });
+          handled = true;
+        }
+
+        // Val terug op alert + reset
+        alert(`Klaar!\nScore: ${summary.ok}/${summary.total}`);
+        setMode(MODE_FREE);
+        setText('timeDisp', '—');
+        if (hint) hint.textContent = '📥 Einde ' + modeText + '.';
+      }
+
+      function maybeFinish() {
+        if (mode === MODE_TASK || mode === MODE_TEST) {
+          if (qThisRun >= targetCount) {
+            if (USE_SHARED && window.MR_SHARED && MR_SHARED.endRun) { MR_SHARED.endRun({}); }
+            else { finalizeRun(mode === MODE_TEST ? 'toets' : 'taak'); }
+            return true;
+          }
+        }
+        return false;
+      }
+
+      // ===== Mode handling
+      function setMode(newMode) {
+        if (newMode === MODE_TASK || newMode === MODE_TEST) {
+          updateLevelAndResetScore();
+          qThisRun = 0;
+        }
+        mode = newMode;
+        lockDropdown(mode !== 'vrij');
+        window.dispatchEvent(new CustomEvent('mode-set', { detail: mode }));
+
+        if (mode === MODE_TASK) {
+          setFilter('mix'); targetCount = 30;
+          if (hint) hint.textContent = '📝 Taak gestart: 30 vragen. (Altijd mix)';
+          if (!USE_SHARED) { startTimer(); }
+        } else if (mode === MODE_TEST) {
+          setFilter('mix'); targetCount = 30;
+          if (hint) hint.textContent = '🧪 Toets gestart: 30 vragen in 10 minuten. (Altijd mix)';
+          if (!USE_SHARED) { startTimer(); }
+        } else {
+          targetCount = 0;
+          stopTimer(); setText('timeDisp', '—');
+          if (hint) hint.textContent = 'Vrije oefenmodus. Kies een modus of start een taak/toets.';
+        }
+      }
+
+      // ===== Buttons / keypad
+      on($('keypad'), 'click', e => {
+        const k = e.target.closest?.('.key'); if (!k) return;
+        const v = (k.textContent || '').trim();
+        if (v === 'OK') check();
+        else if (v === '←') back();
+        else if (v === ',') { /* ignore */ }
+        else if (v === '00') push00();
+        else if (/^\d$/.test(v)) pushDigit(v);
+      });
+
+      window.addEventListener('keydown', e => {
+        if (/^[0-9]$/.test(e.key)) { pushDigit(e.key); return; }
+        if (e.key === 'Backspace') { e.preventDefault(); back(); return; }
+        if (e.key === 'Enter') { e.preventDefault(); check(); return; }
+        if (e.key === ',' || e.key === '.') { e.preventDefault(); return; }
+        if (e.key === 'Tab') {
+          if (!inlineTask || !cur) return;
+          if (cur.type === 2) { e.preventDefault(); setActive(activeField === 'num' ? 'den' : 'num'); }
+          else if (cur.type === 3) {
+            const hasNum = !!inlineTask.querySelector('.lcd.num');
+            const hasDen = !!inlineTask.querySelector('.lcd.den');
+            if (hasNum && hasDen) { e.preventDefault(); setActive(activeField === 'num' ? 'den' : 'num'); }
+          }
+        }
+      });
+
+      // Dropdown -> filter meteen in vrij modus
+      window.addEventListener('mode-select', e => {
+        const k = (e && e.detail) || 'mix';
+        setFilter(k);
+        if (mode === MODE_FREE) newQuestion();
+      });
+
+      // Volledig scherm
+      on(fullBtn, 'click', () => {
+        const el = document.documentElement;
+        if (!document.fullscreenElement) { el.requestFullscreen?.(); } else { document.exitFullscreen?.(); }
+      });
+
+      // ===== MR_SHARED integratie
+      document.addEventListener('DOMContentLoaded', () => {
+        if (window.MR_SHARED && MR_SHARED.wireTopbar) {
+          USE_SHARED = true;
+          MR_SHARED.wireTopbar({
+            gameId: window.GAME_ID || 'breukenmix',
+            title: 'BreukenMix',
+            selectors: { taskBtn: '#startTaak', testBtn: '#startToets', timerLabel: '#timeDisp' },
+            test: { countdownSec: 10 * 60 },
+            onReset(modeIn) { // 'taak' of 'toets'
+              // naam/klas uit MR of lokale storage
+              const nm = (MR_SHARED.getName ? MR_SHARED.getName() : null) || localStorage.getItem('mr_name') || '';
+              const kl = localStorage.getItem('mr_class') || '';
+              studentName = nm; studentClass = kl;
+              setMode(modeIn === 'toets' ? MODE_TEST : MODE_TASK);
+              newQuestion();
+            },
+            onFinish(summary) {
+              const goals = ['BV1_06.02', '06.02.02', '06.02.03', '06.02.08'];
+              summary.gameId = summary.gameId || (window.GAME_ID || 'breukenmix');
+              summary.title = summary.title || 'BreukenMix';
+              summary.name = summary.name || studentName || localStorage.getItem('mr_name') || '';
+              summary.class = summary.class || studentClass || localStorage.getItem('mr_class') || '';
+              summary.goals = Array.from(new Set([...(summary.goals || []), ...goals]));
+              if (!summary.questions || !summary.questions.length) {
+                const lastRun = history.slice(history.length - qThisRun);
+                summary.questions = lastRun.map(h => ({ q: h.shown, a: h.user, correct: h.correctView, ok: !!h.correct }));
+                summary.ok = lastRun.filter(h => !!h.correct).length;
+                summary.err = lastRun.filter(h => !h.correct).length;
+                summary.total = lastRun.length;
+              }
+              MR_SHARED.finishSession(summary);
+              setMode(MODE_FREE);
+              if (hint) hint.textContent = '📥 Einde sessie.';
+            }
+          });
+        } else {
+          // ===== Fallback zonder MR_SHARED
+          on(startTaakBtn, 'click', async () => {
+            if (window.MR_SHARED?.askName) {
+              const n = await MR_SHARED.askName('taak'); if (!n) return;
+              studentName = n; studentClass = localStorage.getItem('mr_class') || '';
+            } else {
+              const id = ensureIdentity(); studentName = id.name; studentClass = id.class;
+            }
+            setMode(MODE_TASK);
+            newQuestion();
+          });
+
+          on(startToetsBtn, 'click', async () => {
+            if (window.MR_SHARED?.askName) {
+              const n = await MR_SHARED.askName('toets'); if (!n) return;
+              studentName = n; studentClass = localStorage.getItem('mr_class') || '';
+            } else {
+              const id = ensureIdentity(); studentName = id.name; studentClass = id.class;
+            }
+            setMode(MODE_TEST);
+            newQuestion();
+          });
+        }
+
+        // Init in vrij modus
+        updateLevelAndResetScore();
+        setMode(MODE_FREE);
+        setFilter('mix');
+        newQuestion();
+      });
+    })();
+  </script>
+
+  <!-- Dropdown controller (gelockt in taak/toets) -->
+  <script>
+    (function () {
+      const ddWrap = $('modeDropdown'), btn = $('modeDD'), menu = $('modeMenu'), label = $('modeLabel');
+      const startTaakBtn = $('startTaak'), startToetsBtn = $('startToets');
+      function $(id) { return document.getElementById(id); }
+      function isLocked() { return ddWrap.classList.contains('disabled'); }
+      function closeMenu() { menu.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+      function openMenu() { if (!isLocked()) { menu.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); } }
+
+      btn.addEventListener('click', e => { e.stopPropagation(); if (isLocked()) return; if (menu.classList.contains('open')) closeMenu(); else openMenu(); });
+      document.addEventListener('click', () => closeMenu());
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+      function setDropdownLocked(lock) {
+        ddWrap.setAttribute('aria-disabled', lock ? 'true' : 'false');
+        ddWrap.classList.toggle('disabled', !!lock);
+        if (lock) closeMenu();
+      }
+      window.setDropdownLocked = setDropdownLocked;
+
+      window.addEventListener('mode-set', e => {
+        const appMode = (e && e.detail) || 'vrij';
+        setDropdownLocked(appMode !== 'vrij');
+      });
+      if (startTaakBtn) startTaakBtn.addEventListener('click', () => setDropdownLocked(true));
+      if (startToetsBtn) startToetsBtn.addEventListener('click', () => setDropdownLocked(true));
+
+      function applyLabelAndActive(mode) {
+        const map = { mix: 'Mix', t1: 'Een deel van', t2: 'Vereenvoudigen', t3: 'Gelijkwaardig' };
+        label.textContent = map[mode] || 'Mix';
+        Array.prototype.forEach.call(menu.querySelectorAll('.dropdown-item'), el => {
+          el.classList.toggle('active', el.getAttribute('data-mode') === mode);
+        });
+      }
+
+      menu.addEventListener('click', e => {
+        const item = e.target.closest('.dropdown-item'); if (!item || isLocked()) return;
+        const mode = item.getAttribute('data-mode') || 'mix';
+        applyLabelAndActive(mode);
+        window.dispatchEvent(new CustomEvent('mode-select', { detail: mode }));
+        closeMenu();
+      });
+
+      window.syncDropdownModeLabel = mode => applyLabelAndActive(mode);
+    })();
+  </script>
+</body>
+
+</html>

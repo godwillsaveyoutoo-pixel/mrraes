@@ -1,0 +1,553 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Veelvoud of Deler? • Ja / Nee</title>
+
+  <!-- ✅ Spel-ID & meta voor MR_SHARED -->
+  <meta name="x-game-id" content="Veelvoud of Deler (2B)">
+  <script>window.GAME_ID = 'veelvoud-deler-2b';</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+
+  <!-- Shared UI & bewijs -->
+  <link rel="stylesheet" href="mrraes-shared.css">
+  <script src="mrraes-shared.js"></script>
+
+  <style>
+    :root{
+      --bg:#f7f9fc; --card:#fff; --ink:#0b132b; --muted:#6b7280; --ring:#e6ecf8; --ring2:#dfe6f6;
+      --shadow:0 10px 28px rgba(15,23,42,.06);
+      --good:#10b981; --bad:#ef4444; --accent:#2563eb;
+      --radius:20px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink);
+      font-family:Inter,system-ui,Arial,sans-serif;
+      background:
+        radial-gradient(1200px 600px at 80% -10%, #eef3ff 0%, #f7f9fc 50%, #fbfdff 100%),
+        var(--bg);
+    }
+
+    /* === Topbar in vaste stijl === */
+    .topbar-rail{
+      position: sticky; top: 0; z-index: 100;
+      background:linear-gradient(#fff,#fbfdff);
+      border-bottom:1px solid var(--ring);
+      box-shadow:0 8px 18px rgba(13,21,41,.06);
+    }
+    .topbar{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem}
+    .chip{
+      background:#fff; border:1px solid var(--ring2); border-radius:var(--radius-chip);
+      padding:.35rem .7rem; box-shadow:var(--shadow); display:inline-flex; gap:.5rem; align-items:center; font-weight:800
+    }
+    .chip.btn{cursor:pointer}
+    .chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+    .chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+    .spacer{flex:1}
+    .select{
+      border-radius:12px; border:1px solid var(--ring2); padding:.35rem .5rem; background:#fff; font:inherit; font-weight:900
+    }
+
+    /* Board */
+    .wrap{ width:min(1100px,96vw); margin:14px auto; padding:14px; }
+    .board{
+      background:#fff; border:1px solid var(--ring2); border-radius:24px; box-shadow:var(--shadow);
+      padding:1.2rem; display:grid; gap:1rem;
+    }
+    .statement{
+      background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow); text-align:center;
+    }
+    .stmt{ font-weight:900; line-height:1.15; font-size:clamp(32px,5.6vw,60px); margin:.2rem 0; }
+
+    .actions{ display:flex; gap:.8rem; justify-content:center; flex-wrap:wrap; }
+    .btn1{
+      user-select:none; cursor:pointer; text-align:center; font-weight:900; font-size:clamp(14px,3.2vw,22px);
+      padding:1rem 1.4rem; border-radius:14px; background:#f7faff; border:1px solid var(--ring2);
+      box-shadow:0 6px 16px rgba(15,23,42,.06);
+      transition:transform .06s, box-shadow .12s, background .12s; min-width:140px;
+    }
+    .btn1:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+    .btn1.yes{background:#eafaf4; border-color:#c4eedc}
+    .btn1.no {background:#ffefef; border-color:#ffd6d6}
+
+    .lcd{
+      min-height:56px; display:flex; align-items:center; justify-content:center; padding:.6rem .8rem; text-align:center;
+      background:#f8fbff; border:1px solid var(--ring); border-radius:14px; font-weight:900; font-size:clamp(18px,2.6vw,22px); color:#1f2937;
+    }
+    .lcd.good{ box-shadow:0 0 0 6px rgba(16,185,129,.18) inset; }
+    .lcd.bad{  box-shadow:0 0 0 6px rgba(239,68,68,.15) inset; }
+    .shake{ animation:shake .35s ease }
+    @keyframes shake{
+      0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)}
+      60%{transform:translateX(-6px)} 80%{transform:translateX(6px)}
+    }
+
+    .streakbar{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:.6rem;}
+    .streakcell{height:10px; border-radius:999px; background:#eef3ff; border:1px solid var(--ring2);}
+    .streakcell.fill{background:#cde9ff; border-color:#b7dbff;}
+  </style>
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar-rail">
+    <div class="topbar">
+      <button id="startTaak"  class="chip btn">📝 Start taak (30)</button>
+      <button id="startToets" class="chip btn">🧪 Start toets (5 min)</button>
+      <button id="fullBtn"    class="chip btn">⤢ Volledig scherm</button>
+       <span class="chip">
+        🧩 <strong style="margin-right:.35rem">Level</strong>
+        <select id="levelSel" class="select">
+          <option value="1" selected> &lt; 100</option>
+          <option value="2"> &lt; 150</option>
+          <option value="3"> &lt; 250</option>
+        </select>
+      </span>
+        <div class="spacer"></div>
+<span class="chip" id="progressChip" style="display:none">
+  Vraag <strong id="qNow">1</strong>/<strong id="qTotal">30</strong>
+</span>
+
+      <span class="chip">⏱ Tijd: <strong id="timerLabel">—</strong></span>
+
+     
+
+      <span class="chip ok">✅ Juist: <span id="right">0</span></span>
+      <span class="chip bad">❌ Fout: <span id="wrong">0</span></span>
+    </div>
+  </div>
+
+  <!-- BOARD -->
+  <div class="wrap">
+    <div class="board">
+      <div class="statement"><div class="stmt" id="stmt">24 is een veelvoud van 4</div></div>
+
+      <div class="actions">
+        <button class="btn1 yes" id="btnYes">JA</button>
+        <button class="btn1 no"  id="btnNo">NEE</button>
+      </div>
+
+      <div class="lcd" id="lcd" aria-live="polite"></div>
+
+      <div class="streakbar" id="streakbar">
+        <div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div>
+        <div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div><div class="streakcell"></div>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:.6rem;flex-wrap:wrap">
+        <button class="chip btn" id="proofBtn">📷 Download bewijs (PNG)</button>
+      </div>
+
+      <canvas id="exportCanvas" width="1200" height="800" style="display:none"></canvas>
+    </div>
+  </div>
+
+<script>
+(()=>{
+
+  /* ===== State ===== */
+  const TASK_TARGET = 30;
+const TEST_TARGET = 30;
+
+  const MODE_FREE='vrij', MODE_TASK='taak', MODE_TEST='toets';
+  let mode=MODE_FREE, right=0, wrong=0, streak=0, level=1;
+  let current=null, history=[], qThisRun=0, taskTarget=30;
+
+  // timers (fallback wanneer MR_SHARED zelf niet timet)
+  let taskStartAt=0, testStartAt=0, testEndsAt=0, timerId=null;
+
+  /* ===== DOM ===== */
+  const progressChip = document.getElementById('progressChip');
+const qNowEl       = document.getElementById('qNow');
+const qTotalEl     = document.getElementById('qTotal');
+
+  const $=id=>document.getElementById(id);
+  const rightEl=$('right'), wrongEl=$('wrong'), levelSel=$('levelSel'),
+        stmtEl=$('stmt'), lcd=$('lcd'), btnYes=$('btnYes'), btnNo=$('btnNo'),
+        streakbar=$('streakbar'), timerLabel=$('timerLabel'),
+        startTaak=$('startTaak'), startToets=$('startToets'),
+        modeChip=$('modeChip');
+  const pad2=n=>String(Math.max(0,Math.floor(n))).padStart(2,'0');
+function updateModeChip(){
+  if (!modeChip) return; // safety
+  modeChip.textContent = (mode === 'toets') ? 'Toets'
+                      : (mode === 'taak')  ? 'Taak'
+                      : 'Vrij';
+}
+  /* ===== Identity (fallback) ===== */
+  function ensureIdentity(){
+    let nm=localStorage.getItem('mr_name')||'';
+    let kl=localStorage.getItem('mr_class')||'';
+    if(!nm){ nm=prompt('Naam leerling? (voor bewijsje)')||''; localStorage.setItem('mr_name', nm); }
+    if(!kl){ kl=prompt('Klas (optioneel)')||''; localStorage.setItem('mr_class', kl); }
+    return {name:nm, class:kl};
+  }
+
+  /* ===== UI helpers ===== */
+  function updateStreakBar(){ Array.from(streakbar.children).forEach((c,i)=>c.classList.toggle('fill', i<streak)); }
+  function say(msg, ok){
+    lcd.textContent = msg;
+    lcd.classList.remove('good','bad','shake');
+    if(ok===true) lcd.classList.add('good');
+    else if(ok===false){ lcd.classList.add('bad','shake'); setTimeout(()=>lcd.classList.remove('shake'), 360); }
+  }
+  function updateTimerView(msLeftOrElapsed){
+    if(msLeftOrElapsed==null){ timerLabel.textContent='—'; return; }
+    const sec = Math.max(0, Math.ceil(Math.abs(msLeftOrElapsed)/1000));
+    const m=Math.floor(sec/60), s=sec%60;
+    timerLabel.textContent = `${pad2(m)}:${pad2(s)}`;
+  }
+
+  /* ===== Maths / Generator ===== */
+  const rint=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const LIMITS={1:99,2:149,3:249};
+  const isMultiple=(a,b)=> (b!==0)&&(a%b===0);
+  const isDivisor =(a,b)=> (a!==0)&&(b%a===0);
+
+  function genStatement(lvl){
+    const MAX=LIMITS[lvl];
+    const t=Math.random()<0.5?'multiple':'divisor';
+    const wantTrue=Math.random()<0.5;
+
+    function pickDivisorCandidate(b){
+      const upper=Math.max(2,Math.floor(b/2)); if(upper<2) return null;
+      const biasSmall=Math.random()<0.7;
+      const smallCap=Math.min(20,upper);
+      return (biasSmall && smallCap>=2) ? rint(2,smallCap) : rint(2,upper);
+    }
+
+    if(t==='divisor'){
+      let a,b,truth,text,tries=0;
+      if(wantTrue){
+        while(true){
+          if(++tries>500) break;
+          const aMax=Math.max(2,Math.floor(MAX/4));
+          a=rint(2,aMax);
+          const kMax=Math.max(2,Math.floor(MAX/a));
+          const k=rint(2,Math.min(kMax,8));
+          b=k*a; if(b>MAX) continue;
+          if(a>Math.floor(b/2)) continue;
+          truth=isDivisor(a,b); if(truth){ text=`${a} is een deler van ${b}`; return {text,truth,a,b,type:'divisor',level:lvl}; }
+        }
+      }else{
+        while(true){
+          if(++tries>800) break;
+          b=rint(2,MAX);
+          a=pickDivisorCandidate(b); if(a==null) continue;
+          if(a>Math.floor(b/2)) continue;
+          if(b%a===0) continue; // onwaar
+          truth=isDivisor(a,b);
+          text=`${a} is een deler van ${b}`;
+          return {text,truth,a,b,type:'divisor',level:lvl};
+        }
+      }
+      const aa=3,bb=10; return {text:`${aa} is een deler van ${bb}`, truth:isDivisor(aa,bb), a:aa,b:bb,type:'divisor',level:lvl};
+    }
+
+    // multiple
+    let a,b,truth,text,tries=0;
+    const bUpper=Math.max(2,Math.floor(MAX/2));
+    if(wantTrue){
+      while(true){
+        if(++tries>500) break;
+        b=rint(2,bUpper);
+        const kMax=Math.floor(MAX/b); if(kMax<2) continue;
+        const k=rint(2,Math.min(kMax,12));
+        a=k*b; if(a>MAX) continue;
+        truth=isMultiple(a,b);
+        text=`${a} is een veelvoud van ${b}`;
+        return {text,truth,a,b,type:'multiple',level:lvl};
+      }
+    }else{
+      while(true){
+        if(++tries>600) break;
+        b=rint(2,bUpper);
+        a=rint(Math.max(b*2,2), MAX);
+        if(a%b===0) continue; // onwaar
+        truth=isMultiple(a,b);
+        text=`${a} is een veelvoud van ${b}`;
+        return {text,truth,a,b,type:'multiple',level:lvl};
+      }
+    }
+    const bb=6, aa=25; return {text:`${aa} is een veelvoud van ${bb}`, truth:isMultiple(aa,bb), a:aa,b:bb,type:'multiple',level:lvl};
+  }
+
+function newRound(){
+  // Nieuwe uitspraak genereren
+  current = genStatement(level);
+  stmtEl.textContent = current.text;
+
+  // (optioneel) status/reset van feedback-lcd
+  if (typeof lcd !== 'undefined') {
+    lcd.classList?.remove('good','bad','shake');
+    // lcd.textContent = ''; // of laat je vorige boodschap staan
+  }
+
+  // Voortgangs-chip bijwerken: toont nummer van de komende vraag
+  if (mode !== MODE_FREE) {
+    const total = (mode === MODE_TEST ? TEST_TARGET : TASK_TARGET);
+    qNowEl.textContent = String(Math.min(qThisRun + 1, total));
+  }
+}
+
+  /* ===== Goals ===== */
+  const GOALS=['BV1_06.01','06.01.03','06.01.04','06.01.05'];
+
+  function recordAndFeedback(userYes){
+    if(!current) return;
+    const correct=(userYes===current.truth);
+
+    history.push({
+      idx:history.length+1, ts:new Date().toISOString(),
+      level, type:current.type, a:current.a, b:current.b,
+      text:current.text, truth:current.truth,
+      user: userYes?'JA':'NEE', correct, goals:GOALS
+    });
+
+    // telemetry per vraag
+    try{ if(window.MR_SHARED?.mark){
+      MR_SHARED.mark({ ok:correct, q:current.text, a:userYes?'JA':'NEE', correct:current.truth?'Waar':'Niet waar', goals:GOALS });
+    }}catch(e){}
+
+    if(correct){
+      right++; rightEl.textContent=right;
+      streak=Math.min(7,streak+1); updateStreakBar();
+      say('✅ Juist!', true);
+      if(streak>=7 && level<3){
+        level++; levelSel.value=String(level); streak=0; updateStreakBar();
+        setTimeout(()=>say(`🎉 Proficiat! Je gaat naar level ${level}.`, true), 10);
+      }
+    }else{
+      wrong++; wrongEl.textContent=wrong; streak=0; updateStreakBar();
+      say('❌ Fout.', false);
+    }
+
+    if(mode!==MODE_FREE) qThisRun++;
+    setTimeout(()=>{ lcd.classList.remove('good','bad'); if(!maybeFinish()) newRound(); }, 600);
+
+
+  }
+function maybeFinish() {
+  if (mode === MODE_TASK && qThisRun >= TASK_TARGET) {
+    if (window.MR_SHARED?.endRun) { MR_SHARED.endRun({ reason:'task_target' }); return true; }
+    finishLocalRun('taak'); return true;
+  }
+  if (mode === MODE_TEST && qThisRun >= TEST_TARGET) {
+    if (window.MR_SHARED?.endRun) { MR_SHARED.endRun({ reason:'test_target' }); return true; }
+    finishLocalRun('toets'); return true;
+  }
+  return false;
+}
+
+
+  /* ===== Timers (fallback) ===== */
+  function stopAllTimers(){ if(timerId){ clearInterval(timerId); timerId=null; } }
+  function startTaskTimer(){
+    stopAllTimers(); taskStartAt=Date.now(); updateTimerView(0);
+    timerId=setInterval(()=>{ updateTimerView(Date.now()-taskStartAt); }, 500);
+  }
+  function startTestTimer(){
+    stopAllTimers(); testStartAt=Date.now(); testEndsAt=testStartAt + 5*60*1000;
+    function tick(){
+      const left=testEndsAt - Date.now(); updateTimerView(left);
+      if(left<=0){ stopAllTimers(); finishLocalRun('toets'); }
+    }
+    tick(); timerId=setInterval(tick, 250);
+  }
+
+  /* ===== Modes ===== */
+function setMode(newMode){
+  if (newMode === MODE_TASK || newMode === MODE_TEST) {
+    right = 0; wrong = 0; streak = 0; qThisRun = 0;
+    rightEl.textContent = '0'; wrongEl.textContent = '0'; updateStreakBar?.();
+
+    // voortgangchip tonen en total instellen
+    progressChip.style.display = 'inline-flex';
+    qTotalEl.textContent = String(newMode === MODE_TEST ? TEST_TARGET : TASK_TARGET);
+    qNowEl.textContent   = '1';
+  } else {
+    // vrij
+    progressChip.style.display = 'none';
+  }
+
+  mode = newMode;
+  updateModeChip?.(); // blijft werken
+  if (mode === MODE_TASK) startTaskTimer?.();
+  if (mode === MODE_TEST) startTestTimer?.();
+  if (mode === MODE_FREE){ stopAllTimers?.(); updateTimerView?.(null); }
+}
+
+  /* ===== Finish / Bewijs ===== */
+  function buildSummary(runMode, seconds){
+    const nameFromShared = (window.MR_SHARED?.getName && MR_SHARED.getName()) || '';
+    const id = ensureIdentity();
+    return {
+      title:'Veelvoud of Deler',
+      gameId: window.GAME_ID || 'veelvoud-deler',
+      mode: runMode, // 'taak' | 'toets' | 'vrij'
+      name: nameFromShared || id.name || '',
+      class: id.class || '',
+      ok: right, err: wrong, total: right+wrong, score: right,
+      seconds: seconds,
+      questions: history.map(h=>({ q:h.text, a:h.user, given:h.user, correct: h.truth?'Waar':'Niet waar', ok: !!h.correct })),
+      goals: GOALS,
+      date: new Date()
+    };
+  }
+
+  function finishLocalRun(runMode){
+    stopAllTimers();
+    const seconds = runMode==='toets'
+      ? Math.round((Date.now()-testStartAt)/1000)
+      : Math.round((Date.now()-taskStartAt)/1000);
+
+    const summary = buildSummary(runMode, seconds);
+
+    let handled=false;
+    try{ if(window.MR_SHARED?.trySharedProof){ handled=!!MR_SHARED.trySharedProof(summary); } }catch(e){}
+    if(!handled){
+      try{ if(window.MR_SHARED?.finishSession){ MR_SHARED.finishSession(summary); handled=true; } }catch(e){}
+    }
+    if(!handled) downloadProofPNG(runMode, summary);
+
+    setMode(MODE_FREE);
+    say('📄 Einde sessie.', null);
+  }
+
+  function downloadProofPNG(runMode, summary){
+    try{
+      if(!(window.MR_SHARED?.cert?.downloadTable)) return;
+      const rows = (summary.questions||history).map((h,i)=>({
+        nr:i+1, uitspraak:h.q, antwoord:h.a, correct:h.correct, ok:!!h.ok
+      }));
+      const safe=(summary.name||'leerling').replace(/[^\w\s-]+/g,'').trim().replace(/\s+/g,'_');
+      const stamp=new Date().toISOString().replace(/[:T]/g,'-').split('.')[0];
+      MR_SHARED.cert.downloadTable({
+        width:1240,
+        title:'Bewijsje - Veelvoud of Deler',
+        gradient:['#ffffff','#eef3ff'],
+        meta:{
+          name:summary.name||'-',
+          class:summary.class||'',
+          gameId:summary.gameId||'veelvoud-deler',
+          mode:runMode,
+          seconds:summary.seconds||0,
+          score:summary.ok, total:summary.total,
+          goals:summary.goals||GOALS,
+          date: summary.date || new Date()
+        },
+        table:{
+          title:'Vragen & antwoorden',
+          columns:[
+            {label:'#', key:'nr', width:60},
+            {label:'Uitspraak', key:'uitspraak', width:520, wrap:true, lineHeight:22},
+            {label:'Jouw antwoord', key:'antwoord', width:200},
+            {label:'Correct', key:'correct', width:180},
+            {label:'Status', width:120, align:'center', value:r=>r.ok?'Juist':'Fout', color:r=>r.ok?'#16a34a':'#dc2626'}
+          ],
+          rows
+        },
+        fileName:`bewijsje_veelvoud-deler_${runMode}_${safe}_${stamp}.png`
+      });
+    }catch(e){ console.warn('cert-fallback niet beschikbaar', e); }
+  }
+
+  /* ===== Listeners ===== */
+  btnYes.addEventListener('click', ()=>recordAndFeedback(true));
+  btnNo .addEventListener('click', ()=>recordAndFeedback(false));
+  window.addEventListener('keydown', e=>{
+    if(['j','J','y','Y'].includes(e.key)) recordAndFeedback(true);
+    else if(['n','N'].includes(e.key))    recordAndFeedback(false);
+  });
+  levelSel.addEventListener('change', ()=>{
+    if(mode!==MODE_FREE) return; // vergrendeld tijdens taak/toets
+    level = Number(levelSel.value)||1;
+    streak=0; updateStreakBar();
+    say(`Level ${level} actief. (alles < ${LIMITS[level]+1})`, null);
+    newRound();
+  });
+  $('fullBtn').addEventListener('click', ()=>{
+    const el=document.documentElement;
+    if(!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.();
+  });
+
+  // ✅ Start Taak/Toets met MR_SHARED popup (fallback = prompt)
+  startTaak.onclick = async ()=>{
+    let nm='';
+    if(window.MR_SHARED?.askName){ nm = await MR_SHARED.askName('taak'); if(!nm) return; }
+    else { const id=ensureIdentity(); nm=id.name; }
+    setMode(MODE_TASK); newRound();
+  };
+  startToets.onclick = async ()=>{
+    let nm='';
+    if(window.MR_SHARED?.askName){ nm = await MR_SHARED.askName('toets'); if(!nm) return; }
+    else { const id=ensureIdentity(); nm=id.name; }
+    setMode(MODE_TEST); newRound();
+  };
+
+  // Bewijs-knop: sluit lopende run af of maak vrij-bewijsje
+  $('proofBtn').addEventListener('click', ()=>{
+    if(mode===MODE_TEST || mode===MODE_TASK){
+      if(window.MR_SHARED?.endRun){ try{ MR_SHARED.endRun({}); }catch(e){ finishLocalRun(mode); } }
+      else { finishLocalRun(mode); }
+    }else{
+      const summary = buildSummary('vrij', 0);
+      downloadProofPNG('vrij', summary);
+    }
+  });
+function updateModeChip(){
+  if (!modeChip) return; // safety
+  modeChip.textContent = (mode === 'toets') ? 'Toets'
+                      : (mode === 'taak')  ? 'Taak'
+                      : 'Vrij';
+}
+  /* ===== (Optioneel) Wire met MR_SHARED topbar & timer ===== */
+  document.addEventListener('DOMContentLoaded', ()=>{
+    try{
+      if(window.MR_SHARED?.wireTopbar){
+        MR_SHARED.wireTopbar({
+          gameId: window.GAME_ID || 'veelvoud-deler',
+          title: 'Veelvoud of Deler',
+          selectors: { taskBtn:'#startTaak', testBtn:'#startToets', timerLabel:'#timerLabel' },
+          test: { countdownSec: 5*60 },
+onReset(runMode){
+  setMode(runMode === 'toets' ? MODE_TEST : MODE_TASK);
+  qTotalEl.textContent = String(runMode === 'toets' ? TEST_TARGET : TASK_TARGET);
+  newRound();
+},
+          onFinish(summary){
+            // Zorg voor volledige summary + goals
+            const s = summary || buildSummary(mode, 0);
+            const id = ensureIdentity();
+            s.gameId = s.gameId || (window.GAME_ID || 'veelvoud-deler');
+            s.title  = s.title  || 'Veelvoud of Deler';
+            s.name   = s.name   || (window.MR_SHARED?.getName?.() || id.name || '');
+            s.class  = s.class  || id.class || '';
+            s.goals  = Array.from(new Set([...(s.goals||[]), ...GOALS]));
+            if(!s.questions || !s.questions.length){
+              s.questions = history.map(h=>({ q:h.text, a:h.user, correct:h.truth?'Waar':'Niet waar', ok:!!h.correct }));
+              s.ok=right; s.err=wrong; s.total=right+wrong; s.seconds = s.seconds ?? 0;
+            }
+            MR_SHARED.finishSession(s);
+            setMode(MODE_FREE);
+            say('📄 Einde sessie.', null);
+          }
+        });
+      }
+    }catch(e){ console.warn('wireTopbar niet beschikbaar', e); }
+
+    // Start in vrij
+    right=wrong=streak=0; rightEl.textContent='0'; wrongEl.textContent='0'; updateStreakBar(); updateTimerView(null); updateModeChip();
+    setMode(MODE_FREE);
+    newRound();
+  });
+
+})();  
+</script>
+</body>
+</html>

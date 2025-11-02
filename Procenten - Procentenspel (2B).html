@@ -1,0 +1,1388 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mr Raes: Procenten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f9fc; --card:#fff; --ink:#0b132b; --muted:#6b7280; --ring:#e6ecf8; --ring2:#bfcce8;
+    --good:#10b981; --bad:#ef4444; --accent:#111827; --shadow:0 10px 28px rgba(15,23,42,.06);
+    --radius:20px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:radial-gradient(1200px 800px at 10% -10%, #eef3ff, transparent 60%),
+               radial-gradient(1000px 700px at 110% 20%, #f7ecff, transparent 50%), var(--bg);
+    color:var(--ink); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  }
+
+  /* === Topbar in de stijl van “Breuken optellen” === */
+  .topbar{
+    display:flex; align-items:center; gap:.6rem;
+    flex-wrap:nowrap;             /* ← altijd 1 regel */
+    overflow-x:auto;              /* ← horizontaal scrollen als het krap wordt */
+    scrollbar-width:thin;
+    padding:0.5cap; margin:0 auto 1rem;
+    width:min(1200px,96vw);
+  }
+  .chip{
+    background:#fff; border:1px solid var(--ring2); border-radius:999px;
+    padding:.35rem .7rem; box-shadow:var(--shadow); display:inline-flex; gap:.5rem; align-items:center; font-weight:800;
+    white-space:nowrap;           /* ← chips zelf breken ook niet af */
+  }
+
+  .topbar-rail{
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background:linear-gradient(#fff,#fbfdff);
+    border-bottom:1px solid var(--ring);
+    box-shadow:0 8px 18px rgba(13,21,41,.06);
+  }
+
+  .chip.btn{cursor:pointer}
+  .chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+  .chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+  .spacer{flex:1}
+  .select{
+    border-radius:12px; border:1px solid var(--ring2); padding:.4rem .6rem; background:#fff; font:inherit; font-weight:800
+  }
+
+  /* Vraagbalk */
+  .qbar{
+    width:min(1200px,96vw); margin:0 auto; padding:12px 16px;
+    background:linear-gradient(#fff,#fcfdff); border:1px solid var(--ring2); border-radius:16px; box-shadow:var(--shadow);
+    display:flex; flex-wrap:wrap; align-items:center; gap:12px; font-size:20px; font-weight:800;
+  }
+  .qbar .pct{font-weight:900; color:#1d4ed8}
+  .qbar input{
+    width:140px; max-width:40vw; font-size:22px; font-weight:900; padding:10px 12px;
+    border-radius:12px; border:2px solid var(--ring2); outline:none; text-align:center; background:#fff;
+  }
+  .qbar input:focus{border-color:#2563eb}
+  .unit{font-size:20px; font-weight:900}
+  .muted{color:#6b7280; font-weight:700}
+
+  /* Board */
+  .board{
+    width:min(1200px,96vw); margin:14px auto; padding:14px; display:grid; grid-template-columns: 1.1fr .9fr; gap:14px;
+  }
+  .card{background:linear-gradient(#fff,#fcfdff); border:1px solid var(--ring2); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px;}
+  .left{position:relative; display:flex; align-items:center; justify-content:center; min-height:300px}
+  .legend{
+    position:absolute; top:12px; left:12px; background:rgba(255,255,255,.92); padding:6px 10px; border-radius:999px; border:1px solid var(--ring);
+    font-weight:800; color:#374151
+  }
+  .grid{display:grid; gap:8px;}
+  .cell{
+    width:56px; height:56px; border-radius:12px; border:1px solid var(--ring2); background:#f8fafc; cursor:pointer; transition:transform .05s ease;
+  }
+  .cell:active{transform:scale(.98)}
+  .cell.on{background:#dcfce7; border-color:#86efac}
+  canvas{max-width:100%; height:auto; border-radius:14px; border:1px dashed var(--ring); background:#fff}
+  .wordimg{max-width:100%; max-height:420px; border-radius:14px; border:1px dashed var(--ring); background:#fff; object-fit:contain}
+  .imgfallback{position:absolute; inset:auto 12px 12px 12px; color:#6b7280; font-size:12px}
+
+  /* Right / keypad */
+  .right{display:flex; flex-direction:column; gap:12px}
+  .keypad{background:#fff; border:1px solid var(--ring); border-radius:16px; padding:10px; display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;}
+  .key{padding:14px 10px; border-radius:12px; border:1px solid var(--ring); background:#f8fafc; font-weight:800; text-align:center; cursor:pointer; user-select:none}
+  .key.ok{grid-column: span 4; background:linear-gradient(180deg,#10b981,#059669); color:#fff; border-color:#059669}
+  .key.hi{background:#eef2ff}
+  .feedback{min-height:28px; font-weight:900}
+  .feedback.ok{color:var(--good)}
+  .feedback.err{color:var(--bad)}
+
+  /* Overlay dialogs (naam / einde) */
+  .overlay{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(15,23,42,.45); padding:20px; z-index:1000}
+  .dialog{width:min(520px,94vw); background:#fff; border:1px solid var(--ring2); border-radius:16px; box-shadow:0 24px 80px rgba(0,0,0,.18); padding:16px}
+  .dialog h2{margin:0 0 8px 0; font-size:20px}
+  .dialog p{margin:.2rem 0 .8rem; color:#374151}
+  .nameField{width:100%; padding:10px 12px; border:1px solid var(--ring2); border-radius:10px; font:inherit; font-weight:800}
+  .row{display:flex; gap:.6rem; justify-content:flex-end; margin-top:.9rem}
+
+  /* Responsive */
+  @media (max-width: 900px){ .board{grid-template-columns: 1fr;} .qbar{justify-content:center; text-align:center} }
+</style>
+<link rel="stylesheet" href="mrraes-shared.css">
+<script src="mrraes-shared.js"></script></head>
+<body>
+
+  <!-- TOPBAR (Breuken-stijl) -->
+  <div class="topbar-rail">
+    <div class="topbar">
+      <button id="startTaak" class="chip btn">📝 Start taak (30)</button>
+      <button id="startToets" class="chip btn">🧭 Start toets (30 / 15 min)</button>
+      <button id="fullBtn"  class="chip btn">⤢ Volledig scherm</button>
+
+      <span id="practicePicker" class="chip btn" title="Kies vraagtype voor oefenen">
+        | 
+        <select id="practiceType" class="select" aria-label="Oefen-vraagtype">
+          <option value="mix" selected>Mix</option>
+          <option value="grid">Vakjes</option>
+          <option value="pie">Cirkeldiagram</option>
+          <option value="objects">Objecten</option>
+          <option value="word">Vraagstukken</option>
+        </select>
+      </span>
+
+      <div class="spacer"></div>
+      <span class="chip">⏱ Tijd:<strong id="timeDisp">—</strong></span>
+      <span class="chip" id="progressChip" style="display:none">Vraag <strong id="qNow">1</strong>/<strong id="qTotal">30</strong></span>
+      <span class="chip ok">✅ Juist: <span id="right">0</span></span>
+      <span class="chip bad">❌ Fout: <span id="wrong">0</span></span>
+    </div>
+  </div>
+
+  <!-- VRAAGBALK -->
+  <section class="qbar">
+    <!-- Type: VAKJES -->
+    <div id="qGrid" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap">
+      Vervolledig: <span class="pct" id="pTxt">20%</span> van
+      <input id="inpTotal" inputmode="numeric" placeholder="totaal" aria-label="totaal aantal vakjes">
+      is
+      <input id="inpX" inputmode="numeric" placeholder="aantal" aria-label="aantal vakjes">
+      <span class="muted" id="helpTxt">(selecteer hetzelfde aantal vakjes links)</span>
+    </div>
+    <!-- Type: PIE -->
+    <div id="qPie" style="display:none; gap:12px; align-items:center; flex-wrap:wrap">
+      Het ontbrekende percentage is
+      <input id="inpMissing" inputmode="numeric" placeholder="0" aria-label="ontbrekend percentage">
+      <span class="unit">%</span>
+      <span class="muted">(som van alle segmenten is 100%)</span>
+    </div>
+    <!-- Type: OBJECTS -->
+    <div id="qObj" style="display:none; gap:12px; align-items:center; flex-wrap:wrap">
+      Omcirkel <span class="pct" id="objPctTxt">25%</span> van de objecten.
+      <span class="muted" id="objInfo"></span>
+    </div>
+    <!-- Type: WORD (VRAAGSTUKKEN) -->
+    <div id="qWord" style="display:none; gap:12px; align-items:center; flex-wrap:wrap">
+      <span id="wordPrompt"></span>
+    </div>
+  </section>
+
+  <!-- BOARD -->
+  <main class="board">
+    <section class="card left">
+      <div class="legend" id="legend">0 geselecteerd</div>
+      <div id="gridWrap"></div>
+      <canvas id="pie" width="700" height="420" style="display:none"></canvas>
+      <canvas id="obj" width="700" height="420" style="display:none; cursor:crosshair"></canvas>
+      <img id="wImg" class="wordimg" alt="Afbeelding bij vraagstuk" style="display:none" />
+      <div id="imgFallback" class="imgfallback" style="display:none"></div>
+    </section>
+
+    <section class="card right">
+      <div class="keypad" id="keypad">
+        <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key hi" data-k="back">⌫</div>
+        <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key hi" data-k="swap">⇆</div>
+        <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key hi" data-k="clear">C</div>
+        <div class="key">0</div><div class="key">00</div><div class="key">.</div><div class="key hi" data-k="clearAll">Alles</div>
+        <div class="key ok" id="okBtn">OK</div>
+      </div>
+      <div class="feedback" id="fb"></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <button class="chip btn" id="btnHint">💡 Hint</button>
+        <button class="chip btn" id="btnResetSel">🧹 Selectie leegmaken</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Overlay: naam verplicht (Taak/Toets) -->
+  <div class="overlay" id="nameOverlay" role="dialog" aria-modal="true">
+    <div class="dialog">
+      <h2 id="dlgTitle">Start</h2>
+      <p>Vul je naam in en klik <strong>Start</strong>.</p>
+      <input id="nameField" class="nameField" placeholder="Voornaam + familienaam" />
+      <div class="row">
+        <button id="dlgCancel" class="chip btn">Annuleren</button>
+        <button id="dlgStart"  class="chip btn">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay: einde melding -->
+  <div class="overlay" id="endOverlay" role="dialog" aria-modal="true">
+    <div class="dialog">
+      <h2>Einde</h2>
+      <p>Bewijsje gedownload. Je kan de taak/toets nu in de <strong>uploadzone</strong> plaatsen.</p>
+      <div class="row">
+        <button id="endOk" class="chip btn">OK</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ====== UTIL ====== */
+const $ = s => document.querySelector(s);
+function pad2(n){return (n<10?'0':'')+n}
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function gcd(a,b){return b?gcd(b,a%b):a}
+function dist(ax,ay,bx,by){const dx=ax-bx, dy=ay-by; return Math.hypot(dx,dy);}
+function qKey(type, q){
+  if(type==='grid')    return `grid:${q.p}:${q.T}`;                          // p% van T → X volgt daaruit
+  if(type==='pie')     return `pie:${q.slices.join(',')}:${q.missingIdx}`;   // verdeling + gat
+  if(type==='objects') return `obj:${q.p}:${q.K}`;                            // zelfde aantallen = dezelfde vraag
+  if(type==='word')    return `word:${q.id}`;                                 // id is uniek
+  return Math.random().toString(36).slice(2);                                 // fallback
+}
+
+/* ====== STATE ====== */
+const State = {
+  usedKeys: new Set(),
+  mode:'practice',                // 'practice' | 'task' | 'test'
+  qtype:'grid',                   // 'grid' | 'pie' | 'objects' | 'word'
+  practiceFilter:'mix',           // ← dropdown-keuze; bepaalt qtype in oefenen
+  right:0, wrong:0,
+  asked:0, total:0,
+  tStart: null, tTick: null, tDir:'up', timeMs:0, timeLimitMs: 15*60*1000,
+  selected: 0,
+  current: null, // grid:{p,T,X,dims} pie:{slices,missingIdx,ans} obj:{p,K,need,items[]} word:{id,parts[],answers[],img,hint}
+  drag:null,
+  wordInputs: [], activeWordIndex: 0,
+  results: [],
+  studentName:''
+};
+
+/* ====== DOM ====== */
+const timeDisp=$('#timeDisp'), qNowEl=$('#qNow'), qTotalEl=$('#qTotal'), progressChip=$('#progressChip');
+const rightEl=$('#right'), wrongEl=$('#wrong'), fb=$('#fb'), legend=$('#legend');
+const practicePicker=$('#practicePicker'), practiceType=$('#practiceType');
+const btnHint=$('#btnHint'), btnResetSel=$('#btnResetSel');
+const startTaak=$('#startTaak'), startToets=$('#startToets'), fullBtn=$('#fullBtn');
+
+const qGrid=$('#qGrid'), qPie=$('#qPie'), qObj=$('#qObj'), qWord=$('#qWord');
+const inpTotal=$('#inpTotal'), inpX=$('#inpX'), pTxt=$('#pTxt'), inpMissing=$('#inpMissing');
+const objPctTxt=$('#objPctTxt'), objInfo=$('#objInfo');
+const gridWrap=$('#gridWrap'), pieCanvas=$('#pie'), pctx=pieCanvas.getContext('2d');
+const objCanvas=$('#obj'), octx=objCanvas.getContext('2d');
+const wImg=$('#wImg'), imgFallback=$('#imgFallback'), wordPrompt=$('#wordPrompt');
+const okBtn=$('#okBtn');
+
+/* ====== Overlays ====== */
+const nameOverlay=$('#nameOverlay'), nameField=$('#nameField'), dlgStart=$('#dlgStart'), dlgCancel=$('#dlgCancel'), dlgTitle=$('#dlgTitle');
+const endOverlay=$('#endOverlay'), endOk=$('#endOk');
+
+/* ====== TOPBAR ACTIONS ====== */
+startTaak.onclick = () => {
+  if (window.MR_SHARED && typeof MR_SHARED.askName === 'function') {
+    MR_SHARED.askName('taak')
+      .then(n => {
+        if (!n || !String(n).trim()) return; // geannuleerd/leeg → niet starten
+        studentName = String(n).trim();
+        startRun('taak');
+      })
+      .catch(() => { /* geannuleerd/fout → niets doen */ });
+  } else {
+    const n = (prompt('Naam?') || '').trim();
+    if (!n) return;
+    studentName = n;
+    startRun('taak');
+  }
+};
+
+startToets.onclick = () => {
+  if (window.MR_SHARED && typeof MR_SHARED.askName === 'function') {
+    MR_SHARED.askName('toets')
+      .then(n => {
+        if (!n || !String(n).trim()) return;
+        studentName = String(n).trim();
+        startRun('toets');
+      })
+      .catch(() => { /* niets doen */ });
+  } else {
+    const n = (prompt('Naam?') || '').trim();
+    if (!n) return;
+    studentName = n;
+    startRun('toets');
+  }
+};
+
+fullBtn.addEventListener('click', ()=>{
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+});
+practiceType.addEventListener('change', ()=>{
+  State.practiceFilter = practiceType.value;
+  if(State.mode==='practice'){ choosePracticeType(); nextQuestion(); }
+});
+
+function openNameAndStart(mode){
+  State.mode = mode;
+  dlgTitle.textContent = mode==='task'?'Start Taak':'Start Toets';
+  nameField.value=''; nameOverlay.style.display='flex';
+  setTimeout(()=> nameField.focus(), 0);
+}
+dlgCancel.addEventListener('click', ()=>{ nameOverlay.style.display='none'; State.mode='practice'; });
+dlgStart.addEventListener('click', ()=>{
+  const v = nameField.value.trim();
+  if(!v){ nameField.style.borderColor='#ef4444'; nameField.focus(); return; }
+  nameField.style.borderColor='';
+  State.studentName = v;
+  nameOverlay.style.display='none';
+  startRun(State.mode);
+});
+endOk.addEventListener('click', ()=>{
+  endOverlay.style.display='none';
+  startRun('practice');
+});
+
+/* ====== MODES & TIMER ====== */
+function startRun(mode){
+  State.mode = mode;
+
+  // hints in oefen aan; in taak/toets uit
+  if(mode==='practice'){
+    btnHint.disabled = false; btnHint.title = ''; btnHint.style.opacity = '1';
+  }else{
+    btnHint.disabled = true; btnHint.title = 'Hints zijn uitgeschakeld in taak/toets'; btnHint.style.opacity = '.5';
+  }
+
+  State.right=0; State.wrong=0; State.asked=0; State.results.length=0;
+  State.usedKeys.clear();
+  updateHUD();
+
+  // Oefenen: geen teller/timer. Taak: 30 vragen & klok omhoog. Toets: 30 vragen & 15:00 omlaag.
+  if(mode==='practice'){
+    practicePicker.style.display='inline-flex';
+    progressChip.style.display='none';
+    State.total = 0; State.tDir='up'; stopTimer(); timeDisp.textContent='—';
+  }else{
+    practicePicker.style.display='none';
+    progressChip.style.display='inline-flex'; qTotalEl.textContent = '30'; qNowEl.textContent='1';
+    State.total = 30;
+    if(mode==='task'){ State.tDir='up'; startTimerUp(); }
+    if(mode==='test'){ State.tDir='down'; startTimerDown(15*60); } // 15 minuten
+  }
+
+  // eerste vraag (met respect voor oefenfilter)
+  if(mode==='practice') choosePracticeType();
+  nextQuestion();
+}
+
+function startTimerUp(){
+  State.tStart = Date.now(); stopTimer();
+  State.tTick = setInterval(()=> {
+    const ms = Date.now() - State.tStart;
+    timeDisp.textContent = fmtTime(Math.floor(ms/1000));
+  }, 250);
+}
+function startTimerDown(seconds){
+  State.tStart = Date.now(); State.timeLimitMs = seconds*1000; stopTimer();
+  function tick(){
+    const elapsed = Date.now() - State.tStart;
+    const left = Math.max(0, State.timeLimitMs - elapsed);
+    timeDisp.textContent = fmtTime(Math.floor(left/1000));
+    if(left<=0){ stopTimer(); finishRun(); }
+  }
+  tick(); State.tTick = setInterval(tick, 250);
+}
+function stopTimer(){ if(State.tTick){ clearInterval(State.tTick); State.tTick=null; } }
+function fmtTime(s){ const m=Math.floor(s/60), r=s%60; return pad2(m)+':'+pad2(r); }
+function updateHUD(){ rightEl.textContent=State.right; wrongEl.textContent=State.wrong; }
+
+/* ====== TYPE KEUZE ====== */
+/* Oefenen: blijf in gekozen soort (sticky) tot dropdown wijzigt.
+   Taak/Toets: altijd mix (random); vermijd 2× dezelfde direct na elkaar. */
+function choosePracticeType(){
+  const v = State.practiceFilter;
+  if(v==='mix'){ State.qtype = pick(['grid','pie','objects','word']); }
+  else State.qtype = v; // sticky
+}
+
+/* ====== GRID ====== */
+function bestDims(T){
+  const r = Math.floor(Math.sqrt(T));
+  for(let c=r;c>=1;c--){ if(T % c === 0){ return {cols:Math.max(c, T/c), rows:Math.min(c, T/c)}; } }
+  return {cols:T, rows:1};
+}
+function genGridQ(){
+  const p = pick([10,20,25,30,40,50]);
+  const g = gcd(p,100), d = 100/g;
+  const k = pick([1,2,3,4,5,6,7,8]);
+  let T = d*k; if(T<6) T += d;
+  const X = (T*p)/100;
+  const dims = bestDims(T);
+  return {p,T,X,dims};
+}
+function renderGrid(cols, rows){
+  gridWrap.innerHTML='';
+  const grid = document.createElement('div');
+  grid.className='grid';
+  grid.style.gridTemplateColumns = `repeat(${cols}, 56px)`;
+  const total = cols*rows;
+  State.selected=0; legend.textContent='0 geselecteerd';
+  for(let i=0;i<total;i++){
+    const d = document.createElement('div');
+    d.className='cell';
+    d.addEventListener('click', ()=>{
+      d.classList.toggle('on');
+      State.selected += d.classList.contains('on') ? 1 : -1;
+      legend.textContent = `${State.selected} geselecteerd`;
+    });
+    grid.appendChild(d);
+  }
+  gridWrap.appendChild(grid);
+}
+
+/* ====== PIE ====== */
+function genPieQ(){
+  const k = rand(3,6);
+  let tokens = new Array(k).fill(1);
+  let remaining = 20 - k; // 20*5% = 100%
+  while(remaining>0){ tokens[rand(0,k-1)]++; remaining--; }
+  const slices = tokens.map(t=>t*5);
+  const missingIdx = rand(0,k-1);
+  const ans = slices[missingIdx];
+  return {slices, missingIdx, ans};
+}
+function drawPie(slices, missingIdx){
+  const W = pieCanvas.width, H = pieCanvas.height, cx=W/2, cy=H/2, R=Math.min(W,H)*0.34;
+  const ctx = pctx;
+  ctx.clearRect(0,0,W,H);
+  ctx.save(); ctx.translate(cx,cy);
+  let a0 = -Math.PI/2;
+  slices.forEach((p,i)=>{
+    const a1 = a0 + (p/100)*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R,a0,a1); ctx.closePath();
+    if(i!==missingIdx){
+      ctx.fillStyle = `hsl(${(i*67)%360} 70% 60%)`; ctx.fill();
+      const am=(a0+a1)/2, rx=Math.cos(am)*(R*0.68), ry=Math.sin(am)*(R*0.68);
+      ctx.fillStyle='#0b132b'; ctx.font='bold 20px Inter'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(p+'%', rx, ry);
+    }else{
+      ctx.fillStyle='#fff'; ctx.fill();
+      ctx.setLineDash([6,6]); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2; ctx.stroke(); ctx.setLineDash([]);
+      const am=(a0+a1)/2, rx=Math.cos(am)*(R*0.68), ry=Math.sin(am)*(R*0.68);
+      ctx.fillStyle='#334155'; ctx.font='800 28px Inter'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('?', rx, ry);
+    }
+    a0=a1;
+  });
+  ctx.restore();
+}
+
+/* ====== OBJECTEN - lasso ====== */
+const EMOJIS = ['\u{1F34E}','\u{2B50}','\u{1F388}','\u{1F9CA}','\u{1F9E9}','\u{26BD}','\u{1F338}','\u{1F36A}','\u{1F3B2}','\u{1F41F}','\u{1F34B}','\u{1F353}'];
+function genObjQ(){
+  const PSET = [10,20,25,30,40,50];
+  const p = pick(PSET);
+  let Kchoices;
+  if(p===25)               Kchoices = [8,12,16,20,24,28,32,36,40];
+  else if(p===20 || p===40)Kchoices = [10,15,20,25,30,35,40];
+  else                     Kchoices = [10,20,30,40];
+  const K = pick(Kchoices);
+  const need = Math.round(K * (p/100));
+  const W=objCanvas.width, H=objCanvas.height;
+  const R=22, MIN=R*2 + 12, PAD=R+20;
+  const items=[]; let guard=0;
+  while(items.length<K && guard<5000){
+    guard++; const x = rand(PAD, W-PAD), y = rand(PAD, H-PAD);
+    if(items.every(it=> dist(x,y,it.x,it.y) >= MIN )) items.push({x,y,emoji: pick(EMOJIS), sel:false});
+  }
+  return {p,K,need,items};
+}
+function pointInPoly(px, py, poly){
+  let inside=false;
+  for(let i=0, j=poly.length-1; i<poly.length; j=i++){
+    const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+    const inter=((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi) + xi);
+    if(inter) inside=!inside;
+  }
+  return inside;
+}
+function objSelectByPolygon(poly){
+  const {items} = State.current; items.forEach(it=>{ if(pointInPoly(it.x, it.y, poly)) it.sel = true; });
+}
+function objToggleAt(x,y){
+  const {items}=State.current; let best=null, bd=9999;
+  items.forEach(it=>{ const d=dist(x,y,it.x,it.y); if(d<bd){bd=d; best=it;} });
+  if(best && bd<=28){ best.sel = !best.sel; }
+}
+function drawObjects(){
+  const {items} = State.current, ctx=octx;
+  ctx.clearRect(0,0,objCanvas.width,objCanvas.height); ctx.save();
+  ctx.font='28px Inter'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  items.forEach(it=>{
+    ctx.fillText(it.emoji, it.x, it.y+1);
+    if(it.sel){ ctx.beginPath(); ctx.arc(it.x,it.y,28,0,Math.PI*2); ctx.strokeStyle='#10b981'; ctx.lineWidth=3; ctx.stroke(); }
+  });
+  if(State.drag?.active && State.drag.points?.length>1){
+    ctx.beginPath(); ctx.moveTo(State.drag.points[0].x, State.drag.points[0].y);
+    for(let i=1;i<State.drag.points.length;i++){ const p=State.drag.points[i]; ctx.lineTo(p.x,p.y); }
+    ctx.strokeStyle='#2563eb'; ctx.setLineDash([6,6]); ctx.lineWidth=2; ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+function canvasCoords(e, canvas){
+  const r = canvas.getBoundingClientRect();
+  const x = (e.clientX - r.left) * (canvas.width  / r.width);
+  const y = (e.clientY - r.top ) * (canvas.height / r.height);
+  return {x,y};
+}
+let dragMoved=false;
+objCanvas.addEventListener('mousedown', (e)=>{
+  if(State.qtype!=='objects') return;
+  const p = canvasCoords(e, objCanvas); State.drag = {active:true, points:[p]}; dragMoved=false;
+});
+objCanvas.addEventListener('mousemove', (e)=>{
+  if(State.qtype!=='objects' || !State.drag?.active) return;
+  const p = canvasCoords(e, objCanvas); const pts=State.drag.points; const last=pts[pts.length-1];
+  if(!last || dist(last.x,last.y,p.x,p.y) > 2){ pts.push(p); dragMoved=true; drawObjects(); }
+});
+objCanvas.addEventListener('mouseup', (e)=>{
+  if(State.qtype!=='objects') return;
+  if(State.drag?.active){
+    const pts=State.drag.points||[]; const longEnough = pts.length>6;
+    if(dragMoved && longEnough){
+      const poly=pts.slice(); const first=poly[0], last=poly[poly.length-1];
+      if(first && (first.x!==last.x || first.y!==last.y)) poly.push({x:first.x,y:first.y});
+      objSelectByPolygon(poly);
+    }else{
+      const p = canvasCoords(e, objCanvas); objToggleAt(p.x, p.y);
+    }
+  }
+  State.drag=null; dragMoved=false; drawObjects();
+  const sel = State.current.items.filter(it=>it.sel).length; legend.textContent = `${sel} omcirkeld`;
+});
+
+/* ====== VRAAGSTUKKEN ====== */
+/* ===================== EASY ===================== */
+const WORD_EASY = [
+  {id:'e01',
+   parts:[
+     'Als 80% van alle dieren op de collage insecten zijn, dan is ',
+     ' % van de dieren geen insect.'
+   ],
+   answers:[20], img:'procenten/insecten.png', hint:'100 − 80'},
+
+  {id:'e02',
+   parts:[
+     'Op het woestijnpanorama zie je dat 30% uit zand bestaat; de rest is rots. Dat betekent dat ',
+     ' % van de woestijn uit rots bestaat.'
+   ],
+   answers:[70], img:'procenten/woestijn.png', hint:'100 − 30'},
+
+  {id:'e03',
+   parts:[
+     'In het bos dreigt 1 op 10 boomsoorten uit te sterven. Dat komt overeen met ',
+     ' procent.'
+   ],
+   answers:[10], img:'procenten/bomen.png', hint:'1/10 × 100'},
+
+  {id:'e04',
+   parts:[
+     'Op de rij met zoogdieren geldt: 3 op 4 dieren zijn zoogdieren. Dat is ',
+     ' %.'
+   ],
+   answers:[75], img:'procenten/zoogdieren.png', hint:'3/4 × 100'},
+
+  {id:'e05',
+   parts:[
+     'In de woonwijk van Youssef hebben 1 op 5 huizen zonnepanelen. Dat is ',
+     ' %.'
+   ],
+   answers:[20], img:'procenten/zonnepanelen.png', hint:'1/5 × 100'},
+
+  {id:'e06',
+   parts:[
+     'Aan de fietsenrekken komt 25% van de leerlingen met de fiets. Dan komt ',
+     ' % van de leerlingen niet met de fiets.'
+   ],
+   answers:[75], img:'procenten/fietsenrekken.png', hint:'100 − 25'},
+
+  {id:'e07',
+   parts:[
+     'Bij de etalage met korting krijg je 50% vermindering. Je betaalt dus ',
+     ' % van de prijs.'
+   ],
+   answers:[50], img:'procenten/korting.png', hint:'100 − 50'},
+
+  {id:'e08',
+   parts:[
+     'In de mand is 30% van de appels groen. Dat betekent dat ',
+     ' % van de appels niet groen is.'
+   ],
+   answers:[70], img:'procenten/appels.png', hint:'100 − 30'},
+
+  {id:'e09',
+   parts:[
+     'Tijdens de stemming kiest 60% JA. Dan kiest ',
+     ' % NEE.'
+   ],
+   answers:[40], img:'procenten/stem.png', hint:'100 − 60'},
+
+  {id:'e10',
+   parts:[
+     'In het park is 2 op 5 van de dieren een hond. Dat is ',
+     ' %.'
+   ],
+   answers:[40], img:'procenten/honden.png', hint:'2/5 × 100'},
+
+  {id:'e11',
+   parts:[
+     'Van de hanglampen branden er 3 op 5 niet. Dat is ',
+     ' %.'
+   ],
+   answers:[60], img:'procenten/lampen.png', hint:'3/5 × 100'},
+
+  {id:'e12',
+   parts:[
+     'In de groep draagt 1/4 van de mensen rood. Dat komt overeen met ',
+     ' %.'
+   ],
+   answers:[25], img:'procenten/rood.png', hint:'1/4 × 100'},
+
+  /* Extra easy, contextvol met namen */
+  {id:'e13',
+   parts:[
+     'Amina vertelt dat op de infoborden 75% van de dieren insecten zijn. Dan is ',
+     ' % geen insect.'
+   ],
+   answers:[25], img:'procenten/insecten.png', hint:'100 − 75'},
+
+  {id:'e14',
+   parts:[
+     'Bilal merkt op dat 40% van de woestijn uit zand bestaat. De rotsvlaktes nemen dus ',
+     ' % in.'
+   ],
+   answers:[60], img:'procenten/woestijn.png', hint:'100 − 40'},
+
+  {id:'e15',
+   parts:[
+     'Zeynep ziet dat 2 op 5 bomen naaldbomen zijn. Dat is ',
+     ' %.'
+   ],
+   answers:[40], img:'procenten/bomen.png', hint:'2/5 × 100'},
+
+  {id:'e16',
+   parts:[
+     'Mehmet schat dat precies de helft van de dieren op de foto zoogdieren is. Dat is ',
+     ' %.'
+   ],
+   answers:[50], img:'procenten/zoogdieren.png', hint:'1/2 × 100'},
+
+  {id:'e17',
+   parts:[
+     'In de straat van Elif hebben 4 op 10 huizen zonnepanelen. Dat komt neer op ',
+     ' %.'
+   ],
+   answers:[40], img:'procenten/zonnepanelen.png', hint:'4/10 × 100'},
+
+  {id:'e18',
+   parts:[
+     'Rayan zegt dat 3/4 van de leerlingen met de fiets komt. Dat is ',
+     ' %.'
+   ],
+   answers:[75], img:'procenten/fietsenrekken.png', hint:'3/4 × 100'},
+
+  {id:'e19',
+   parts:[
+     'Bij een actie met 20% korting betaal je nog ',
+     ' % van de prijs.'
+   ],
+   answers:[80], img:'procenten/korting.png', hint:'100 − 20'},
+
+  {id:'e20',
+   parts:[
+     'Yasmin ziet dat 45% van de appels groen is. Dan is ',
+     ' % niet groen.'
+   ],
+   answers:[55], img:'procenten/appels.png', hint:'100 − 45'}
+];
+
+/* ===================== HARD ===================== */
+const WORD_HARD = [
+  {id:'h01',
+   parts:[
+     'Nour behaalt 43 op 50 op de toets. Dat is ',
+     ' %.'
+   ],
+   answers:[86], img:'procenten/test.png', hint:'43/50 × 100'},
+
+  {id:'h02',
+   parts:[
+     'Adama scoort 18 op 20 en krijgt een positieve vermelding op het rapport. Dat is ',
+     ' %.'
+   ],
+   answers:[90], img:'procenten/rapport.png', hint:'18/20 × 100'},
+
+  {id:'h03',
+   parts:[
+     'In de klas slagen 12 van de 16 leerlingen op de toets. Dat komt overeen met ',
+     ' %.'
+   ],
+   answers:[75], img:'procenten/klas.png', hint:'12/16 × 100'},
+
+  {id:'h04',
+   parts:[
+     'We rijden 140 km en 35 km daarvan is file. Het percentage file is ',
+     ' %.'
+   ],
+   answers:[25], img:'procenten/auto.png', hint:'35/140 × 100'},
+
+  {id:'h05',
+   parts:[
+     'In het bos zijn 150 van de 600 bomen sparren. Dat is ',
+     ' %.'
+   ],
+   answers:[25], img:'procenten/bos.png', hint:'150/600 × 100'},
+
+  {id:'h06',
+   parts:[
+     'In de klas van Mehmet zitten 18 meisjes en 12 jongens. Het percentage meisjes is ',
+     ' %.'
+   ],
+   answers:[60], img:'procenten/leerlingen.png', hint:'18/(18+12) × 100'},
+
+  {id:'h07',
+   parts:[
+     'Het team van Youssef wint 9 van de 12 wedstrijden. Dat is ',
+     ' %.'
+   ],
+   answers:[75], img:'procenten/team.png', hint:'9/12 × 100'},
+
+  {id:'h08',
+   parts:[
+     'In de bosweide zijn 3/5 van de dieren vogels (',
+     ' %), dus is ',
+     ' % geen vogel.'
+   ],
+   answers:[60,40], img:'procenten/bos.png', hint:'3/5 × 100; 100 − 60'},
+
+  {id:'h09',
+   parts:[
+     'Van de 60 meerkeuzevragen zijn er 15 moeilijk. Dat is ',
+     ' %.'
+   ],
+   answers:[25], img:'procenten/meerkeuze.png', hint:'15/60 × 100'},
+
+  {id:'h10',
+   parts:[
+     'Tijdens de sportdag dragen 28 van de 35 leerlingen sportkledij. Dat is ',
+     ' %.'
+   ],
+   answers:[80], img:'procenten/sport.png', hint:'28/35 × 100'},
+
+  {id:'h11',
+   parts:[
+     'In de straat hebben 5 van de 25 huizen een warmtepomp. Dat komt overeen met ',
+     ' %.'
+   ],
+   answers:[20], img:'procenten/warmtepomp.png', hint:'5/25 × 100'},
+
+  {id:'h12',
+   parts:[
+     'Op de infoborden zijn 18 van de 30 dieren zoogdieren. Dat is ',
+     ' %.'
+   ],
+   answers:[60], img:'procenten/infoboard.png', hint:'18/30 × 100'},
+
+  /* Extra hard met namen en context */
+  {id:'h13',
+   parts:[
+     'Aylin behaalt 42 op 50 op wiskunde. Dat is ',
+     ' %.'
+   ],
+   answers:[84], img:'procenten/test.png', hint:'42/50 × 100'},
+
+  {id:'h14',
+   parts:[
+     'Samir scoort 27 op 30 op zijn rapport. Dat is ',
+     ' %.'
+   ],
+   answers:[90], img:'procenten/rapport.png', hint:'27/30 × 100'},
+
+  {id:'h15',
+   parts:[
+     'Bosbeheer telt 180 sparren op 720 bomen. Het percentage sparren is ',
+     ' %.'
+   ],
+   answers:[25], img:'procenten/bos.png', hint:'180/720 × 100'},
+
+  {id:'h16',
+   parts:[
+     'In de klas van Zeynep zijn 12 meisjes en 18 jongens. Het percentage meisjes is ',
+     ' %.'
+   ],
+   answers:[40], img:'procenten/leerlingen.png', hint:'12/(12+18) × 100'},
+
+  {id:'h17',
+   parts:[
+     'Het team van Bilal wint 12 van de 20 matchen. Dat is ',
+     ' %.'
+   ],
+   answers:[60], img:'procenten/team.png', hint:'12/20 × 100'},
+
+  {id:'h18',
+   parts:[
+     'Op de toets zijn 21 van de 70 vragen moeilijk. Dat is ',
+     ' %.'
+   ],
+   answers:[30], img:'procenten/meerkeuze.png', hint:'21/70 × 100'},
+
+  {id:'h19',
+   parts:[
+     'In de wijk hebben 12 van de 60 huizen een warmtepomp. Dat komt neer op ',
+     ' %.'
+   ],
+   answers:[20], img:'procenten/warmtepomp.png', hint:'12/60 × 100'},
+
+  {id:'h20',
+   parts:[
+     'Bij de infoborden blijkt 12 van de 48 dieren een zoogdier te zijn. Dat is ',
+     ' %.'
+   ],
+   answers:[25], img:'procenten/infoboard.png', hint:'12/48 × 100'}
+];
+
+/* ===================== COMBO (twee invulvakjes) ===================== */
+const WORD_COMBO = [
+  // Scores vergelijken
+  {id:'c01',
+   parts:[
+     'Jesse behaalt 43/50 (',
+     ' %). Zijn zus haalt 18/20 (',
+     ' %).'
+   ],
+   answers:[86,90], img:'procenten/test.png', hint:'43/50 en 18/20'},
+
+  {id:'c02',
+   parts:[
+     'Nour scoort 45/50 (',
+     ' %). Adem scoort 36/40 (',
+     ' %).'
+   ],
+   answers:[90,90], img:'procenten/test.png', hint:'45/50 en 36/40'},
+
+  {id:'c03',
+   parts:[
+     'Zeynep behaalt 18/20 (',
+     ' %). Bilal behaalt 14/20 (',
+     ' %).'
+   ],
+   answers:[90,70], img:'procenten/rapport.png', hint:'18/20 en 14/20'},
+
+  // Aanvullen tot 100
+  {id:'c04',
+   parts:[
+     'In de klasstemming kiest 65% JA (',
+     ' %). Dan kiest NEE (',
+     ' %).'
+   ],
+   answers:[65,35], img:'procenten/stem.png', hint:'NEE = 100 − 65'},
+
+  {id:'c05',
+   parts:[
+     'In de woestijn is 30% zand (',
+     ' %); de rest is rots (',
+     ' %).'
+   ],
+   answers:[30,70], img:'procenten/woestijn.png', hint:'Rots = 100 − 30'},
+
+  // Dierenverdeling
+  {id:'c06',
+   parts:[
+     'In de bosweide zijn 3/5 van de dieren vogels (',
+     ' %). De niet-vogels vormen (',
+     ' %).'
+   ],
+   answers:[60,40], img:'procenten/bos.png', hint:'3/5 en 100 − 60'},
+
+  {id:'c07',
+   parts:[
+     'In het park is 2/5 van de dieren een hond (',
+     ' %). De overige dieren zijn geen hond (',
+     ' %).'
+   ],
+   answers:[40,60], img:'procenten/honden.png', hint:'2/5 en 100 − 40'},
+
+  // Korting
+  {id:'c08',
+   parts:[
+     'Actie A geeft 20% korting - je betaalt (',
+     ' %). Actie B geeft 50% korting - je betaalt (',
+     ' %).'
+   ],
+   answers:[80,50], img:'procenten/korting.png', hint:'100 − 20 en 100 − 50'},
+
+  // Klasverdeling
+  {id:'c09',
+   parts:[
+     'In de klas van Amina zijn 18 van de 30 leerlingen meisjes (',
+     ' %). Jongens vormen (',
+     ' %).'
+   ],
+   answers:[60,40], img:'procenten/leerlingen.png', hint:'18/30 en rest'},
+
+  // Appels
+  {id:'c10',
+   parts:[
+     'In de mand is 40% van de appels groen (',
+     ' %). Het niet-groene deel is (',
+     ' %).'
+   ],
+   answers:[40,60], img:'procenten/appels.png', hint:'100 − 40'},
+
+  // Lampen
+  {id:'c11',
+   parts:[
+     'Van de lampen branden er 2/5 (',
+     ' %). Er brandt dus niet (',
+     ' %).'
+   ],
+   answers:[40,60], img:'procenten/lampen.png', hint:'2/5 en 3/5'},
+
+  // Sportkledij
+  {id:'c12',
+   parts:[
+     'Tijdens de sportdag draagt 28/35 sportkledij (',
+     ' %). Niet in sportkledij is (',
+     ' %).'
+   ],
+   answers:[80,20], img:'procenten/sport.png', hint:'28/35 en rest'},
+
+  // Sparren vs andere bomen
+  {id:'c13',
+   parts:[
+     'In het bos zijn 150/600 sparren (',
+     ' %). Andere bomen vormen (',
+     ' %).'
+   ],
+   answers:[25,75], img:'procenten/bos.png', hint:'25 en 75'},
+
+  // File vs vlot verkeer
+  {id:'c14',
+   parts:[
+     'Op de snelweg is 25% file (',
+     ' %). Vlot verkeer is (',
+     ' %).'
+   ],
+   answers:[25,75], img:'procenten/auto.png', hint:'100 − 25'},
+
+  // Zoogdieren vs niet-zoogdieren
+  {id:'c15',
+   parts:[
+     'Op de infoborden zijn 18/30 dieren zoogdieren (',
+     ' %). Niet-zoogdieren zijn (',
+     ' %).'
+   ],
+   answers:[60,40], img:'procenten/infoboard.png', hint:'18/30 en rest'},
+
+  // Zonnepanelen
+  {id:'c16',
+   parts:[
+     'In de straat hebben 4/10 huizen zonnepanelen (',
+     ' %). Zonder zonnepanelen is (',
+     ' %).'
+   ],
+   answers:[40,60], img:'procenten/zonnepanelen.png', hint:'4/10 en rest'},
+
+  // Extra score-duo
+  {id:'c17',
+   parts:[
+     'Aylin scoort 42/50 (',
+     ' %). Samir scoort 32/40 (',
+     ' %).'
+   ],
+   answers:[84,80], img:'procenten/test.png', hint:'42/50 en 32/40'},
+
+  // 50/50 stemming
+  {id:'c18',
+   parts:[
+     'In klas 1A stemt de helft JA (',
+     ' %). De andere helft stemt NEE (',
+     ' %).'
+   ],
+   answers:[50,50], img:'procenten/stem.png', hint:'50 en 50'},
+
+  // Fiets vs niet-fiets
+  {id:'c19',
+   parts:[
+     'Aan de rekken komt 3/4 met de fiets (',
+     ' %). Niet met de fiets is (',
+     ' %).'
+   ],
+   answers:[75,25], img:'procenten/fietsenrekken.png', hint:'3/4 en 1/4'},
+
+  // Warmtepomp vs geen
+  {id:'c20',
+   parts:[
+     'In de wijk hebben 12/60 huizen een warmtepomp (',
+     ' %). Zonder warmtepomp is (',
+     ' %).'
+   ],
+   answers:[20,80], img:'procenten/warmtepomp.png', hint:'12/60 en rest'}
+];
+
+function pickWord(level='mix'){
+  let pool = [];
+  if(level==='easy') pool = WORD_EASY;
+  else if(level==='hard') pool = WORD_HARD.concat(WORD_COMBO);
+  else pool = WORD_EASY.concat(WORD_HARD, WORD_COMBO);
+  return pick(pool);
+}
+function renderWord(q){
+  wordPrompt.innerHTML = ''; State.wordInputs = [];
+  for(let i=0;i<q.answers.length;i++){
+    const span = document.createElement('span'); span.textContent = q.parts[i]; wordPrompt.appendChild(span);
+    const inp = document.createElement('input'); inp.className='ans'; inp.inputMode='numeric'; inp.placeholder='...';
+    Object.assign(inp.style,{width:'100px',textAlign:'center',border:'2px solid var(--ring2)',borderRadius:'12px',fontWeight:'900'});
+    inp.addEventListener('keydown', (e)=>{ if(e.key===','||e.key==='.') e.preventDefault(); });
+    inp.addEventListener('input', ()=>{ inp.value = inp.value.replace(/[^\d]/g,''); });
+    inp.addEventListener('focus', ()=>{ State.activeWordIndex = State.wordInputs.indexOf(inp); });
+    wordPrompt.appendChild(inp); State.wordInputs.push(inp);
+  }
+  const tail = document.createElement('span'); tail.textContent = q.parts[q.answers.length]; wordPrompt.appendChild(tail);
+
+  const base = ''; wImg.src = base + q.img; wImg.style.display='block'; imgFallback.style.display='none';
+  wImg.onerror = ()=>{ wImg.style.display='none'; imgFallback.style.display='block'; imgFallback.textContent = `Afbeelding niet gevonden: ${base}${q.img}`; };
+  setTimeout(()=> State.wordInputs[0]?.focus?.(), 0);
+}
+
+/* ====== FLOW ====== */
+function setType(t){
+  State.qtype=t;
+  qGrid.style.display = t==='grid' ? 'flex' : 'none';
+  qPie.style.display  = t==='pie'  ? 'flex' : 'none';
+  qObj.style.display  = t==='objects' ? 'flex' : 'none';
+  qWord.style.display = t==='word' ? 'flex' : 'none';
+  gridWrap.style.display = t==='grid' ? 'block' : 'none';
+  pieCanvas.style.display= t==='pie'  ? 'block' : 'none';
+  objCanvas.style.display= t==='objects' ? 'block' : 'none';
+  wImg.style.display    = t==='word' ? 'block' : 'none';
+  imgFallback.style.display = 'none';
+  btnResetSel.style.display = (t==='grid' || t==='objects') ? 'inline-block' : 'none';
+  legend.textContent = t==='word' ? 'Vraagstuk - vul de vakjes in' :
+                       t==='objects' ? '0 omcirkeld' :
+                       t==='grid' ? '0 geselecteerd' :
+                       'Cirkeldiagram - vul het ontbrekende % in';
+}
+function nextQuestion(){
+  fb.className='feedback'; fb.textContent='';
+
+  // 1) Kies type per vraag
+  if(State.mode==='practice'){
+    // Blijf in gekozen soort (sticky). Alleen bij 'mix' randomiseren.
+    choosePracticeType();
+  }else{
+    // Taak/Toets: altijd mix; vermijd herhaling
+    const TYPES = ['grid','pie','objects','word'];
+    const prev  = State.qtype;
+    let t;
+    do { t = pick(TYPES); } while(State.asked > 0 && t === prev);
+    State.qtype = t;
+  }
+
+  const t = State.qtype;
+
+  // 2) Genereer (en bewaak uniekheid in taak/toets)
+  let q, key, tries = 0;
+  do{
+    if(t==='grid')        q = genGridQ();
+    else if(t==='pie')    q = genPieQ();
+    else if(t==='objects')q = genObjQ();
+    else                  q = pickWord('mix'); // woord: mix van alle pools
+
+    key = qKey(t, q);
+    tries++;
+    if(State.mode==='practice') break;            // in oefenen mag herhaling
+  }while(State.usedKeys.has(key) && tries < 300);
+
+  if(State.mode!=='practice'){ State.usedKeys.add(key); }
+  State.current = q;
+  setType(t);
+
+  // 3) Render per type
+  if(t==='grid'){
+    pTxt.textContent = q.p+'%'; inpTotal.value = ''; inpX.value = ''; legend.textContent='0 geselecteerd';
+    renderGrid(q.dims.cols, q.dims.rows); inpTotal.focus();
+  }else if(t==='pie'){
+    inpMissing.value=''; legend.textContent='Cirkeldiagram - vul het ontbrekende % in';
+    drawPie(q.slices, q.missingIdx); inpMissing.focus();
+  }else if(t==='objects'){
+    legend.textContent='0 omcirkeld'; objPctTxt.textContent=q.p+'%'; objInfo.textContent=`Er zijn ${q.K} objecten.`;
+    drawObjects();
+  }else{ // word
+    renderWord(q);
+  }
+}
+
+/* ====== CHECK & LOG ====== */
+function normInt(v){ v=(''+v).replace(/[^\d]/g,'').trim(); return v===''?NaN:Number(v); }
+let answerLock=false;
+
+function pushResult(entry){
+  if(State.mode==='practice') return; // enkel loggen in taak/toets
+  State.results.push({...entry, i: State.results.length+1});
+}
+
+function afterCheckMove(ok){
+  if(State.mode==='practice'){
+    if(ok){ setTimeout(nextQuestion, 700); }
+  }else{
+    State.asked++; if(State.asked < State.total){ qNowEl.textContent = String(State.asked+1); }
+    setTimeout(()=> {
+      if(State.asked >= State.total){ finishRun(); }
+      else { nextQuestion(); }
+    }, 700);
+  }
+}
+
+function checkAnswer(){
+  if(answerLock) return;
+  answerLock=true; setTimeout(()=>answerLock=false, 700);
+
+  if(State.qtype==='grid'){
+    const {p,T,X} = State.current;
+    const tUser = normInt(inpTotal.value), xUser = normInt(inpX.value), sel = State.selected;
+    const filled = Number.isFinite(tUser) && Number.isFinite(xUser);
+    const ok = filled && tUser===T && xUser===X && sel===X;
+    if(ok){
+      fb.className='feedback ok'; fb.textContent='Correct! 🎉'; State.right++; updateHUD();
+    }else{
+      fb.className='feedback err';
+      const parts=[]; if(!filled) parts.push('Vul beide vakjes in.');
+      if(filled && tUser!==T) parts.push(`Totaal is ${T}.`);
+      if(filled && xUser!==X) parts.push(`${p}% van ${T} is ${X}.`);
+      if(sel!==X) parts.push(`Selecteer exact ${X} vakjes (nu: ${sel}).`);
+      fb.textContent = parts.join(' '); State.wrong++; updateHUD();
+    }
+    pushResult({type:'vakjes', vraag:`${p}% van ${T}`, juist:`${X} en ${X} geselecteerd`, leerling:`${Number.isFinite(xUser)?xUser:'?'}, sel=${sel}`, ok});
+    afterCheckMove(ok);
+  }
+  else if(State.qtype==='pie'){
+    const {ans, slices} = State.current; const u = normInt(inpMissing.value); const ok = Number.isFinite(u) && u===ans;
+    if(ok){ fb.className='feedback ok'; fb.textContent='Correct! 🎉'; State.right++; }
+    else { fb.className='feedback err'; fb.textContent=`Niet juist. Som en 100% − som. (Juist: ${ans}%)`; State.wrong++; }
+    updateHUD();
+    pushResult({type:'cirkeldiagram', vraag:`Ontbrekend segment uit ${slices.join('% + ')}%`, juist:`${ans}%`, leerling:`${Number.isFinite(u)?u:'?' }%`, ok});
+    afterCheckMove(ok);
+  }
+  else if(State.qtype==='objects'){
+    const {items, need, K, p} = State.current; const sel = items.filter(it=>it.sel).length; const ok = (sel===need);
+    if(ok){ fb.className='feedback ok'; fb.textContent='Correct! 🎉'; State.right++; }
+    else { fb.className='feedback err'; fb.textContent=`Je moet ${p}% van ${K} omcirkelen = ${need}. (Nu: ${sel})`; State.wrong++; }
+    updateHUD();
+    pushResult({type:'objecten', vraag:`${p}% van ${K} objecten`, juist:`${need} omcirkeld`, leerling:`${sel}`, ok});
+    afterCheckMove(ok);
+  }
+  else{ // WORD
+    const {answers, parts, id} = State.current;
+    const vals = State.wordInputs.map(inp=> normInt(inp.value));
+    const filled = vals.every(v=>Number.isFinite(v));
+    const allOk = filled && vals.every((v,i)=> v===answers[i]);
+    if(allOk){ fb.className='feedback ok'; fb.textContent='Correct! 🎉'; State.right++; }
+    else { fb.className='feedback err'; fb.textContent = `Niet juist. Juist(e): ${answers.join(' & ')}.`; State.wrong++; }
+    updateHUD();
+    pushResult({type:'vraagstuk', vraag:`${parts.join(' [..] ')}`, juist:answers.join(' / ')+' %', leerling: vals.map(v=>Number.isFinite(v)?v:'?').join(' / ')+' %', ok:allOk});
+    afterCheckMove(allOk);
+  }
+}
+
+/* ====== KEYPAD ====== */
+let activeInput = 'total'; // 'total'|'x'|'missing'
+inpTotal.addEventListener('focus', ()=> activeInput='total');
+inpX.addEventListener('focus', ()=> activeInput='x');
+inpMissing.addEventListener('focus', ()=> activeInput='missing');
+
+$('#keypad').addEventListener('click', e=>{
+  const k = e.target.closest('.key'); if(!k) return;
+  if(k.classList.contains('ok')){ checkAnswer(); return; }
+  if(State.qtype==='objects') return;
+
+  const key = k.dataset.k || k.textContent.trim();
+  const target = activeInput==='missing' ? inpMissing : (activeInput==='x' ? inpX : inpTotal);
+
+  if(key==='back'){ target.value = target.value.slice(0,-1); return; }
+  if(key==='clear'){ target.value=''; return; }
+  if(key==='clearAll'){ inpTotal.value=''; inpX.value=''; inpMissing.value=''; return; }
+  if(key==='swap'){
+    if(State.qtype==='grid'){ activeInput = activeInput==='x' ? 'total' : 'x'; (activeInput==='x'?inpX:inpTotal).focus(); }
+    else if(State.qtype==='pie'){ activeInput='missing'; inpMissing.focus(); }
+    return;
+  }
+  if(/^\d+$/.test(key)){ target.value += key; return; }
+  if(key==='.') return; // geen decimalen
+});
+
+/* ====== HINT & SELECTIE ====== */
+btnHint.addEventListener('click', ()=>{
+  if(State.mode!=='practice'){
+    fb.className='feedback';
+    fb.textContent = 'Hints zijn uitgeschakeld in deze modus.';
+    return;
+  }
+
+  if(State.qtype==='grid'){
+    const {p,T,X} = State.current;
+    fb.className='feedback'; fb.textContent = `${p}% van ${T} = ${T}×${p}/100 = ${X}`;
+  }else if(State.qtype==='pie'){
+    fb.className='feedback'; fb.textContent = `Tel bekende segmenten op en doe 100% − som.`;
+  }else if(State.qtype==='objects'){
+    const {p,K,need} = State.current;
+    fb.className='feedback'; fb.textContent = `${p}% van ${K} = ${need}. Omcirkel precies ${need} object(en).`;
+  }else{
+    fb.className='feedback'; fb.textContent = `Schrijf de procenten als getal (zonder %).`;
+  }
+});
+btnResetSel.addEventListener('click', ()=>{
+  if(State.qtype==='grid'){
+    document.querySelectorAll('.cell.on').forEach(c=>c.classList.remove('on'));
+    State.selected=0; legend.textContent='0 geselecteerd';
+  }else if(State.qtype==='objects'){
+    State.current.items.forEach(it=>it.sel=false); drawObjects(); legend.textContent='0 omcirkeld';
+  }
+});
+
+/* ====== INPUT-FILTER & ENTER ====== */
+[inpMissing, inpTotal, inpX].forEach(el=>{
+  el.addEventListener('keydown', (e)=>{ if(e.key===',' || e.key==='.') e.preventDefault(); });
+  el.addEventListener('input', ()=>{ el.value = el.value.replace(/[^\d]/g,''); });
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); checkAnswer(); }
+});
+
+/* ====== EINDE / BEWIJSJE ====== */
+function modeKey(){
+  // voor MR_SHARED
+  return State.mode === 'test' ? 'toets' : (State.mode === 'task' ? 'taak' : 'vrij');
+}
+function modeLabel(){
+  // voor UI/meta
+  return State.mode === 'test' ? 'Toets' : (State.mode === 'task' ? 'Taak' : 'Oefenen');
+}
+function secondsUsed(){
+  // leest mm:ss uit #timeDisp en vertaalt naar “bestede tijd”
+  const m = /^(\d+):(\d+)$/.exec(timeDisp.textContent || '');
+  const val = m ? (parseInt(m[1],10)*60 + parseInt(m[2],10)) : 0; // mm:ss → s
+  if (State.mode === 'test'){
+    const limitSec = Math.round((State.timeLimitMs || 15*60*1000)/1000);
+    // tijdens toets toont de klok “resterend”; omzetten naar “gebruikt”:
+    return Math.max(0, limitSec - val);
+  }
+  // in taak telt de klok omhoog (val = gebruikt); in practice tonen we “—” (val=0)
+  return val;
+}
+
+function finishRun(){
+  const ok  = (State.right || 0);
+  const err = (State.wrong || 0);
+  const total = ok + err;
+
+  const summary = {
+    title: 'Procentenspel',
+    gameId: 'procenten',
+    mode: modeKey(),                       // 'taak' | 'toets' | 'vrij'
+    name: (State.studentName || ''),       // juiste veldnaam
+    ok, err, total,
+    score: ok,
+    seconds: secondsUsed(),
+    questions: (State.results || []).map(r => ({
+      q: r.vraag || '',
+      a: r.leerling,
+      given: r.leerling,
+      correct: r.juist,
+      ok: !!r.ok
+    })),
+    goals: ['BV1_06.02','06.02.01','06.02.03','06.02.04','06.02.08']
+  };
+
+  let handled = false;
+  try{
+    if (window.MR_SHARED){
+      MR_SHARED.finishSession(summary);
+      handled = true;
+    }
+  }catch(e){
+    console.error('shared bewijs failed', e);
+  }
+
+  if(!handled){
+    downloadProofPNG();  // fallback PNG
+  }
+
+  // Altijd de eind-overlay tonen
+  endOverlay.style.display = 'flex';
+}
+function downloadProofPNG(){
+  if(!(window.MR_SHARED && MR_SHARED.cert && MR_SHARED.cert.downloadTable)){
+    alert('Bewijsje kan niet gedownload worden (helper ontbreekt).');
+    return;
+  }
+
+  const total = (State.right || 0) + (State.wrong || 0);
+  const secondsValue = secondsUsed();
+  const minutes = Math.floor(secondsValue / 60);
+  const secs = String(secondsValue % 60).padStart(2, '0');
+  const now = new Date();
+  const goals = ['BV1_06.02','06.02.01','06.02.03','06.02.04','06.02.08'];
+
+  const meta = [
+    `Naam: ${State.studentName || '-'}`,
+    `Modus: ${modeLabel()}`,
+    `Score: ${(State.right || 0)}/${total}`,
+    `Tijd: ${minutes}:${secs}`,
+    `Datum: ${now.toLocaleString('nl-BE')}`,
+    `Doelen: ${goals.join(', ')}`,
+    State.qtype ? `Laatste vraagtype: ${State.qtype}` : null
+  ].filter(Boolean);
+
+  const rows = (State.results || []).map((r, idx) => ({
+    nr: r.i || idx + 1,
+    type: r.type || '-',
+    vraag: r.vraag || '-',
+    juist: r.juist || '-',
+    leerling: r.leerling || '-',
+    ok: !!r.ok
+  }));
+
+  const safeName = (State.studentName || 'leerling').replace(/[^\w\s-]+/g, '').trim().replace(/\s+/g, '_');
+  const stamp = now.toISOString().replace(/[:T]/g, '-').split('.')[0];
+
+  MR_SHARED.cert.downloadTable({
+    width: 1200,
+    title: 'Bewijsje - Procenten',
+    gradient: ['#ffffff','#eef3ff'],
+    meta,
+    table: {
+      title: 'Resultaten',
+      columns: [
+        { label: '#', key: 'nr', width: 60 },
+        { label: 'Type', key: 'type', width: 140 },
+        { label: 'Vraag', key: 'vraag', width: 360, wrap: true, lineHeight: 22 },
+        { label: 'Juist', key: 'juist', width: 220, wrap: true, lineHeight: 22 },
+        { label: 'Leerling', key: 'leerling', width: 220, wrap: true, lineHeight: 22 },
+        { label: 'Status', width: 120, align: 'center',
+          value: row => row.ok ? 'Juist' : 'Fout',
+          color: row => row.ok ? '#16a34a' : '#dc2626' }
+      ],
+      rows
+    },
+    footer: [`Vragen in sessie: ${rows.length}`],
+    fileName: `bewijsje_procenten_${State.mode}_${safeName}_${stamp}.png`
+  });
+}
+function init(){
+  setType('grid');
+  State.tStart = Date.now(); timeDisp.textContent='—';
+  startRun('practice');
+}
+init();
+
+/* Helpers voor Enter/OK */
+okBtn.addEventListener('click', checkAnswer);
+
+/* Kleine beveiliging tegen typefout in pathLength uit oudere versie */
+function pathLenSafe(pts){ let L=0; for(let i=1;i<pts.length;i++) L += dist(pts[i-1].x, pts[i].x, pts[i-1].y, pts[i].y); return L; }
+function parseTime(txt){ const m = /^(\d+):(\d+)$/.exec(txt||''); return m? (parseInt(m[1])*60+parseInt(m[2])) : 0; }
+</script>
+</body>
+</html>

@@ -1,0 +1,797 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aldi — Schatten, Afronden & Betalen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f9fc; --card:#fff; --ink:#0b132b; --muted:#6b7280; --ring:#e6ecf8; --ring2:#dfe6f6;
+    --shadow:0 10px 28px rgba(15,23,42,.06);
+    --good:#10b981; --bad:#ef4444; --accent:#2563eb;
+    --topbar-h: 66px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter,system-ui,Arial,sans-serif; color:var(--ink);
+    background: radial-gradient(1200px 600px at 80% -10%, #eef3ff 0%, #f7f9fc 50%, #fbfdff 100%);
+  }
+
+  /* ===== TOPBAR (zoals grote lengtespel) ===== */
+  .topbar {
+    display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem;
+  }
+  .chip{
+    background:#fff; border:1px solid var(--ring2); border-radius:999px; padding:.35rem .7rem;
+    box-shadow:var(--shadow); display:inline-flex; gap:.5rem; align-items:center; font-weight:800;
+  }
+  .chip.btn{cursor:pointer}
+  .chip.ok{background:#eafaf4; color:var(--good); border-color:#c4eedc}
+  .chip.bad{background:#fdeeee; color:var(--bad); border-color:#ffd7d7}
+  .spacer{flex:1}
+
+  /* ===== Board ===== */
+  .board{
+    background:#fff; border:1px solid var(--ring); border-radius:24px; box-shadow:var(--shadow); padding:1.2rem;
+    display:grid;
+    grid-template-columns: clamp(520px, 46vw, 680px) minmax(520px, 1fr);
+    gap:1rem; align-items:stretch;
+    min-height: calc(100vh - (var(--topbar-h) + 40px));
+    justify-content:center;
+  }
+  @media (max-width:980px){ .board{grid-template-columns:1fr; min-height:unset} }
+
+  .leftCol{
+    background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow);
+    display:flex; flex-direction:column; min-height:0;
+  }
+  .imgbox{
+    flex:1; min-height:0; border:1px solid var(--ring); border-radius:16px; overflow:hidden;
+    display:flex; align-items:center; justify-content:center; background:#fff;
+    aspect-ratio:95/106; width:100%;
+  }
+  .imgbox img{ width:100%; height:100%; object-fit:contain; image-rendering:auto; }
+
+  .rightCol{ display:grid; grid-template-rows:1fr auto; gap:.8rem; min-height:0; max-width:640px; margin-inline:auto; }
+  .qCard{
+    background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow);
+    display:grid; grid-template-rows:1fr auto; min-height:0; max-width:640px; margin-inline:auto;
+  }
+  .qa{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.9rem; min-height:0;}
+  .qText{ text-align:center; font-weight:900; font-size:clamp(20px,2.4vw,26px); line-height:1.35; max-width:56ch; margin:0 auto; }
+  .status{ align-self:center; text-align:center; min-height:28px; font-weight:800; }
+  .okTxt{color:var(--good)} .errTxt{color:var(--bad)} .infoTxt{color:#1e40af}
+
+  .padwrap{ background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow) }
+  .keypad{ display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem }
+  .key{
+    user-select:none; cursor:pointer; text-align:center; font-weight:900; font-size:clamp(18px,3.2vw,22px);
+    padding:1rem 0; border-radius:14px; background:#f7faff; border:1px solid var(--ring2);
+    box-shadow:0 6px 16px rgba(15,23,42,.06);
+    transition:transform .06s, box-shadow .12s, background .12s
+  }
+  .key:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+  .key.wide{grid-column:span 2;} .key.ok{background:#eafaf4; border-color:#c4eedc}
+
+  .row{display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; justify-content:center}
+  .lcd{
+    min-height:64px; display:flex; align-items:center; justify-content:center;
+    background:#f8fbff; border:1px solid var(--ring); border-radius:12px;
+    font-weight:900; font-size:clamp(26px,4.2vw,38px); color:#1f2937; padding:.2rem .6rem;
+  }
+  .lcd.small{min-height:52px; font-size:clamp(20px,3.6vw,28px)}
+  .lcd.bad{   box-shadow:0 0 0 6px rgba(239,68,68,.15) inset; }
+  .lcd.good{  box-shadow:0 0 0 6px rgba(16,185,129,.18) inset; }
+  .lcd.hinting{ box-shadow:0 0 0 6px rgba(37,99,235,.12) inset; }
+
+  .ibox{ min-width:10ch; text-align:center; border:none; outline:none; background:transparent; font:inherit; color:inherit; }
+
+  table.items{ table-layout: fixed; width:min(520px, 100%); }
+  .items th:nth-child(2), .items td:nth-child(2){ width: 160px; }
+  .items .ibox{ width: 6ch; }
+  #ansTotal{ width: 8ch; }
+  #ansOne, #ansChange{ width: 9ch; }
+  .items th,.items td{ border:1px solid var(--ring2); padding:.5rem .6rem; text-align:center; }
+  .items thead th{ background:#f3f7ff; font-weight:800 }
+  .items tbody th{ background:#f9fbff; font-weight:800; text-align:left }
+  .hint{ color:#374151; font-size:.95rem; text-align:center }
+
+  /* Overlay (naam-modal) */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(2,6,23,.55);
+    display:none; align-items:center; justify-content:center; z-index:50; backdrop-filter: blur(3px);
+  }
+  .modal{ width:min(520px,92vw); background:#fff; border:1px solid var(--ring2); border-radius:18px; box-shadow:0 20px 60px rgba(2,6,23,.25); padding:1.2rem; }
+  .modal h3{margin:.2rem 0 .6rem; font-size:1.35rem}
+  .modal .row{display:flex; gap:.6rem; align-items:center; margin:.4rem 0 .2rem;}
+  .modal input{ flex:1; padding:.8rem .9rem; border-radius:12px; border:1px solid var(--ring2); font:600 1rem Inter,system-ui,Arial; outline:none; }
+  .btn{border:1px solid var(--ring2); background:#f7faff; padding:.6rem .9rem; border-radius:12px; font:800 .98rem Inter,system-ui,Arial; cursor:pointer;}
+  .btn.primary{background:#2563eb; color:#fff; border-color:#215bd9;}
+  .btn.ghost{background:#fff}
+
+  .shake{ animation:shake .35s ease }
+  @keyframes shake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+</style>
+<link rel="stylesheet" href="mrraes-shared.css">
+<script src="mrraes-shared.js"></script>
+</head>
+<body>
+
+  <!-- TOPBAR (zoals het grote lengtespel) -->
+  <div class="topbar">
+    <button id="startTaak"  class="chip btn">📝 Start taak (20)</button>
+    <button id="startToets" class="chip btn">🧭 Start toets (20 / 20 min)</button>
+    <button id="fullBtn"    class="chip btn" title="Volledig scherm">⤢ Volledig scherm</button>
+
+    <div class="spacer"></div>
+    <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+    <span class="chip ok">✅ Juist: <span id="okCount">0</span></span>
+    <span class="chip bad">❌ Fout: <span id="errCount">0</span></span>
+  </div>
+
+  <!-- BOARD -->
+  <div class="board" id="board">
+    <div class="leftCol">
+      <div class="imgbox"><img id="poster" alt="Aldi poster" /></div>
+    </div>
+
+    <div class="rightCol">
+      <div class="qCard">
+        <div class="qa">
+          <div id="qText" class="qText">Klik op “Start taak/toets” of oefen vrij. Kies antwoorden met de keypad of je toetsenbord.</div>
+          <div id="ansArea"></div>
+          <div id="helper" class="hint" style="display:none">ℹ️ Tip: rond prijzen af naar hele euro’s (49,99 → 50).</div>
+        </div>
+        <div id="status" class="status"></div>
+      </div>
+
+      <div class="padwrap">
+        <div class="keypad" id="pad">
+          <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key" data-act="bksp">←</div>
+          <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">,</div>
+          <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key" data-act="ac">AC</div>
+          <div class="key wide">0</div><div class="key">00</div><div class="key ok" data-act="ok">OK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="proofCanvas" width="1200" height="1600" style="display:none"></canvas>
+
+  <!-- Naam-modal -->
+  <div class="modal-backdrop" id="nameModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <h3 id="modalTitle">Start <span id="modalKind">—</span></h3>
+      <div class="row">
+        <input id="nameInput" placeholder="Naam leerling" autocomplete="off" />
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <button class="btn ghost" id="cancelModal">Annuleren</button>
+        <button class="btn primary" id="startModal">Starten</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ========== DATA ========== */
+const DATA = {
+  "schatten/Aldi2.png": [
+    {n:"Radijzen", p:0.75},
+    {n:"Verse frieten", p:0.79},
+    {n:"Uien", p:3.99},
+  ],
+  "schatten/Aldi3.png": [
+    {n:"Kippenboutfilet XXL", p:7.99},
+    {n:"Gepaneerde kip-champignon", p:2.79},
+    {n:"Kalkoenbrochette XXL", p:9.99},
+  ],
+  "schatten/Aldi5.png": [
+    {n:"Allerheiligenbloemstuk", p:6.99},
+    {n:"Set leggings", p:5.99},
+    {n:"Corduroy-joggingsbroek", p:9.99},
+    {n:"Gebreide trui", p:7.99},
+    {n:"Parka", p:19.99},
+  ],
+  "schatten/Aldi6.png": [
+    {n:"Jurk met tule", p:9.99},
+    {n:"Muts en sjaal", p:7.99},
+    {n:"Gevoerde laarzen", p:8.99},
+    {n:"Broekkousen", p:5.99},
+    {n:"Panoramapuzzel Disney", p:8.99},
+    {n:"Kniekousen", p:4.99},
+    {n:"Minipop", p:5.99},
+  ],
+  "schatten/Aldi7.png": [
+    {n:"Soepmaker", p:49.99},
+    {n:"Pan 20 cm", p:14.99},
+    {n:"Pan 24 cm", p:19.99},
+    {n:"Pan 28 cm", p:24.99},
+    {n:"Snelkookpot", p:69.99},
+  ],
+  "schatten/Aldi8.png": [
+    {n:"Keukenmengkraan handdouche", p:49.99},
+    {n:"Snijmachine", p:34.99},
+    {n:"Snijplank", p:4.99},
+    {n:"Oplaadbare blender", p:14.99},
+    {n:"Raclettetoestel", p:14.99},
+    {n:"Croque-monsieurtoestel", p:49.99},
+  ],
+  "schatten/Aldi9.png": [
+    {n:"Chrysant", p:2.99},
+    {n:"Wildcamera", p:59.99},
+    {n:"Ruitenontdooier", p:2.99},
+    {n:"Kokosschijven voor planten", p:3.99},
+    {n:"Ruitensproeiervloeistof", p:7.99},
+    {n:"Lederen tuinhandschoenen", p:5.99},
+  ],
+  "schatten/Aldi10.png": [
+    {n:"Play-Doh mini", p:5.99},
+    {n:"Activiteitenboek", p:3.99},
+    {n:"Stripboek", p:4.99},
+    {n:"Kinetisch zand", p:4.99},
+    {n:"Metalen figuurtje Stitch", p:6.99},
+    {n:"Balanceerstenen", p:14.99},
+    {n:"Hylkies", p:7.99},
+  ],
+  "schatten/Aldi11.png": [
+    {n:"Geurkaars in glas", p:3.99},
+    {n:"Rustieke kaars", p:3.99},
+    {n:"Ledlichtketting", p:2.99},
+    {n:"Ledlichtkrans", p:8.99},
+    {n:"Grote kerstkrans", p:9.99},
+    {n:"Klein ledkersttafereel", p:4.99},
+  ],
+  "schatten/Aldi12.png": [
+    {n:"Ledlichtketting", p:24.99},
+    {n:"Geschenkverpakking", p:1.75},
+    {n:"Ledkerstdecoratie", p:4.99},
+    {n:"Sokken", p:2.99},
+    {n:"Ledkerstster", p:4.99},
+    {n:"Minitafellamp", p:5.99},
+    {n:"Stekkerdoos", p:16.99},
+  ],
+  "schatten/Aldi13.png": [
+    {n:"Veenbessencompote", p:1.99},
+    {n:"Père Michel Classic", p:2.99},
+    {n:"Gecondenseerde melk", p:3.99},
+    {n:"Porto Colheite", p:9.99},
+    {n:"Brie (2st)", p:4.93},
+  ],
+  "schatten/Aldi14.png": [
+    {n:"Kipfilet", p:3.99},
+    {n:"Kippenburger", p:2.39},
+    {n:"Mousse liégeoise", p:2.99},
+    {n:"Leverpastei", p:2.99},
+    {n:"Gerookte droge worstjes", p:3.99},
+    {n:"Magere yoghurt", p:2.69},
+    {n:"Cassoulet", p:4.99},
+    {n:"Sardines in tomatensaus", p:1.99},
+    {n:"Trio Monster Donuts", p:3.69},
+  ],
+};
+
+const POSTERS = Object.keys(DATA);
+
+const STUDENTS = [
+  {name:"Adelkarim",g:"m"},{name:"Imran",g:"m"},{name:"Henrique",g:"m"},{name:"Abderrahmane",g:"m"},
+  {name:"Maria Paula",g:"f"},{name:"Lina",g:"f"},{name:"Fatima",g:"f"},{name:"Assia",g:"f"},
+  {name:"Camélia",g:"f"},{name:"Imane",g:"f"},
+];
+
+function prons(g){ return g==="m" ? {subj:"hij", obj:"hem", poss:"zijn"} : {subj:"zij", obj:"haar", poss:"haar"}; }
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+/* extra biljet om > €100 te dekken */
+const PAYBANK = [10, 20, 50, 100, 200];
+
+function rnd(a,b){ return Math.floor(Math.random()*(b-a))+a; }
+function pick(arr){ return arr[rnd(0,arr.length)]; }
+function shuffle(arr){ return arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]); }
+
+const state = {
+  mode: "practice",  // practice | task | test
+  remaining: 0,
+  timer: 0,
+  tHandle: null,
+  t0: 0,
+  right: 0, wrong: 0,
+  who: "",
+  activeInput: null,
+  used: new Set(),
+  history: [],
+  q: null,
+  qWrong: 0,
+  forceCorr: false,
+  solution: null,
+};
+
+const el = s => document.querySelector(s);
+const poster = el("#poster");
+const qText = el("#qText");
+const ansArea = el("#ansArea");
+const statusEl = el("#status");
+const helper = el("#helper");
+const okEl = el("#okCount");
+const errEl = el("#errCount");
+const timeDisp = el("#timeDisp");
+
+/* ====== Formatting & parsing ====== */
+function euro(n){ return "€ " + (Math.round(n*100)/100).toFixed(2).replace(".",","); }
+function parseNum(s){ if(!s) return NaN; return Number(String(s).replace(/[^\d,.-]/g,"").replace(",",".")); }
+function roundEuroAmount(v){ return Math.round(v); }
+
+/* ====== Vraagtypes ====== */
+function makeUniqueKey(obj){
+  const base = [obj.type, obj.poster, obj.idxs?.join("-") ?? "", obj.pay ?? ""].join("|");
+  return base;
+}
+
+function nextQuestion(){
+  state.qWrong = 0;
+  state.forceCorr = false;
+  state.solution = null;
+
+  let tries = 0;
+  while(tries++ < 200){
+    const posterName = pick(POSTERS);
+    const items = DATA[posterName];
+    const t = pick(["afronden","totaal","betaling"]);
+
+    let q = { type:t, poster:posterName };
+    if(t === "afronden"){
+      const idxs = shuffle(items.map((_,i)=>i)).slice(0,3);
+      q.idxs = idxs; q.items = idxs.map(i=>items[i]);
+    }else{
+      const idxs = shuffle(items.map((_,i)=>i)).slice(0,2);
+      q.idxs = idxs; q.items = idxs.map(i=>items[i]);
+      if(t === "betaling"){
+        const sumRounded = roundEuroAmount(q.items[0].p) + roundEuroAmount(q.items[1].p);
+        let pay = PAYBANK.find(x=>x>=sumRounded) ?? 200;
+        q.pay = pay;
+      }
+    }
+    const key = makeUniqueKey(q);
+    if(!state.used.has(key)){
+      state.used.add(key);
+      state.q = q;
+      renderQuestion(q);
+      return;
+    }
+  }
+  endSession("Geen nieuwe unieke vragen meer.");
+}
+
+function renderQuestion(q){
+  statusEl.textContent = "";
+  helper.style.display = "none";
+  poster.src = q.poster; poster.alt = q.poster;
+
+  const actor = pick(STUDENTS);
+  const pn = prons(actor.g);
+  q.actor = actor;
+
+  ansArea.innerHTML = "";
+  if(q.type === "afronden"){
+    qText.textContent = "Rond de prijzen van de 3 artikelen af naar hele euro’s en geef de schatting van het totaal.";
+    helper.style.display = "block";
+
+    const wrap = document.createElement("div");
+    wrap.style.display = "grid";
+    wrap.style.placeItems = "center";
+    const tbl = document.createElement("table");
+    tbl.className = "items";
+    tbl.innerHTML = `
+      <thead><tr><th>Artikel</th><th>Afgeronde prijs (€)</th></tr></thead>
+      <tbody>
+        ${q.items.map((it,idx)=>`
+          <tr>
+            <th>${it.n}</th>
+            <td><div class="lcd small"><input class="ibox ansRow" data-i="${idx}" inputmode="numeric" autocomplete="off" /></div></td>
+          </tr>
+        `).join("")}
+        <tr>
+          <th>Schatting totaal</th>
+          <td><div class="lcd"><input class="ibox" id="ansTotal" inputmode="numeric" autocomplete="off" /></div></td>
+        </tr>
+      </tbody>`;
+    wrap.appendChild(tbl);
+    ansArea.appendChild(wrap);
+    setTimeout(()=>{ const a=ansArea.querySelector(".ansRow"); if(a){setActiveInput(a);} },0);
+
+  } else if(q.type === "totaal"){
+    const [a,b] = q.items;
+    qText.textContent = `${actor.name} koopt “${a.n}” en “${b.n}”. Schat de totale prijs in euro.`;
+    helper.style.display = "block";
+    const box = document.createElement("div");
+    box.className = "row";
+    box.innerHTML = `<div class="lcd"><input class="ibox" id="ansOne" placeholder="totaal in €" inputmode="numeric" /></div>`;
+    ansArea.appendChild(box);
+    setTimeout(()=>setActiveInput(el("#ansOne")),0);
+
+  } else {
+    const [a,b] = q.items;
+    qText.textContent = `${actor.name} koopt “${a.n}” en “${b.n}”. ${cap(pn.subj)} betaalt met €${q.pay}. Hoeveel krijgt ${pn.subj} ongeveer terug?`;
+    helper.style.display = "block";
+    const box = document.createElement("div");
+    box.className = "row";
+    box.innerHTML = `<div class="lcd"><input class="ibox" id="ansChange" placeholder="wisselgeld" inputmode="numeric" /></div>`;
+    ansArea.appendChild(box);
+    setTimeout(()=>setActiveInput(el("#ansChange")),0);
+  }
+}
+
+/* ====== Keypad + input focus ====== */
+function setActiveInput(inp){
+  if(state.activeInput && state.activeInput.parentElement) state.activeInput.parentElement.classList.remove("good","bad","hinting");
+  state.activeInput = inp;
+  inp.focus();
+  const len = inp.value?.length ?? 0;
+  try{ inp.setSelectionRange(len,len); }catch(e){}
+}
+
+document.addEventListener("click",(e)=>{
+  const t = e.target;
+  if(t.classList.contains("ibox")) setActiveInput(t);
+  if(t.closest(".key")){
+    const k = t.dataset.act ? null : (t.textContent || "");
+    const act = t.dataset.act || "";
+    handleKey(k, act);
+  }
+});
+
+document.addEventListener("keydown",(e)=>{
+  if(!state.activeInput) return;
+  if(e.key === "Enter"){ e.preventDefault(); checkAnswer(); return; }
+  if(e.key === "Backspace"){ return; }
+  if(/[0-9]/.test(e.key) || e.key === "," ){ return; }
+});
+
+function handleKey(k, act){
+  if(!state.activeInput) return;
+  const inp = state.activeInput;
+  if(act === "bksp"){ inp.value = inp.value.slice(0,-1); return; }
+  if(act === "ac"){ inp.value = ""; return; }
+  if(act === "ok"){ checkAnswer(); return; }
+  if(k){ if(k === "00") { inp.value += "00"; } else { inp.value += k; } }
+}
+
+/* ====== Timers / modes ====== */
+function stopTimer(){
+  if(state.tHandle){ clearInterval(state.tHandle); state.tHandle=null; }
+}
+function startTaskTimer(){
+  stopTimer();
+  state.t0 = Date.now();
+  const tick = ()=>{
+    const sec = Math.floor((Date.now() - state.t0)/1000);
+    const m = Math.floor(sec/60), s = sec%60;
+    timeDisp.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  };
+  tick();
+  state.tHandle = setInterval(tick, 250);
+}
+function tickTestTimer(){
+  const m = Math.max(0, Math.floor(state.timer/60));
+  const s = Math.max(0, state.timer%60);
+  timeDisp.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  if(state.timer<=0){ endSession("⏰ Tijd is om!"); return; }
+  state.timer--;
+}
+
+function resetSession(mode="practice"){
+  state.mode = mode;
+  state.right = 0; state.wrong = 0;
+  okEl.textContent = 0; errEl.textContent = 0;
+  state.used = new Set();
+  state.history = [];
+  stopTimer();
+
+  if(mode === "practice"){
+    state.remaining = 0; state.timer = 0; state.t0 = 0;
+    timeDisp.textContent = "—";
+  }else if(mode === "task"){
+    state.remaining = 20; state.timer = 0; state.t0 = 0;
+    timeDisp.textContent = "00:00";
+    startTaskTimer();
+  }else{
+    state.remaining = 20; state.timer = 20*60; state.t0 = 0;
+    tickTestTimer(); state.tHandle = setInterval(tickTestTimer,1000);
+  }
+  nextQuestion();
+}
+
+function endSession(msg){
+  stopTimer();
+  statusEl.innerHTML = `<span class="errTxt">${msg} Download je bewijsje en upload in Smartschool.</span>`;
+  downloadProof();
+}
+
+/* ====== Oplossing na 2 fouten (oefen) ====== */
+function revealSolution(){
+  const q = state.q;
+  state.forceCorr = true;
+
+  if(q.type === "afronden"){
+    const rPrices = q.items.map(it=>roundEuroAmount(it.p));
+    const corrTot = rPrices.reduce((a,b)=>a+b,0);
+    state.solution = {type:"afronden", r:rPrices, t:corrTot};
+
+    const rows = Array.from(ansArea.querySelectorAll(".ansRow"));
+    rows.forEach((inp,i)=>{
+      inp.value = ""; inp.placeholder = String(rPrices[i]);
+      inp.parentElement.classList.add("hinting");
+    });
+    const tot = el("#ansTotal");
+    tot.value = ""; tot.placeholder = String(corrTot);
+    tot.parentElement.classList.add("hinting");
+
+    statusEl.innerHTML = `<span class="infoTxt">ℹ️ Twee pogingen gedaan. <strong>Typ het juiste antwoord over</strong> (zoals in de placeholders) om verder te gaan.</span>`;
+
+  }else if(q.type === "totaal"){
+    const need = roundEuroAmount(q.items[0].p) + roundEuroAmount(q.items[1].p);
+    state.solution = {type:"totaal", v:need};
+    const inp = el("#ansOne");
+    inp.value = ""; inp.placeholder = String(need);
+    inp.parentElement.classList.add("hinting");
+    statusEl.innerHTML = `<span class="infoTxt">ℹ️ Twee pogingen. Typ <strong>${need}</strong> over om verder te gaan.</span>`;
+
+  }else{
+    const sumR = roundEuroAmount(q.items[0].p) + roundEuroAmount(q.items[1].p);
+    const need = q.pay - sumR;
+    state.solution = {type:"betaling", v:need};
+    const inp = el("#ansChange");
+    inp.value = ""; inp.placeholder = String(need);
+    inp.parentElement.classList.add("hinting");
+    statusEl.innerHTML = `<span class="infoTxt">ℹ️ Twee pogingen. Typ het wisselgeld <strong>${need}</strong> over om verder te gaan.</span>`;
+  }
+}
+
+/* ====== Controleren ====== */
+function checkAnswer(){
+  const q = state.q;
+  if(!q) return;
+
+  let ok = false, user, corr, detail="";
+
+  if(q.type === "afronden"){
+    const rows = Array.from(ansArea.querySelectorAll(".ansRow"));
+    const tot = el("#ansTotal");
+    const rPrices = q.items.map(it=>roundEuroAmount(it.p));
+    const userRows = rows.map(x=>parseNum(x.value));
+    const userTot = parseNum(tot.value);
+    const corrTot = rPrices.reduce((a,b)=>a+b,0);
+
+    rows.forEach((x,i)=>{
+      x.parentElement.parentElement.classList.remove("good","bad");
+      const good = userRows[i]===rPrices[i];
+      x.parentElement.parentElement.classList.add(good?"good":"bad");
+    });
+    tot.parentElement.classList.remove("good","bad");
+    tot.parentElement.classList.add(userTot===corrTot?"good":"bad");
+
+    ok = userRows.every((v,i)=>v===rPrices[i]) && userTot===corrTot;
+    user = {r1:userRows[0], r2:userRows[1], r3:userRows[2], t:userTot};
+    corr = {r1:rPrices[0], r2:rPrices[1], r3:rPrices[2], t:corrTot};
+    detail = q.items.map((it,i)=>`• ${it.n}: ${euro(it.p)} → ${rPrices[i]}€`).join("\n");
+
+  } else if(q.type === "totaal"){
+    const ans = parseNum(el("#ansOne").value);
+    const need = roundEuroAmount(q.items[0].p) + roundEuroAmount(q.items[1].p);
+    ok = (ans === need);
+    user = ans; corr = need;
+    detail = `• ${q.items[0].n}: ${euro(q.items[0].p)} → ${roundEuroAmount(q.items[0].p)}€
+• ${q.items[1].n}: ${euro(q.items[1].p)} → ${roundEuroAmount(q.items[1].p)}€`;
+    el("#ansOne").parentElement.classList.remove("good","bad");
+    el("#ansOne").parentElement.classList.add(ok?"good":"bad");
+
+  } else {
+    const ans = parseNum(el("#ansChange").value);
+    const sumR = roundEuroAmount(q.items[0].p) + roundEuroAmount(q.items[1].p);
+    const need = q.pay - sumR;
+    ok = (ans === need);
+    user = ans; corr = need;
+    detail = `• Som afgerond: ${sumR}€  • Betaald: ${q.pay}€`;
+    el("#ansChange").parentElement.classList.remove("good","bad");
+    el("#ansChange").parentElement.classList.add(ok?"good":"bad");
+  }
+
+  if(state.forceCorr){
+    if(ok){
+      statusEl.innerHTML = `<span class="okTxt">✅ Overgenomen. Volgende oefening…</span>`;
+      pushHistory(true, false, detail, user, corr);
+      setTimeout(nextQuestion, 500);
+    }else{
+      statusEl.innerHTML = `<span class="infoTxt">✍️ Typ exact de voorgestelde oplossing over om verder te gaan.</span>`;
+    }
+    return;
+  }
+
+  if(ok){
+    statusEl.innerHTML = `<span class="okTxt">✅ Juist!</span>`;
+    state.right++; okEl.textContent = state.right;
+    pushHistory(true, true, detail, user, corr);
+
+    if(state.mode==="practice"){ setTimeout(nextQuestion, 600); }
+    else{
+      state.remaining--;
+      if(state.remaining<=0){ setTimeout(()=>endSession("Bedankt! De taak/toets is afgelopen."), 300); }
+      else{ setTimeout(nextQuestion, 600); }
+    }
+  }else{
+    state.qWrong++;
+    if(state.mode==="practice" && state.qWrong>=2){
+      revealSolution();
+    }else{
+      statusEl.innerHTML = `<span class="errTxt">❌ Niet helemaal. Tip: rond elk bedrag af naar hele euro’s.</span>`;
+      if(state.mode!=="practice"){
+        state.remaining--;
+        if(state.remaining<=0){ setTimeout(()=>endSession("Bedankt! De taak/toets is afgelopen."), 300); }
+        else{ setTimeout(nextQuestion, 600); }
+      }
+    }
+    el("#board").classList.remove("shake"); void el("#board").offsetWidth; el("#board").classList.add("shake");
+    state.wrong++; errEl.textContent = state.wrong;
+    pushHistory(false, false, detail, user, corr);
+  }
+}
+
+/* ====== Log voor bewijs ====== */
+function pushHistory(correct, countAsRight, detail, user, corr){
+  const q = state.q;
+  const base = {
+    when: new Date().toISOString(),
+    type: q.type,
+    poster: q.poster,
+    items: q.items.map(x=>({n:x.n,p:x.p})),
+    detail, correct,
+    actor: q.actor?.name || null,
+    mode: state.mode,
+    counted: countAsRight ? "right" : (correct ? "copied" : "wrong")
+  };
+  base.user = user; base.corr = corr;
+  state.history.push(base);
+}
+
+/* ====== Evidence PNG ====== */
+function trySharedProof(summary){
+  try{
+    if(window.MR_SHARED){
+      MR_SHARED.finishSession(summary);
+      return true;
+    }
+  }catch(e){ console.error('shared downloadProof failed', e); }
+  return false;
+}
+
+function downloadFallbackProof(summary){
+  if(!(window.MR_SHARED && MR_SHARED.cert && MR_SHARED.cert.downloadTable)){ return; }
+  const total = summary.total || 0;
+  const ok = summary.ok || 0;
+  const pct = total ? Math.round((ok / total) * 100) : 0;
+  const seconds = summary.seconds != null ? Math.max(0, summary.seconds) : 0;
+  const timeLabel = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  const meta = [
+    `Naam: ${summary.name || '-'}`,
+    `Modus: ${formatModeLabel(summary.mode)}`,
+    `Score: ${ok}/${total} (${pct}%)`,
+    `Tijdsduur: ${timeLabel}`,
+    `Datum: ${new Date().toLocaleString('nl-BE')}`
+  ];
+  const rows = (summary.questions || []).map((row, idx) => ({
+    nr: idx + 1,
+    vraag: row.q || '',
+    antwoord: row.a ?? row.user ?? '-',
+    correct: row.correct ?? '-',
+    ok: !!row.ok
+  }));
+  const safeName = (MR_SHARED.cert && MR_SHARED.cert.safeFilePart)
+    ? MR_SHARED.cert.safeFilePart(summary.name || 'leerling')
+    : (summary.name || 'leerling').replace(/[^\w\s-]+/g, '').trim().replace(/\s+/g, '_');
+  MR_SHARED.cert.downloadTable({
+    width: 1200,
+    title: 'Bewijs - Aldi: schatten',
+    gradient: ['#f3f7ff', '#ffffff'],
+    meta,
+    table: {
+      title: 'Vragen & antwoorden',
+      columns: [
+        { label: '#', key: 'nr', width: 60, align: 'left' },
+        { label: 'Vraag', key: 'vraag', width: 480, wrap: true, lineHeight: 22 },
+        { label: 'Antwoord', key: 'antwoord', width: 240 },
+        { label: 'Correct', key: 'correct', width: 240 },
+        { label: 'Status', width: 120, align: 'center', value: row => row.ok ? 'Juist' : 'Fout', color: row => row.ok ? '#16a34a' : '#dc2626' }
+      ],
+      rows
+    },
+    fileName: `bewijs_schatten_${safeName}_${Date.now()}.png`
+  });
+}
+
+function formatModeLabel(mode){
+  if (mode === 'taak' || mode === 'task') return 'Taak';
+  if (mode === 'toets' || mode === 'test') return 'Toets';
+  return 'Vrij';
+}
+
+function downloadProof(){
+  const modeLabel = state.mode === 'task' ? 'taak' : (state.mode === 'test' ? 'toets' : 'oefen');
+  const secondsUsed =
+    state.mode === 'test'
+      ? (20*60 - Math.max(0,state.timer))
+      : (state.mode === 'task' && state.t0 ? Math.floor((Date.now()-state.t0)/1000) : undefined);
+
+  const summary = {
+    title: 'Aldi: schatten, afronden & betalen',
+    gameId: 'schatten',
+    mode: modeLabel,
+    name: (state.who||'leerling'),
+    ok: state.right,
+    err: state.wrong,
+    total: state.right + state.wrong,
+    score: state.right,
+    seconds: secondsUsed,
+    questions: (state.history||[]).map(h=>({
+      q: h.detail || h.q || h.prompt || '',
+      a: h.user ?? h.a ?? h.answerGiven ?? '',
+      given: h.user ?? h.a ?? h.answerGiven ?? '',
+      correct: h.corr ?? h.correctAnswer ?? '',
+      ok: !!h.correct
+    }))
+  };
+  if(trySharedProof(summary)) return;
+  downloadFallbackProof(summary);
+}
+
+/* ====== UI buttons ====== */
+el("#startTaak").addEventListener("click", ()=>{ askName("taak (20)", ()=>resetSession("task")); });
+el("#startToets").addEventListener("click", ()=>{ askName("toets (20 / 20 min)", ()=>resetSession("test")); });
+
+/* MR_SHARED.askName als aanwezig, anders eigen modal */
+async function askName(kind, onStart){
+  if (window.MR_SHARED && MR_SHARED.askName){
+    try{
+      const key = /toets/i.test(kind) ? 'toets' : (/taak/i.test(kind) ? 'taak' : 'oefen');
+      const n = await MR_SHARED.askName(key);
+      state.who = (n||"").trim();
+      if(!state.who) return; // geannuleerd -> niet starten
+      onStart();
+      return;
+    }catch(e){
+      // geannuleerd/fout → val terug op modal
+    }
+  }
+  // Fallback modal
+  el("#modalKind").textContent = kind;
+  const m = el("#nameModal");
+  m.style.display = "flex";
+  document.body.style.overflow = "hidden";
+  const inp = el("#nameInput");
+  inp.value = state.who || "";
+  setTimeout(()=>inp.focus(), 50);
+
+  const start = ()=>{
+    state.who = (inp.value || "").trim();
+    m.style.display="none";
+    document.body.style.overflow = "";
+    if(!state.who) return; // leeg → niet starten
+    onStart();
+  };
+  el("#startModal").onclick = start;
+  el("#cancelModal").onclick = ()=>{ m.style.display="none"; document.body.style.overflow = ""; };
+  inp.onkeydown = (e)=>{ if(e.key==="Enter") start(); };
+}
+
+/* ====== Fullscreen ====== */
+el("#fullBtn").addEventListener("click", ()=>{
+  const docEl = document.documentElement;
+  if(!document.fullscreenElement){ docEl.requestFullscreen?.(); }
+  else { document.exitFullscreen?.(); }
+});
+
+/* ====== Start ====== */
+resetSession("practice");
+</script>
+</body>
+</html>

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mr Raes: Munten Tellen</title>
+
+  <!-- Game ID + shared-koppeling -->
+  <meta name="x-game-id" content="Munten (1LJB)">
+  <script>window.GAME_ID = 'munten_1ljb';</script>
+  <link rel="stylesheet" href="mrraes-shared.css">
+  <script src="mrraes-shared.js"></script>
+
+  <style>
+    :root{
+      --bg:#f7f8fb; --ink:#0b132b; --ring:#dfe6f6; --good:#10b981; --bad:#ef4444; --card:#ffffff;
+      --coinSize:104; --ring2:#dfe6f6; --shadow:0 10px 28px rgba(15,23,42,.06); --radius:20px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,Arial,sans-serif; color:var(--ink);
+      background:
+        radial-gradient(1200px 600px at 80% -10%, #eef3ff 0%, #f7f8fb 45%, #fafcff 100%),
+        var(--bg);
+    }
+
+    /* === Topbar in vaste stijl === */
+    .topbar-rail{
+      position: sticky; top: 0; z-index: 100;
+      background:linear-gradient(#fff,#fbfdff);
+      border-bottom:1px solid var(--ring);
+      box-shadow:0 8px 18px rgba(13,21,41,.06);
+    }
+    .topbar{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem}
+    .chip{
+      background:#fff; border:1px solid var(--ring2); border-radius:999px;
+      padding:.35rem .7rem; box-shadow:var(--shadow); display:inline-flex; gap:.5rem; align-items:center; font-weight:800;
+      white-space:nowrap;
+    }
+    .chip.btn{cursor:pointer; transition:transform .06s ease, box-shadow .12s ease, background .12s ease}
+    .chip.btn:active{transform:translateY(1px); box-shadow:0 6px 18px rgba(15,23,42,.08)}
+    .chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+    .chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+    .spacer{flex:1}
+    .select{ border-radius:12px; border:1px solid var(--ring2); padding:.35rem .5rem; background:#fff; font:inherit; font-weight:900 }
+
+    /* Board + UI */
+    .wrap{ width:min(1200px,96vw); margin:14px auto; padding:14px; }
+    .arena{ background:#fff; border:1px solid var(--ring); border-radius:22px; padding:1.2rem; box-shadow:0 10px 30px rgba(0,0,0,.06); transition:box-shadow .2s ease,border-color .2s ease; }
+    .arena.good{ box-shadow:0 12px 34px rgba(16,185,129,.25); border-color:#bfe9d7 }
+    .arena.bad{  box-shadow:0 12px 34px rgba(239,68,68,.20); border-color:#f4c7c7 }
+    .shake{ animation:shake .35s ease }
+    @keyframes shake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-10px)} 40%{transform:translateX(10px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+
+    .board{ position:relative; width:100%; min-height:260px; border-radius:16px; background: radial-gradient(600px 400px at 80% -20%, #f4f7ff 0%, #ffffff 55%) no-repeat; }
+    .coin{ position:absolute; width:calc(var(--coinSize)*1px); height:calc(var(--coinSize)*1px); transform:translate(-50%,-50%); display:grid; place-items:center; pointer-events:none; }
+    .coin img{ width:100%; height:100%; object-fit:contain; border-radius:50%; filter:drop-shadow(0 2px 4px rgba(0,0,0,.18)); transition:transform .15s ease; }
+
+    .panel{ margin-top:1rem; display:grid; grid-template-columns:1fr auto; gap:1rem; align-items:start; }
+    .inputbox{ background:#fff; border:1px solid var(--ring); border-radius:16px; padding:.8rem; box-shadow:0 8px 20px rgba(0,0,0,.05) }
+    .inputbox label{ display:block; font-weight:800; margin-bottom:.3rem }
+    .ansrow{ display:flex; gap:.6rem; align-items:center; flex-wrap:wrap }
+    .ans{ font-size:clamp(28px,4.8vw,46px); font-weight:900; padding:.35rem .6rem; border:1px solid var(--ring); border-radius:12px; min-width:10ch; text-align:center; background:#f9fbff; }
+    .okbtn{ font-size:clamp(18px,2.8vw,22px); font-weight:800; padding:.6rem 1rem; border-radius:12px; border:1px solid var(--ring); background:#fff; cursor:pointer }
+    .hint{ opacity:.75 }
+
+    .keypad{ display:grid; grid-template-columns:repeat(4, minmax(60px,80px)); gap:.6rem; background:#fff; border:1px solid var(--ring); border-radius:16px; padding:.8rem; box-shadow:0 8px 20px rgba(0,0,0,.05) }
+    .key{ font-size:clamp(22px,3.8vw,28px); font-weight:800; padding:.6rem 0; text-align:center; cursor:pointer; background:linear-gradient(180deg,#ffffff 0%,#eef2ff 100%); border:1px solid var(--ring); border-radius:12px; user-select:none; }
+    .wide{ grid-column:span 2; } .ok{ background:linear-gradient(180deg,#eafff6 0%,#c9f3e3 100%); }
+
+    .progresswrap{ margin-top:.6rem } .progbar{ height:10px; background:#eef2ff; border-radius:999px; overflow:hidden } .progbar div{ height:100%; width:0%; background:#3a86ff }
+
+    @media (max-width:700px){
+      :root{ --coinSize:92; }
+      .keypad{ grid-template-columns:repeat(4, minmax(52px,1fr)); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar-rail">
+    <div class="topbar">
+      <button id="startTaak"  class="chip btn">📝 Start taak (20)</button>
+      <button id="startToets" class="chip btn">🧪 Start toets (20 / 10 min)</button>
+      <button id="fullBtn"    class="chip btn">⤢ Volledig scherm</button>
+            <span class="chip">🧩 <strong>Level:</strong>&nbsp;<span id="level">1</span></span>
+
+      <div class="spacer"></div>
+      <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+
+
+
+      <span class="chip" id="progressChip" style="display:none">Vraag <strong id="qNow">1</strong>/<strong id="qTotal">20</strong></span>
+      <span class="chip ok">✅ Juist: <span id="right">0</span></span>
+      <span class="chip bad">❌ Fout: <span id="wrong">0</span></span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <main class="arena" id="arena" aria-live="polite">
+      <section class="board" id="board"></section>
+
+      <div class="panel">
+        <div class="inputbox">
+          <label for="answer">Hoeveel euro ligt er?</label>
+          <div class="ansrow">
+            <input id="answer" class="ans" inputmode="decimal" autocomplete="off" placeholder="0,00" />
+            <button class="okbtn" id="okBtn">OK</button>
+          </div>
+          <div class="hint" id="hint">Gebruik het toetsenbord of de keypad.</div>
+          <div class="progresswrap"><div class="progbar"><div id="prog"></div></div></div>
+        </div>
+
+        <div class="keypad" id="keypad">
+          <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key">←</div>
+          <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">,</div>
+          <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">00</div>
+          <div class="key wide">0</div><div class="key wide ok">OK</div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap; margin-top:.8rem">
+        <button id="proofBtn" class="chip btn">📷 Download bewijs (PNG)</button>
+      </div>
+    </main>
+  </div>
+
+<script>
+(()=>{
+
+  /* ===== Config & doelen ===== */
+  const MAX_Q = 20;
+  const GOALS = ['BV1_06.02','06.02.08'];
+
+  /* ===== Afbeeldingen ===== */
+  const COIN_IMG = { 200:'munten/200.png', 100:'munten/100.png', 50:'munten/50.png', 20:'munten/20.png', 10:'munten/10.png', 5:'munten/5.png' };
+  const COIN_SCALE = { 200:1.00, 100:0.903, 50:0.942, 20:0.864, 10:0.767, 5:0.825 };
+
+  /* ===== DOM ===== */
+  const $=s=>document.querySelector(s);
+  const board=$('#board'), arena=$('#arena');
+  const ansInput=$('#answer'), okBtn=$('#okBtn'), keypad=$('#keypad');
+  const fullBtn=$('#fullBtn'), proofBtn=$('#proofBtn');
+  const rightEl=$('#right'), wrongEl=$('#wrong'), levelEl=$('#level');
+  const progEl=$('#prog'), hintEl=$('#hint');
+  const startTaak=$('#startTaak'), startToets=$('#startToets');
+  const qNowEl=$('#qNow'), qTotalEl=$('#qTotal'), progressChip=$('#progressChip');
+  const timeDisp=$('#timeDisp');
+
+  /* ===== State ===== */
+  let mode='vrij'; // 'vrij' | 'taak' | 'toets'
+  let right=0, wrong=0, level=1, streak=0, targetCents=0;
+  const needToLevelUp=5;
+  let qNow=0;
+  let timerId=null, tStart=0, tLimitMs=10*60*1000; // toets = 10 min
+  let studentName='';
+  const history=[]; // log per vraag
+
+  /* ===== Helpers ===== */
+  const randInt=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const pad2=n=> String(Math.max(0,Math.floor(n))).padStart(2,'0');
+  function centsToStr(c){
+    return (c/100).toLocaleString('nl-BE',{minimumFractionDigits:2, maximumFractionDigits:2, style:'currency', currency:'EUR'});
+  }
+  function parseEuro(str){
+    if(!str) return NaN;
+    str=String(str).replace(/[€\s]/g,'').replace(',','.');
+    const val=Number(str); if(!isFinite(val)) return NaN; return Math.round(val*100);
+  }
+  function setProgress(){ progEl.style.width = Math.min(100, Math.round(100*streak/needToLevelUp)) + '%'; }
+
+  function getBaseCoinSize(){
+    const v=getComputedStyle(document.documentElement).getPropertyValue('--coinSize').trim();
+    const n=parseFloat(v); return Number.isFinite(n)?n:104;
+  }
+
+  /* ===== Levels ===== */
+  const LEVELS={
+    1:{ coins:[100,200,50,20],      min:4, max:6 },
+    2:{ coins:[100,200,50,20,10],   min:5, max:8 },
+    3:{ coins:[100,200,50,20,10,5], min:6, max:10 },
+    4:{ coins:[100,200,50,20,10,5], min:8, max:14 },
+  };
+
+  /* ===== Coins layout ===== */
+  function packCoins(radii, width, height, margin=6){
+    const placed=[]; const maxAttempts=600;
+    for(let i=0;i<radii.length;i++){
+      const r=radii[i]; let ok=false;
+      for(let t=0;t<maxAttempts && !ok;t++){
+        const x=randInt(Math.ceil(r), Math.floor(width-r));
+        const y=randInt(Math.ceil(r), Math.floor(height-r));
+        let hit=false;
+        for(let j=0;j<placed.length;j++){
+          const dx=x-placed[j].x, dy=y-placed[j].y, minDist=r+placed[j].r+margin;
+          if(dx*dx+dy*dy < minDist*minDist){ hit=true; break; }
+        }
+        if(!hit){ placed.push({x,y,r}); ok=true; }
+      }
+      if(!ok) return null;
+    }
+    return placed;
+  }
+
+  function layoutScattered(chosen){
+    const base=getBaseCoinSize();
+    const radii=chosen.map(c=> (base*0.5)*(COIN_SCALE[c] ?? 1));
+    const width = board.clientWidth || board.getBoundingClientRect().width || 800;
+    const totalArea=radii.reduce((s,r)=> s+Math.PI*r*r, 0);
+    const density=0.42;
+    let height=Math.max(260, Math.ceil(totalArea/(density*width)));
+
+    let placed=null, tries=0;
+    while(!placed && tries<5){
+      placed=packCoins(radii, width, height, 6);
+      if(!placed){ height=Math.ceil(height*1.18); tries++; }
+    }
+
+    // fallback grid
+    if(!placed){
+      placed=[]; const gap=base*1.2; const cols=Math.max(1, Math.floor(width/gap));
+      for(let i=0;i<radii.length;i++){
+        const col=i%cols, row=Math.floor(i/cols);
+        placed.push({ x:Math.round((col+0.6)*gap), y:Math.round((row+0.8)*gap), r:radii[i] });
+      }
+      height=Math.max(height, Math.ceil((Math.ceil(radii.length/cols)+1)*gap));
+    }
+
+    board.style.height=height+'px';
+    board.innerHTML='';
+
+    chosen.forEach((c,i)=>{
+      const d=document.createElement('div'); d.className='coin';
+      const img=document.createElement('img'); img.alt=(c===200?'2€':c===100?'1€':(c+'c')); img.src=COIN_IMG[c]||'';
+      const scale=COIN_SCALE[c] ?? 1; const rot=(Math.random()*10-5);
+      img.style.transform=`rotate(${rot}deg) scale(${scale})`;
+      const p=placed[i]; d.style.left=p.x+'px'; d.style.top=p.y+'px';
+      img.onerror=()=>{ img.style.display='none'; d.textContent=(c===200?'2€':c===100?'1€':(c+'c')); d.style.fontWeight='900'; };
+      d.appendChild(img); board.appendChild(d);
+    });
+  }
+
+  /* ===== Ronden ===== */
+  function newRound(){
+    arena.classList.remove('good','bad','shake');
+    const {coins,min,max}=LEVELS[level];
+    const n=randInt(min,max);
+    const chosen=[]; for(let i=0;i<n;i++) chosen.push(coins[randInt(0, coins.length-1)]);
+    targetCents=chosen.reduce((s,c)=> s+c, 0);
+    layoutScattered(chosen);
+    ansInput.value=''; ansInput.disabled=false; okBtn.disabled=false; ansInput.focus({preventScroll:true});
+    hintEl.textContent=`Niveau ${level}: ${n} munten.`;
+    if(mode!=='vrij'){ if(qNow===0) qNow=1; qNowEl.textContent=String(qNow); }
+  }
+
+  /* ===== Check ===== */
+  function markRow(userCents, ok){
+    history.push({
+      idx: history.length+1,
+      ts: new Date().toISOString(),
+      level, target: targetCents, input: (isNaN(userCents)?null:userCents),
+      user: (isNaN(userCents)?'-':centsToStr(userCents)),
+      correct: centsToStr(targetCents),
+      ok, goals: GOALS
+    });
+    try{
+      if(window.MR_SHARED?.mark){
+        MR_SHARED.mark({
+          q: 'Bedrag in euro',
+          a: (isNaN(userCents) ? '-' : centsToStr(userCents)),
+          given: (isNaN(userCents) ? '-' : centsToStr(userCents)),
+          correct: centsToStr(targetCents),
+          ok: !!ok,
+          goals: GOALS
+        });
+      }
+    }catch(e){}
+  }
+
+  function flashBad(msg){
+    hintEl.textContent=msg; arena.classList.add('bad');
+    arena.classList.remove('shake'); void arena.offsetWidth; arena.classList.add('shake');
+    setTimeout(()=> arena.classList.remove('bad'), 280);
+  }
+
+  function check(){
+    const cents=parseEuro(ansInput.value);
+    if(isNaN(cents)){ flashBad('Ongeldig getal'); return; }
+    const ok=(cents===targetCents);
+
+    if(ok){
+      right++; rightEl.textContent=String(right);
+      arena.classList.add('good'); streak++; setProgress();
+      if(streak>=needToLevelUp && level<4){ level++; levelEl.textContent=String(level); streak=0; setProgress(); }
+    }else{
+      wrong++; wrongEl.textContent=String(wrong);
+      const show=(targetCents/100).toLocaleString('nl-BE',{minimumFractionDigits:2, maximumFractionDigits:2});
+      flashBad(`Fout. Probeer opnieuw… (er ligt € ${show})`);
+    }
+
+    if(mode!=='vrij') markRow(cents, ok);
+
+    setTimeout(()=>{ arena.classList.remove('good'); nextStep(ok); }, ok?650:0);
+  }
+
+  function nextStep(ok){
+    if(mode==='vrij'){ newRound(); return; }
+    if(qNow<MAX_Q){ qNow++; qNowEl.textContent=String(qNow); newRound(); }
+    else { finishRun(); }
+  }
+
+  /* ===== Timer ===== */
+  function stopTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
+  function startTimerUp(){
+    stopTimer(); tStart=Date.now();
+    function tick(){
+      const s = Math.floor((Date.now()-tStart)/1000);
+      timeDisp.textContent = pad2(Math.floor(s/60))+':'+pad2(s%60);
+    }
+    tick(); timerId=setInterval(tick, 500);
+  }
+  function startTimerDown(seconds){
+    stopTimer(); tStart=Date.now(); tLimitMs = seconds*1000;
+    function tick(){
+      const left = Math.max(0, tLimitMs - (Date.now()-tStart));
+      const s = Math.floor(left/1000);
+      timeDisp.textContent = pad2(Math.floor(s/60))+':'+pad2(s%60);
+      if(left<=0){ stopTimer(); finishRun(); }
+    }
+    tick(); timerId=setInterval(tick, 250);
+  }
+  function secondsUsed(){
+    const m = /^(\d+):(\d+)$/.exec(timeDisp.textContent || '');
+    const val = m ? (parseInt(m[1],10)*60 + parseInt(m[2],10)) : 0;
+    if(mode==='toets'){
+      const limitSec = Math.round((tLimitMs||10*60*1000)/1000);
+      return Math.max(0, limitSec - val); // klok toont resterend → omzetten naar gebruikt
+    }
+    return val; // taak omhoog; vrij “—”→0
+  }
+
+  /* ===== Modes ===== */
+  function setMode(newMode){
+    // reset bij begin taak/toets
+    if(newMode==='taak' || newMode==='toets'){
+      right=0; wrong=0; rightEl.textContent='0'; wrongEl.textContent='0';
+      level=1; levelEl.textContent='1'; streak=0; setProgress();
+      history.length=0; qNow=0; qTotalEl.textContent=String(MAX_Q);
+      progressChip.style.display='inline-flex';
+    } else {
+      progressChip.style.display='none';
+    }
+    mode=newMode; 
+    if(mode==='taak') startTimerUp();
+    if(mode==='toets') startTimerDown(10*60);
+    if(mode==='vrij'){ stopTimer(); timeDisp.textContent='—'; }
+  }
+
+  /* ===== Summary / Bewijs ===== */
+  function buildSummary(){
+    return {
+      title:'Munten',
+      gameId: window.GAME_ID || 'munten',
+      mode, // 'vrij' | 'taak' | 'toets'
+      name: (window.MR_SHARED?.getName?.() || studentName || ''),
+      class: (localStorage.getItem('mr_class') || ''),
+      ok:right, err:wrong, total: Math.min(qNow||0, MAX_Q), score:right,
+      seconds: secondsUsed(),
+      goals: GOALS.slice(),
+      date: new Date(),
+      questions: history.map(h=>({ q:'Bedrag', a:h.user, given:h.user, correct:h.correct, ok:!!h.ok }))
+    };
+  }
+
+  function finishRun(){
+    stopTimer();
+    ansInput.disabled=true; okBtn.disabled=true;
+
+    const summary = buildSummary();
+    let handled=false;
+    try{ if(window.MR_SHARED?.trySharedProof){ handled=!!MR_SHARED.trySharedProof(summary); } }catch(e){}
+    if(!handled){
+      try{ if(window.MR_SHARED?.finishSession){ MR_SHARED.finishSession(summary); handled=true; } }catch(e){}
+    }
+    if(!handled) { try{ downloadProofPNG(summary.mode, summary); }catch(e){} }
+
+    setMode('vrij');
+  }
+
+  /* ===== Proof (fallback via cert.downloadTable) ===== */
+  function downloadProofPNG(runMode, summary){
+    try{
+      if(!(window.MR_SHARED?.cert?.downloadTable)) return;
+      const rows = (summary.questions||history).map((h,i)=>({
+        nr:i+1, uitspraak:h.q||'Bedrag', antwoord:h.a||h.given||'-', correct:h.correct||'-', ok:!!h.ok
+      }));
+      const safe=(summary.name||'leerling').replace(/[^\w\s-]+/g,'').trim().replace(/\s+/g,'_') || 'leerling';
+      const stamp=new Date().toISOString().replace(/[:T]/g,'-').split('.')[0];
+      MR_SHARED.cert.downloadTable({
+        width:1240,
+        title:'Bewijsje - Munten',
+        gradient:['#ffffff','#eef3ff'],
+        meta:{
+          name:summary.name||'-', class:summary.class||'',
+          gameId:summary.gameId||'munten', mode:runMode,
+          seconds:summary.seconds||0, score:summary.ok, total:summary.total,
+          goals:summary.goals||GOALS, date: summary.date || new Date()
+        },
+        table:{
+          title:'Vragen & antwoorden',
+          columns:[
+            {label:'#', key:'nr', width:60},
+            {label:'Uitspraak', key:'uitspraak', width:300, wrap:true, lineHeight:22},
+            {label:'Jouw antwoord', key:'antwoord', width:220},
+            {label:'Correct', key:'correct', width:220},
+            {label:'Status', width:120, align:'center', value:r=>r.ok?'Juist':'Fout', color:r=>r.ok?'#16a34a':'#dc2626'}
+          ],
+          rows
+        },
+        fileName:`bewijs_munten_${runMode}_${safe}_${stamp}.png`
+      });
+    }catch(e){ console.warn('cert-fallback niet beschikbaar', e); }
+  }
+
+  /* ===== Events ===== */
+  keypad.addEventListener('click', (e)=>{
+    const k=e.target.closest('.key'); if(!k) return;
+    const t=k.textContent.trim();
+    if(t==='OK'){ check(); return; }
+    if(t==='←'){ ansInput.value=ansInput.value.slice(0,-1); ansInput.focus(); return; }
+    if(t===','){ if(!ansInput.value.includes(',') && !ansInput.value.includes('.')) ansInput.value+=','; }
+    else if(t==='00'){ ansInput.value+='00'; }
+    else { ansInput.value+=t; }
+    ansInput.focus();
+  });
+  function insertCommaAtCaret(input){
+    const hasSep=input.value.includes(',')||input.value.includes('.'); if(hasSep) return;
+    const s=input.selectionStart ?? input.value.length, e=input.selectionEnd ?? s;
+    input.value=input.value.slice(0,s)+','+input.value.slice(e);
+    const pos=s+1; input.setSelectionRange(pos,pos);
+  }
+  ansInput.addEventListener('keydown', (e)=>{
+    if(e.code==='NumpadDecimal' || e.key==='Decimal' || e.key==='.'){ e.preventDefault(); insertCommaAtCaret(ansInput); return; }
+    if(e.key==='Enter'){ e.preventDefault(); check(); }
+  });
+  okBtn.addEventListener('click', check);
+
+  fullBtn.addEventListener('click', ()=>{
+    const el=document.documentElement;
+    if(!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.();
+  });
+
+  // Start Taak/Toets met popup (MR_SHARED of fallback)
+  startTaak.onclick = async ()=>{
+    if(window.MR_SHARED?.askName){
+      const n = await MR_SHARED.askName('taak'); if(!n) return; studentName = n.trim();
+    }else{
+      const n=(prompt('Naam?')||'').trim(); if(!n) return; studentName=n;
+    }
+    setMode('taak'); newRound();
+  };
+  startToets.onclick = async ()=>{
+    if(window.MR_SHARED?.askName){
+      const n = await MR_SHARED.askName('toets'); if(!n) return; studentName = n.trim();
+    }else{
+      const n=(prompt('Naam?')||'').trim(); if(!n) return; studentName=n;
+    }
+    setMode('toets'); newRound();
+  };
+
+  // Bewijs-knop
+  proofBtn.addEventListener('click', ()=>{
+    if(mode==='toets' || mode==='taak'){
+      if(window.MR_SHARED?.endRun){ try{ MR_SHARED.endRun({}); }catch(e){ finishRun(); } }
+      else { finishRun(); }
+    }else{
+      const s = buildSummary(); downloadProofPNG('vrij', s);
+    }
+  });
+
+  // Wire topbar timer / platform integratie (optioneel)
+  document.addEventListener('DOMContentLoaded', ()=>{
+    try{
+      if(window.MR_SHARED?.wireTopbar){
+        MR_SHARED.wireTopbar({
+          gameId: window.GAME_ID || 'munten',
+          title: 'Munten',
+          selectors: { taskBtn:'#startTaak', testBtn:'#startToets', timerLabel:'#timeDisp' },
+          test: { countdownSec: 10*60 },
+          onReset(runMode){ setMode(runMode==='toets'?'toets':'taak'); newRound(); },
+          onFinish(summary){
+            const built = buildSummary();
+            const merged = { ...built, ...summary };
+            if(!merged.goals || !merged.goals.length) merged.goals = built.goals;
+            if(!merged.questions || !merged.questions.length) merged.questions = built.questions;
+            MR_SHARED.finishSession(merged);
+            setMode('vrij'); newRound();
+          }
+        });
+      }
+    }catch(e){ console.warn('wireTopbar niet beschikbaar', e); }
+
+    // Start in vrij
+    right=wrong=streak=0; rightEl.textContent='0'; wrongEl.textContent='0'; setProgress();
+    timeDisp.textContent='—'; progressChip.style.display='none';
+    requestAnimationFrame(newRound);
+  });
+
+})();
+</script>
+</body>
+</html>

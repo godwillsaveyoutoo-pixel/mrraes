@@ -1,0 +1,791 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zinvol afronden — BV1_06.03</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f6f8fb; --ink:#111827; --muted:#6b7280; --card:#ffffff; --border:#e5e7eb;
+      --soft:#f2f4f8; --good:#10b981; --bad:#ef4444; --info:#2563eb; --ring:#e6e9ef;
+      /* wordt dynamisch gezet in JS: */
+      --topbar-h: 56px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink);
+      background: radial-gradient(1200px 700px at 20% -10%, #fff 0%, var(--bg) 60%);
+    }
+
+    /* ===== Sticky TOPBAR ===== */
+    .topbar{
+      position: sticky; top: 0; z-index: 50;
+      background: linear-gradient(180deg, #fff, #f9fafb);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.04)
+    }
+    .row{display:flex; flex-wrap:wrap; align-items:center; gap:10px}
+    .spacer{flex:1}
+    .ghostbtn{
+      background:#fff; border:1px solid #e6e9ef; border-radius:999px;
+      padding:10px 14px; font-weight:700; cursor:pointer
+    }
+    .ghostbtn:hover{background:#fafafa}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--border); border-radius:999px;
+      padding:8px 12px; background:#fff; font-weight:700
+    }
+    .pill.good{color:var(--good); border-color:#a7f3d0; background:#ecfdf5}
+    .pill.bad {color:var(--bad);  border-color:#fecaca; background:#fef2f2}
+
+    /* ===== Volledige breedte/hoogte ===== */
+    .wrap{
+      width:100%;
+      margin:0;
+      padding:0;
+    }
+    .card{
+      width:100%;
+      min-height: calc(100dvh - var(--topbar-h));
+      background:var(--card); border:1px solid var(--border);
+      border-left:0; border-right:0; border-radius:0;
+      padding:16px; box-shadow:0 12px 40px rgba(0,0,0,.06);
+
+      /* laat inhoud mooi verdelen over hoogte */
+      display:grid;
+      grid-template-rows: auto auto 1fr; /* meta, taskbox, grid vult rest */
+      gap:12px;
+    }
+    .meta{font-size:13px; color:var(--muted); margin-bottom:0}
+
+    .grid{display:grid; grid-template-columns:1.2fr .8fr; gap:14px; min-height:0}
+    @media (max-width:860px){ .grid{grid-template-columns:1fr} }
+
+    .taskbox{
+      border:1px solid var(--border); border-radius:14px; background:#fff; padding:14px;
+    }
+    .vraag{
+      font-weight:900; line-height:1.2; font-size:clamp(20px,3.6vw,28px); text-align:center; margin:6px 0 0;
+    }
+
+    .lcdwrap{border:1px solid var(--border); border-radius:14px; padding:12px; background:#fff}
+    .label{font-weight:800; margin-bottom:6px}
+    .lcd{
+      min-height:80px; display:flex; align-items:center; justify-content:center;
+      background:#f8fbff; border:1px solid var(--ring); border-radius:12px;
+      font-weight:900; font-size:clamp(32px,5vw,46px); color:#1f2937; padding:.2rem .6rem;
+    }
+    .lcd.good{box-shadow:0 0 0 6px rgba(16,185,129,.18) inset}
+    .lcd.bad {box-shadow:0 0 0 6px rgba(239,68,68,.15) inset}
+    .hint{margin-top:10px; color:#374151; text-align:center; font-size:13px}
+
+    .streak{display:grid; grid-template-columns:repeat(10,1fr); gap:6px; margin-top:8px}
+    .s{height:10px; border-radius:999px; background:#eef3ff; border:1px solid #dde7ff}
+    .s.fill{background:#cde9ff; border-color:#b7dbff}
+
+    .helpbtns{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+    .smallbtn{border:1px solid var(--border); border-radius:10px; padding:6px 10px; background:#fff; font-weight:700; cursor:pointer}
+    .smallbtn:hover{background:#fafafa}
+    .helper{display:none; text-align:center; font-weight:700; font-size:13px; background:#fff; border:1px solid var(--border); border-radius:10px; padding:8px; margin-top:8px}
+
+    .pad{border:1px solid var(--border); border-radius:14px; padding:12px; background:#fff}
+    .keypad{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+    .key{
+      user-select:none; cursor:pointer; text-align:center; font-weight:900; font-size:clamp(18px,3vw,22px);
+      padding:1rem 0; border-radius:12px; background:linear-gradient(180deg,#fff 0%,#f5f6f9 100%);
+      border:1px solid #e6e9ef; box-shadow:0 6px 16px rgba(15,23,42,.06);
+      transition:transform .06s ease, box-shadow .12s ease, background .12s ease;
+    }
+    .key:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+    .key.wide{grid-column:span 2}
+    .key.ok{background:#ecf4ffca; color:#000000; border-color:#acbae8}
+
+    /* ===== Overlay / Dialog ===== */
+    .overlay{
+      position:fixed; inset:0; z-index:1000; display:none;
+      align-items:center; justify-content:center; background:rgba(17,24,39,.45); padding:20px;
+    }
+    body.noscroll{overflow:hidden}
+    .dialog{
+      width:min(520px,92vw); background:#fff; border:1px solid var(--border); border-radius:16px;
+      box-shadow:0 24px 60px rgba(0,0,0,.20); padding:18px;
+      transform:translateY(8px) scale(.98); opacity:0; transition:transform .18s ease, opacity .18s ease;
+    }
+    .overlay.show .dialog{transform:translateY(0) scale(1); opacity:1}
+    .dialog h2{margin:0 0 8px 0; font-size:20px}
+    .dialog .sub{color:#6b7280; font-size:13px; margin-bottom:12px}
+    .dialog input{width:100%; padding:10px 12px; border:1px solid #e6e9ef; border-radius:10px; font-size:14px}
+    .dlgrow{display:flex; gap:10px; justify-content:flex-end; margin-top:10px}
+
+    /* ===== Rekenpaneel (compact) ===== */
+    .calcPanel{
+      position:relative;
+      border:1px solid var(--border); border-radius:12px; background:#fff; box-shadow:0 12px 30px rgba(0,0,0,.10);
+      padding:10px; width:min(360px, 94vw); display:none;
+    }
+    .calcRow{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+    .calcDisplay{
+      width:100%; border:1px solid var(--ring); border-radius:10px; padding:8px 10px; margin-bottom:8px;
+      background:#f8fbff; font:900 20px Inter,system-ui,sans-serif; text-align:right;
+    }
+    .ckey{
+      user-select:none; cursor:pointer; height:44px; border-radius:10px; border:1px solid var(--ring);
+      background:#ffffff; box-shadow:0 5px 12px rgba(15,23,42,.06);
+      font:900 16px Inter, system-ui, sans-serif;
+    }
+    .ckey.c-op{ background:#eef5ff; border-color:#cfe2ff }
+    .ckey.c-func{ background:#fff7ea; border-color:#ffe2b8 }
+    .ckey.c-eq{ background:#eafaf4; border-color:#c4eedc }
+  </style>
+  <link rel="stylesheet" href="mrraes-shared.css">
+  <script src="mrraes-shared.js"></script>
+</head>
+<body>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="row">
+      <button id="btnOefen" class="ghostbtn">Oefenen</button>
+      <button id="startTaak"  class="ghostbtn">📝 Start taak (20)</button>
+      <button id="startToets" class="ghostbtn">🧭 Start toets (20 / 10 min)</button>
+      <button id="btnFull"  class="ghostbtn">⤢ Volledig scherm</button>
+      <div class="spacer"></div>
+      <div class="pill"><span id="modeDisp">Oefenen</span></div>
+      <div class="pill">⏱ Tijd: <span id="timeDisp">—</span></div>
+      <div class="pill good">✅ Juist: <span id="okCount">0</span></div>
+      <div class="pill bad">❌ Fout: <span id="errCount">0</span></div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="meta">Zinvol afronden — <strong>BV1_06.03</strong> — <span id="metaProg">Oefenen (—)</span></div>
+
+      <div class="taskbox">
+        <div class="vraag" id="qText">—</div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <div class="lcdwrap">
+            <div class="label">Antwoord (geheel getal)</div>
+            <div class="lcd" id="lcd"><span id="buffer">0</span></div>
+            <div class="streak" id="streak">
+              <div class="s"></div><div class="s"></div><div class="s"></div><div class="s"></div><div class="s"></div>
+              <div class="s"></div><div class="s"></div><div class="s"></div><div class="s"></div><div class="s"></div>
+            </div>
+          </div>
+          <div class="hint" id="hint">Enter of OK om te controleren. 10 keer juist = mini-boost!</div>
+
+          <div class="helpbtns">
+            <button id="btnHelp" class="smallbtn">❔ Hulp</button>
+            <button id="btnCalc" class="smallbtn">🧮 Reken</button>
+            <button id="btnProof" class="smallbtn">📷 Bewijs (PNG)</button>
+          </div>
+          <div id="helper" class="helper">
+            🔎 <b>Tip:</b> “minimaal / zodat iedereen” ⇒ naar boven afronden (ceiling).
+            “volledig vullen” ⇒ naar beneden (floor). “exact / precies” ⇒ geen afronding.
+          </div>
+
+          <!-- Rekenpaneel -->
+          <div id="calcPanel" class="calcPanel" aria-hidden="true">
+            <input id="calcDisplay" class="calcDisplay" placeholder="0" inputmode="decimal" />
+            <div class="calcRow" id="calcKeys">
+              <!-- rij 1 -->
+              <button class="ckey c-func" data-act="ac">AC</button>
+              <button class="ckey c-func" data-act="bksp">←</button>
+              <button class="ckey c-func" data-k="π">π</button>
+              <button class="ckey c-op"   data-k="÷">÷</button>
+              <!-- rij 2 -->
+              <button class="ckey" data-k="7">7</button>
+              <button class="ckey" data-k="8">8</button>
+              <button class="ckey" data-k="9">9</button>
+              <button class="ckey c-op" data-k="×">×</button>
+              <!-- rij 3 -->
+              <button class="ckey" data-k="4">4</button>
+              <button class="ckey" data-k="5">5</button>
+              <button class="ckey" data-k="6">6</button>
+              <button class="ckey c-op" data-k="−">−</button>
+              <!-- rij 4 -->
+              <button class="ckey" data-k="1">1</button>
+              <button class="ckey" data-k="2">2</button>
+              <button class="ckey" data-k="3">3</button>
+              <button class="ckey c-op" data-k="+">+</button>
+              <!-- rij 5 -->
+              <button class="ckey" data-k="0">0</button>
+              <button class="ckey" data-k=",">,</button>
+              <button class="ckey c-eq" data-act="eq">=</button>
+              <button class="ckey c-func" data-act="paste" title="Plak resultaat in antwoord">⮕</button>
+            </div>
+          </div>
+
+          <canvas id="exportCanvas" width="1200" height="800" style="display:none"></canvas>
+        </div>
+
+        <div>
+          <div class="pad">
+            <div class="keypad" id="keypad">
+              <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key">←</div>
+              <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">,</div>
+              <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">00</div>
+              <div class="key wide">0</div><div class="key wide ok">OK</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Overlay / Start-dialog -->
+  <div id="overlay" class="overlay" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+      <h2 id="dlgTitle">Start</h2>
+      <div class="sub" id="dlgSub">Vul je naam in en klik Start.</div>
+      <div class="row" style="margin-bottom:8px;">
+        <input id="nameInput" placeholder="Voornaam + familienaam" autocomplete="name" />
+      </div>
+      <div class="dlgrow">
+        <button id="dlgCancel" class="ghostbtn">Annuleren</button>
+        <button id="dlgStart"  class="ghostbtn">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Einde-melding -->
+  <div id="endOverlay" class="overlay" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+      <h2 id="endTitle">Bedankt!</h2>
+      <div class="sub" id="endText">De taak/toets is afgelopen. Plaats het bewijsje in de uploadzone!</div>
+      <div class="dlgrow">
+        <button id="endOk" class="ghostbtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  /* ===== Card hoogte = 100dvh - topbar ===== */
+  function setTopbarVar(){
+    const tb = document.querySelector('.topbar');
+    const h = tb ? Math.round(tb.getBoundingClientRect().height) : 0;
+    document.documentElement.style.setProperty('--topbar-h', h + 'px');
+  }
+  setTopbarVar();
+  window.addEventListener('resize', setTopbarVar);
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(setTopbarVar).catch(()=>{}); }
+
+  // ===== PROBLEMEN (20+) =====
+  const PROBLEMS = [
+    {id:1,  text:"Imran geeft iedereen een drankje. Er zijn 43 mensen en een bak heeft 6 flesjes.\nHoeveel bakken heeft hij minimaal nodig?", calc:()=>43/6, rule:'ceil', unit:"bakken"},
+    {id:2,  text:"Mariam maakt couscous voor 27 leerlingen. Eén pak is goed voor 4 personen.\nHoeveel pakken heeft ze minimaal nodig?", calc:()=>27/4, rule:'ceil', unit:"pakken"},
+    {id:3,  text:"Er gaan 132 leerlingen mee met de bus. Eén bus heeft 50 plaatsen.\nHoeveel bussen moeten ze minimaal reserveren?", calc:()=>132/50, rule:'ceil', unit:"bussen"},
+    {id:4,  text:"Imane wil iedereen een stuk pizza geven. Eén pizza heeft 8 stukken en er komen 63 mensen.\nHoeveel pizza's zijn er minimaal nodig?", calc:()=>63/8, rule:'ceil', unit:"pizza's"},
+    {id:5,  text:"Henrique wil 52 leerlingen elk één koekje geven. In een doos zitten 9 koekjes.\nHoeveel dozen zijn er minimaal nodig?", calc:()=>52/9, rule:'ceil', unit:"dozen"},
+    {id:6,  text:"Voor het feest zijn 130 stoelen nodig. De stoelen worden geleverd per stapel van 12.\nHoeveel stapels zijn er minimaal nodig?", calc:()=>130/12, rule:'ceil', unit:"stapels"},
+    {id:7,  text:"Lina zet muntthee voor 28 leerlingen. Eén theepot vult 5 kopjes.\nHoeveel theepotten zijn er minimaal nodig?", calc:()=>28/5, rule:'ceil', unit:"potten"},
+    {id:8,  text:"Meneer Goossens verdeelt 49 leerlingen in ploegen van 7.\nHoeveel ploegen kan hij precies vormen?", calc:()=>49/7, rule:'none', unit:"ploegen"},
+    {id:10, text:"Camélia bakt pannenkoeken voor 62 leerlingen. Ze bakt er 5 tegelijk.\nHoeveel bakbeurten heeft ze minimaal nodig?", calc:()=>62/5, rule:'ceil', unit:"beurten"},
+    {id:11, text:"In L.O. wil de leerkracht groepjes van 6 maken. Er zijn 32 leerlingen.\nHoeveel groepjes van 6 kan hij maken?", calc:()=>32/6, rule:'floor', unit:"groepjes"},
+    {id:12, text:"Assia pakt 20 cadeautjes in. Per cadeautje is 0,5 m lint nodig; een rol heeft 3 m.\nHoeveel rollen heeft ze minimaal nodig?", calc:()=>(20*0.5)/3, rule:'ceil', unit:"rollen"},
+    {id:13, text:"In één minibus kunnen 10 leerlingen. Er gaan 86 leerlingen mee.\nHoeveel minibussen zijn er minimaal nodig?", calc:()=>86/10, rule:'ceil', unit:"minibussen"},
+    {id:14, text:"Klas 1LJB verkoopt taarten. Eén taart bevat 8 stukken. Ze verwachten 64 klanten die ieder een stuk taart eten.\nHoeveel taarten hebben ze exact nodig?", calc:()=>64/8, rule:'none', unit:"taarten"},
+    {id:16, text:"Op sportdag zijn 70 flesjes water nodig. Een krat bevat 24 flesjes.\nHoeveel kratten zijn er minimaal nodig?", calc:()=>70/24, rule:'ceil', unit:"kratten"},
+    {id:17, text:"Per drie leerlingen krijgen we één pakje friet. Er zijn 36 leerlingen.\nHoeveel pakjes friet zijn er nodig?", calc:()=>36/3, rule:'none', unit:"frietzakken"},
+    {id:18, text:"1LJB verkoopt rozen: een doos bevat 20 rozen. Ze willen 210 rozen verkopen.\nHoeveel dozen zijn er minimaal nodig?", calc:()=>210/20, rule:'ceil', unit:"dozen"},
+    {id:20, text:"Eén pot soep bevat 7 porties. Ze willen 38 porties verdelen.\nHoeveel potten soep zijn er minimaal nodig?", calc:()=>38/7, rule:'ceil', unit:"potten"},
+    {id:22, text:"Abderrahmane deelt koekjes uit aan 27 mensen. In één doos zitten 6 koekjes.\nHoeveel dozen zijn er minimaal nodig?", calc:()=>27/6, rule:'ceil', unit:"dozen"},
+    {id:23, text:"Er zijn 38 leerlingen en Meneer Raes wil groepjes van 5 maken.\nHoeveel groepjes van 5 kan hij maken?", calc:()=>38/5, rule:'floor', unit:"groepjes"},
+    {id:24, text:"Lina bakt pizza's voor 35 mensen. Eén pizza is voor 4 personen.\nHoeveel pizza's zijn er minimaal nodig?", calc:()=>35/4, rule:'ceil', unit:"pizza's"},
+    {id:25, text:"Op het springkasteel kunnen 8 leerlingen tegelijk. Er staan 73 leerlingen in de rij.\nHoeveel beurten zijn er minimaal nodig zodat iedereen kan springen?", calc:()=>73/8, rule:'ceil', unit:"beurten"},
+    {id:26, text:"Maria Paula koopt tomatenpuree. Dozen bevatten 12 blikken. Ze heeft 140 blikken nodig.\nHoeveel dozen heeft ze minimaal nodig?", calc:()=>140/12, rule:'ceil', unit:"dozen"},
+    {id:27, text:"Adelkarim maakt tajine en heeft 5 kg kip nodig. Eén stukje weegt 250 g.\nHoeveel stukjes zijn dat precies?", calc:()=>5000/250, rule:'none', unit:"stukjes"},
+    {id:30, text:"Layla maakt zakjes met 8 snoepjes. Ze heeft 50 snoepjes.\nHoeveel zakjes van 8 snoepjes kan ze maken?", calc:()=>50/8, rule:'floor', unit:"zakjes"},
+    {id:32, text:"Yassin heeft 16 liter limonade nodig. Eén fles bevat 1,5 liter.\nHoeveel flessen moet hij minimum kopen?", calc:()=>16/1.5, rule:'ceil', unit:"flessen"},
+    {id:34, text:"Aan één picknicktafel passen 6 leerlingen. De klas telt 31 leerlingen.\nHoeveel tafels hebben we minimaal nodig?", calc:()=>31/6, rule:'ceil', unit:"tafels"},
+    {id:37, text:"In één kast passen 60 boeken. Er zijn 540 boeken.\nHoeveel kasten zijn er exact nodig?", calc:()=>540/60, rule:'none', unit:"kasten"},
+    {id:38, text:"Truitjes komen per 8 in een doos. Er zijn 53 spelers.\nHoeveel dozen hebben we minimaal nodig?", calc:()=>53/8, rule:'ceil', unit:"dozen"},
+    {id:39, text:"Adelkarim heeft 42 cupcakes. In een doos passen 6 cupcakes.\nHoeveel dozen zijn dat precies?", calc:()=>42/6, rule:'none', unit:"dozen"},
+    {id:40, text:"In het zwembad mogen 25 leerlingen tegelijk. Ze zijn met 74.\nHoeveel zwembeurten zijn er minimaal nodig?", calc:()=>74/25, rule:'ceil', unit:"beurten"},
+    {id:41, text:"Op één tribune kunnen 36 mensen zitten. Er komen 380 bezoekers.\nHoeveel tribunes hebben we nodig?", calc:()=>380/36, rule:'ceil', unit:"tribunes"},
+    {id:43, text:"Mariam verdeelt 15 appels over 5 leerlingen.\nHoeveel appels krijgt elk kind precies als je eerlijk verdeelt?", calc:()=>15/5, rule:'none', unit:"appels"},
+    {id:45, text:"Imran verpakt 85 koekjes per 8 in zakjes.\nHoeveel zakjes kan hij volledig vullen?", calc:()=>85/8, rule:'floor', unit:"zakjes"},
+    {id:47, text:"Meneer Raes koopt mappen. Een doos bevat 24 mappen en er zijn 90 mappen nodig.\nHoeveel dozen zijn er minimaal nodig?", calc:()=>90/24, rule:'ceil', unit:"dozen"},
+    {id:48, text:"Voor het uitdelen van flyers kan één leerling 15 huizen doen. Er zijn 120 huizen.\nHoeveel leerlingen hebben we minimaal nodig?", calc:()=>120/15, rule:'ceil', unit:"leerlingen"},
+    {id:49, text:"Imane heeft 6 liter melk. Bekers zijn 2 dl (0,2 l) groot.\nHoeveel bekers kan ze vullen?", calc:()=>6000/200, rule:'none', unit:"bekers"},
+    {id:51, text:"In één doos zitten 50 pennen. Er zijn 430 leerlingen, ze krijgen allemaal één pen.\nHoeveel dozen hebben we minimaal nodig?", calc:()=>430/50, rule:'ceil', unit:"dozen"},
+    {id:55, text:"Mevrouw Defruyt koopt koekjes. Eén pak bevat 12 koekjes en er zijn 45 leerlingen.\nHoeveel pakken moet ze kopen?", calc:()=>45/12, rule:'ceil', unit:"pakken"},
+    {id:57, text:"Henrique bakt 96 stukjes baklava en vult doosjes per 10 stuks.\nHoeveel doosjes kan hij volledig vullen?", calc:()=>96/10, rule:'floor', unit:"doosjes"},
+    {id:59, text:"Meneer Goossens heeft 14 ballen. Elke ploeg heeft 3 ballen nodig.\nHoeveel ploegen kunnen spelen?", calc:()=>14/3, rule:'floor', unit:"ploegen"},
+    {id:61, text:"In een kookwedstrijd maakt elke leerling 5 koekjes. Er zijn 18 leerlingen.\nHoeveel koekjes zijn er in totaal?", calc:()=>18*5, rule:'none', unit:"koekjes"},
+    {id:62, text:"De ouders van Lina kopen sinaasappelen in zakken van 3 kg. Ze hebben 22 kg nodig.\nHoeveel zakken moeten ze kopen?", calc:()=>22/3, rule:'ceil', unit:"zakken"},
+    {id:63, text:"Mevrouw El Bakkali heeft 60 meter aluminiumfolie nodig. Eén rol is 15 meter.\nHoeveel rollen heeft ze exact nodig?", calc:()=>60/15, rule:'none', unit:"rollen"},
+    {id:83, text:"Meneer Chilton wil boeken uitdelen aan 23 leerlingen. In een doos zitten 5 boeken.\nHoeveel dozen heeft hij minimaal nodig?", calc:()=>23/5, rule:'ceil', unit:"dozen"},
+    {id:99, text:"Mevrouw Stadsbader gebruikt 2,5 kg suiker. Eén pak is 1 kg.\nHoeveel pakken moet ze nemen?", calc:()=>2.5/1, rule:'ceil', unit:"pakken"},
+    {id:119,text:"Maria Paula zet 180 stoelen. Per rij zijn er 9 stoelen.\nHoeveel rijen zijn dat precies?", calc:()=>180/9, rule:'none', unit:"rijen"},
+    {id:133,text:"Meneer Chilton wil groepen van 6 maken met 42 leerlingen.\nHoeveel groepen kan hij precies vormen?", calc:()=>42/6, rule:'none', unit:"groepen"},
+    {id:134,text:"Henrique zet 137 stoelen in rijen van 10 in de eetzaal.\nHoeveel rijen zijn er minimaal nodig?", calc:()=>137/10, rule:'ceil', unit:"rijen"},
+    {id:135,text:"Meneer Goossens voorziet frisdrank. Een krat heeft 24 blikjes en er zijn 185 leerlingen.\nHoeveel kratten zijn er minimaal nodig?", calc:()=>185/24, rule:'ceil', unit:"kratten"},
+    {id:140,text:"Fatima bakt pizza's in de kookles. Eén pizza heeft 8 stukken; er zijn 59 leerlingen.\nHoeveel pizza's zijn er minimaal nodig?", calc:()=>59/8, rule:'ceil', unit:"pizza's"},
+    {id:141,text:"Meneer Hauters zaagt plankjes van 1,2 m voor 30 m hout.\nHoeveel plankjes zijn er minimaal nodig?", calc:()=>30/1.2, rule:'ceil', unit:"plankjes"},
+    {id:142,text:"Abderrahmane verkoopt 20 liter fruitsap. Eén fles bevat 1,5 liter.\nHoeveel flessen zijn er minimaal nodig?", calc:()=>20/1.5, rule:'ceil', unit:"flessen"},
+    {id:146,text:"Mevrouw El Bakkali verdeelt 31 leerlingen in groepjes van maximum 5 leerlingen.\nHoeveel groepjes zijn er minimaal nodig?", calc:()=>31/5, rule:'ceil', unit:"groepjes"},
+    {id:149,text:"Lina zet 230 stoelen in rijen van 12 voor de ouderavond.\nHoeveel rijen zijn er minimaal nodig?", calc:()=>230/12, rule:'ceil', unit:"rijen"},
+    {id:150,text:"Camélia wil 100 cupcakes bakken. Een doos past 9 cakejes.\nHoeveel dozen zijn er minimaal nodig?", calc:()=>100/9, rule:'ceil', unit:"dozen"},
+    {id:151,text:"Meneer Hauters heeft 460 schroeven nodig; per doos 50.\nHoeveel dozen zijn er minimaal nodig?", calc:()=>460/50, rule:'ceil', unit:"dozen"},
+    {id:158,text:"Trefbal in L.O.: teams van 9, er doen 81 leerlingen mee.\nHoeveel teams kunnen ze precies vormen?", calc:()=>81/9, rule:'none', unit:"teams"},
+    {id:159,text:"Imran en meneer Chilton organiseren een quiz: groepen van 5, 42 leerlingen.\nHoeveel groepen zijn er minimaal nodig?", calc:()=>42/5, rule:'ceil', unit:"groepen"},
+    {id:160,text:"Fatima snijdt 1,6 kg fruit in bakjes van 150 g.\nHoeveel bakjes kan ze volledig vullen?", calc:()=>1600/150, rule:'floor', unit:"bakjes"},
+    {id:161,text:"Mevrouw Quinteyn verkoopt soep: één pot = 8 bekers; ze willen 90 bekers.\nHoeveel potten zijn er minimaal nodig?", calc:()=>90/8, rule:'ceil', unit:"potten"},
+    {id:166,text:"Lina en Imane verkopen 450 koekjes in pakken van 10.\nHoeveel pakken maken ze precies?", calc:()=>450/10, rule:'none', unit:"pakken"},
+    {id:169,text:"Adelkarim ruimt tafels op: 8 tafels per kar, 65 tafels.\nHoeveel karren zijn er minimaal nodig?", calc:()=>65/8, rule:'ceil', unit:"karren"},
+    {id:170,text:"Meneer Goossens laat 12 leerlingen per startgroep lopen; 130 deelnemers.\nHoeveel groepen starten er minimaal?", calc:()=>130/12, rule:'ceil', unit:"groepen"},
+    {id:171,text:"Assia maakt 90 stukken marmercake met vormen van 8 stukken.\nHoeveel vormen zijn er minimaal nodig?", calc:()=>90/8, rule:'ceil', unit:"vormen"},
+    {id:172,text:"Mevrouw Defruyt heeft 170 bundels nodig; per doos 18 bundels.\nHoeveel dozen zijn er minimaal nodig?", calc:()=>170/18, rule:'ceil', unit:"dozen"},
+    {id:175,text:"De leerlingenraad wil 400 flyers rondbrengen. Eén leerling doet 35 bussen.\nHoeveel leerlingen zijn er minimaal nodig?", calc:()=>400/35, rule:'ceil', unit:"leerlingen"},
+    {id:176,text:"Fatima verdeelt 120 ballonnen over zakjes van 9.\nHoeveel zakjes zijn er minimaal nodig?", calc:()=>120/9, rule:'ceil', unit:"zakjes"},
+    {id:177,text:"Mevrouw El Bakkali maakt dialooggroepjes van maximaal 3 met 35 leerlingen.\nHoeveel groepjes zijn er minimaal nodig?", calc:()=>35/3, rule:'ceil', unit:"groepjes"},
+    {id:179,text:"Lina vult potjes confituur van 200 ml met 4,8 liter.\nHoeveel potjes kan ze precies vullen?", calc:()=>4800/200, rule:'none', unit:"potjes"},
+    {id:180,text:"Meneer Raes laat 27 leerlingen in duo's werken.\nHoeveel duo's zijn er minimaal nodig?", calc:()=>27/2, rule:'ceil', unit:"duo's"},
+    {id:181,text:"Mevrouw Stadsbader wil 95 tekeningen ophangen; 10 per muur.\nHoeveel muren zijn er minimaal nodig?", calc:()=>95/10, rule:'ceil', unit:"muren"},
+    {id:186,text:"Abderrahmane vult bekers van 0,2 l met een fles van 1,5 l.\nHoeveel bekers kan hij precies vullen met één fles?", calc:()=>1.5/0.2, rule:'floor', unit:"bekers"},
+    {id:189,text:"De leerlingen verkopen 540 chocoladerepen; 10 per doos.\nHoeveel dozen zijn dat precies?", calc:()=>540/10, rule:'none', unit:"dozen"},
+    {id:190,text:"De klas maakt 48 schilderijen en hangt er 7 per muur.\nHoeveel muren zijn er minimaal nodig?", calc:()=>48/7, rule:'ceil', unit:"muren"},
+    {id:191,text:"Meneer Raes deelt 230 stiften uit; 12 per pak.\nHoeveel pakken zijn er minimaal nodig?", calc:()=>230/12, rule:'ceil', unit:"pakken"},
+  ];
+
+  // ===== STATE =====
+  let mode='oefen'; // oefen | taak | toets
+  let seconds=0,timer=null, studentName='';
+  let right=0, wrong=0, qThisRun=0, current=null;
+  const TARGET_COUNT=20, TEST_MIN=10;
+
+  // Unieke volgorde per run
+  let order = [], ptr=0;
+  const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; };
+  function resetOrder(){ order = PROBLEMS.map((_,i)=>i); shuffle(order); ptr=0; }
+  function nextIndex(){
+    if(ptr >= order.length){
+      if(mode==='oefen'){ resetOrder(); }
+      else return null;
+    }
+    return order[ptr++];
+  }
+
+  // ===== DOM =====
+  const qText = document.getElementById('qText');
+  const lcd = document.getElementById('lcd');
+  const bufSpan = document.getElementById('buffer');
+  const hint = document.getElementById('hint');
+  const modeDisp = document.getElementById('modeDisp');
+  const timeDisp = document.getElementById('timeDisp');
+  const okCount = document.getElementById('okCount');
+  const errCount = document.getElementById('errCount');
+  const metaProg = document.getElementById('metaProg');
+  const streak = document.getElementById('streak');
+
+  const btnOefen = document.getElementById('btnOefen');
+  const startTaak  = document.getElementById('startTaak');
+  const startToets = document.getElementById('startToets');
+  const btnFull  = document.getElementById('btnFull');
+  const btnHelp  = document.getElementById('btnHelp');
+  const btnProof = document.getElementById('btnProof');
+  const helper   = document.getElementById('helper');
+
+  const overlay  = document.getElementById('overlay');
+  const dlgTitle = document.getElementById('dlgTitle');
+  const dlgSub   = document.getElementById('dlgSub');
+  const nameInput= document.getElementById('nameInput');
+  const dlgStart = document.getElementById('dlgStart');
+  const dlgCancel= document.getElementById('dlgCancel');
+
+  const endOverlay = document.getElementById('endOverlay');
+  const endOk      = document.getElementById('endOk');
+  const endTitle   = document.getElementById('endTitle');
+  const endText    = document.getElementById('endText');
+
+  // ===== Utils =====
+  const pad = n => String(n).padStart(2,'0');
+  const fmtTime = s => `${Math.floor(s/60)}:${pad(s%60)}`;
+  function startTimerUp(){ stopTimer(); seconds=0; timeDisp.textContent=fmtTime(seconds); timer=setInterval(()=>{seconds++; timeDisp.textContent=fmtTime(seconds);},1000); }
+  function startTimerDown(){
+    stopTimer(); seconds=TEST_MIN*60; timeDisp.textContent=fmtTime(seconds);
+    timer=setInterval(()=>{
+      seconds--;
+      if(seconds<0){ seconds=0; timeDisp.textContent='0:00'; finishRun(); }
+      else { timeDisp.textContent=fmtTime(seconds); }
+    },1000);
+  }
+  function stopTimer(){ if(timer){clearInterval(timer); timer=null;} }
+  function updateStreak(){ const k = right % 10; [...streak.children].forEach((c,i)=>c.classList.toggle('fill', i<k)); }
+  function setLCD(state){ lcd.classList.remove('good','bad'); if(state) lcd.classList.add(state); }
+
+  // ===== Buffer / keypad =====
+  let buf="";
+  const renderBuf=()=>{ bufSpan.textContent = (buf.replace(/^0+(?=\d)/,'') || "0").replace('.',','); };
+  function pushDigit(d){ if(buf.length<18){ buf+=d; renderBuf(); } }
+  function pushComma(){ if(!buf.includes(',') && !buf.includes('.')){ buf = buf ? (buf+',') : '0,'; renderBuf(); } }
+  function push00(){ buf = buf ? (buf+'00') : '0'; renderBuf(); }
+  function back(){ buf = buf.slice(0,-1); renderBuf(); }
+  function parseBufInt(){
+    const s = (buf || "0").replace(',','.');
+    const n = Number(s); if(!Number.isFinite(n)) return null;
+    return Math.round(n);
+  }
+
+  document.getElementById('keypad').addEventListener('click', e=>{
+    const v = e.target.textContent.trim();
+    if(!v) return;
+    if(v==="OK"){ check(); }
+    else if(v==="←"){ back(); }
+    else if(v===","){ pushComma(); }
+    else if(v==="00"){ push00(); }
+    else if(/^\d$/.test(v)){ pushDigit(v); }
+  });
+  window.addEventListener('keydown', e=>{
+    if(e.key>='0'&&e.key<='9') pushDigit(e.key);
+    else if(e.key===','||e.key==='.') { e.preventDefault(); pushComma(); }
+    else if(e.key==='Backspace') back();
+    else if(e.key==='Enter'){ e.preventDefault(); check(); }
+  });
+
+  // ===== Problems & checking =====
+  function applyRule(x, rule){
+    const eps=1e-9;
+    if(rule==='ceil')  return Math.ceil(x - eps);
+    if(rule==='floor') return Math.floor(x + eps);
+    return Math.round(x);
+  }
+
+  function newQuestion(){
+    setLCD(); buf=""; renderBuf();
+    const i = nextIndex();
+    if(i===null){ finishRun(); return; }
+    const p = PROBLEMS[i];
+    const raw = p.calc(); const ans = applyRule(raw, p.rule);
+    current = {i:i+1, text:p.text, ans, unit:p.unit, rule:p.rule, raw};
+    qText.innerHTML = p.text;
+    metaProg.textContent = mode==='oefen' ? 'Oefenen (—)' : `${mode==='taak'?'Taak':'Toets'} (${qThisRun+1}/${TARGET_COUNT})`;
+    updateStreak();
+  }
+
+  const history=[];
+  function check(){
+    if(!current) return;
+    const n = parseBufInt();
+    if(n===null) return;
+    const ok = (Number.isFinite(n) && n===current.ans);
+    history.push({text:current.text, user:`${n} ${current.unit}`, correct:ok, correctView:`${current.ans} ${current.unit}`});
+
+    if(ok){
+      right++; okCount.textContent=right; setLCD('good'); hint.textContent="✅ Juist!";
+      setTimeout(()=>{ setLCD(); advance(); }, 600);
+    } else {
+      wrong++; errCount.textContent=wrong; setLCD('bad'); hint.textContent=`❌ Antwoord: ${current.ans} ${current.unit}`;
+      setTimeout(()=>{ setLCD(); advance(); }, 800);
+    }
+  }
+
+  function advance(){
+    if(mode!=='oefen') qThisRun++;
+    if((mode==='taak' || mode==='toets') && qThisRun>=TARGET_COUNT){
+      finishRun(); return;
+    }
+    newQuestion();
+  }
+
+  // ===== Run control =====
+  function startRun(newMode){
+    mode = newMode; modeDisp.textContent = mode==='oefen'?'Oefenen':(mode==='taak'?'Taak':'Toets');
+    right=0; wrong=0; qThisRun=0; okCount.textContent='0'; errCount.textContent='0'; history.length=0;
+    resetOrder();
+    if(mode==='oefen'){ timeDisp.textContent='—'; stopTimer(); }
+    if(mode==='taak'){  startTimerUp(); }
+    if(mode==='toets'){ startTimerDown(); }
+    newQuestion();
+  }
+
+  function showEndMessage(kind){
+    endTitle.textContent = "Bedankt!";
+    endText.textContent  = "De " + (kind==='taak'?'taak':'toets') + " is afgelopen. Plaats het bewijsje in de uploadzone!";
+    endOverlay.style.display = 'flex';
+    requestAnimationFrame(()=> endOverlay.classList.add('show'));
+    endOverlay.setAttribute('aria-hidden','false');
+  }
+  function closeEndMessage(){
+    endOverlay.classList.remove('show');
+    endOverlay.setAttribute('aria-hidden','true');
+    setTimeout(()=> endOverlay.style.display='none', 160);
+  }
+  endOk.onclick = closeEndMessage;
+  endOverlay.addEventListener('click', (e)=>{ if(e.target===endOverlay) closeEndMessage(); });
+
+  // ===== Proof PNG / shared =====
+  function trySharedProof(summary){
+    try{
+      if(window.MR_SHARED){
+        MR_SHARED.finishSession(summary);
+        return true;
+      }
+    }catch(e){
+      console.error('shared bewijs failed', e);
+    }
+    return false;
+  }
+
+  function renderProofPNG(skipShared = false){
+    const runMode = mode === 'toets' ? 'toets' : (mode === 'taak' ? 'taak' : 'oefen');
+    const secondsSpent =
+      mode==='toets' ? (TEST_MIN*60 - Math.max(0, seconds)) : Math.max(0, seconds);
+
+    const summary = {
+      title:'Zinvol afronden',
+      gameId:'zinvol-afronden',
+      mode: runMode,
+      name: studentName,
+      ok: right,
+      err: wrong,
+      total: right+wrong,
+      score: right,
+      seconds: secondsSpent,
+      questions: history.map((entry, idx)=>({
+        nr: idx + 1,
+        q: entry.text || '',
+        a: entry.user || '-',
+        given: entry.user || '-',
+        correct: entry.correctView || '',
+        ok: !!entry.correct
+      }))
+    };
+    if(!skipShared && trySharedProof(summary)) { return; }
+    downloadFallbackProof(summary);
+  }
+
+  function downloadFallbackProof(summary){
+    if(!(window.MR_SHARED && MR_SHARED.cert && MR_SHARED.cert.downloadTable)){ return; }
+    const total = summary.total || 0;
+    const ok = summary.ok || 0;
+    const pct = total ? Math.round((ok / total) * 100) : 0;
+    const secondsSpent = summary.seconds != null ? Math.max(0, summary.seconds) : 0;
+    const timeLabel = `${Math.floor(secondsSpent / 60)}:${String(secondsSpent % 60).padStart(2, '0')}`;
+    const meta = [
+      `Naam: ${summary.name || '-'}`,
+      `Modus: ${formatModeLabel(summary.mode)}`,
+      `Datum/tijd: ${new Date().toLocaleString('nl-BE')}`,
+      `Score: ${ok}/${total} (${pct}%)`,
+      `Tijdsduur: ${timeLabel}`
+    ];
+    const rows = (summary.questions || []).map((row, idx)=>({
+      nr: row.nr || idx + 1,
+      vraag: row.q || '',
+      leerling: row.a || '-',
+      correct: row.correct || '',
+      ok: !!row.ok
+    }));
+    const safeName = (MR_SHARED.cert && MR_SHARED.cert.safeFilePart)
+      ? MR_SHARED.cert.safeFilePart(summary.name || 'leerling')
+      : (summary.name || 'leerling').replace(/[^\w\s-]+/g, '').trim().replace(/\s+/g, '_');
+    MR_SHARED.cert.downloadTable({
+      width: 1200,
+      title: 'Bewijs - Zinvol afronden',
+      gradient: ['#ffffff', '#eef3ff'],
+      meta,
+      table: {
+        title: 'Oefeningen',
+        columns: [
+          { label: '#', key: 'nr', width: 60, align: 'left' },
+          { label: 'Vraag', key: 'vraag', width: 420, wrap: true, lineHeight: 22 },
+          { label: 'Leerling', key: 'leerling', width: 220 },
+          { label: 'Correct', key: 'correct', width: 220 },
+          { label: 'Status', width: 120, align: 'center', value: row => row.ok ? 'Juist' : 'Fout', color: row => row.ok ? '#16a34a' : '#dc2626' }
+        ],
+        rows
+      },
+      fileName: `bewijs_afronden_${summary.mode}_${safeName}_${Date.now()}.png`
+    });
+  }
+
+  function formatModeLabel(modeValue){
+    if (modeValue === 'taak' || modeValue === 'task') return 'Taak';
+    if (modeValue === 'toets' || modeValue === 'test') return 'Toets';
+    return 'Oefen';
+  }
+
+  function finishRun(){
+    stopTimer();
+    const summary = {
+      title:'Zinvol afronden',
+      gameId:'zinvol-afronden',
+      mode:(mode==='toets'?'toets':(mode==='taak'?'taak':'oefen')),
+      name: studentName,
+      ok: right,
+      err: wrong,
+      total: right+wrong,
+      seconds: (mode==='toets')? (TEST_MIN*60 - Math.max(0, seconds)) : Math.max(0, seconds),
+      questions: history.map((h, i)=>({
+        nr: i+1, q: h.text, a: h.user, correct: h.correctView, ok: h.correct
+      })),
+      goals: ['BV1_06.03','06.03.02','06.03.03']
+    };
+    const handled = trySharedProof(summary);
+    if(!handled){ renderProofPNG(true); }
+    showEndMessage(mode);
+
+    // terug naar Oefenen
+    mode='oefen';
+    modeDisp.textContent='Oefenen';
+    metaProg.textContent='Oefenen (—)';
+  }
+
+  // ===== Buttons =====
+  document.getElementById('btnOefen').onclick = ()=> startRun('oefen');
+
+  startTaak.onclick = () => {
+    if (window.MR_SHARED && typeof MR_SHARED.askName === 'function') {
+      MR_SHARED.askName('taak')
+        .then(n => {
+          if (!n || !String(n).trim()) return;
+          studentName = String(n).trim();
+          startRun('taak');
+        })
+        .catch(() => {});
+    } else {
+      const n = (prompt('Naam?') || '').trim();
+      if (!n) return;
+      studentName = n;
+      startRun('taak');
+    }
+  };
+
+  startToets.onclick = () => {
+    if (window.MR_SHARED && typeof MR_SHARED.askName === 'function') {
+      MR_SHARED.askName('toets')
+        .then(n => {
+          if (!n || !String(n).trim()) return;
+          studentName = String(n).trim();
+          startRun('toets');
+        })
+        .catch(() => {});
+    } else {
+      const n = (prompt('Naam?') || '').trim();
+      if (!n) return;
+      studentName = n;
+      startRun('toets');
+    }
+  };
+
+  btnFull.onclick  = ()=> { if(!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.(); };
+  btnHelp.onclick  = ()=> { const show=helper.style.display!=='block'; helper.style.display=show?'block':'none'; btnHelp.textContent=show?'❔ Verberg Hulp':'❔ Hulp'; };
+  btnProof.onclick = ()=> renderProofPNG();
+
+  // ===== Rekenpaneel =====
+  const btnCalc     = document.getElementById('btnCalc');
+  const calcPanel   = document.getElementById('calcPanel');
+  const calcDisplay = document.getElementById('calcDisplay');
+  const calcKeys    = document.getElementById('calcKeys');
+
+  let calcOpen=false;
+  function toggleCalc(force){
+    calcOpen = (typeof force==='boolean') ? force : !calcOpen;
+    calcPanel.style.display = calcOpen ? 'block' : 'none';
+    if(calcOpen) calcDisplay.focus();
+  }
+  btnCalc.onclick = ()=> toggleCalc();
+
+  // klik buiten = sluiten
+  document.addEventListener('click', (e)=>{
+    if(!calcOpen) return;
+    const inPanel = e.target.closest('#calcPanel') || e.target.closest('#btnCalc');
+    if(!inPanel) toggleCalc(false);
+  });
+
+  function insertToDisplay(str){
+    if (str === 'π'){
+      const piStr = String(Math.PI.toFixed(4)).replace('.', ','); // 3,1416
+      calcDisplay.value += piStr;
+    } else {
+      calcDisplay.value += str;
+    }
+    calcDisplay.focus();
+  }
+  function bksp(){ calcDisplay.value = calcDisplay.value.slice(0, -1); calcDisplay.focus(); }
+  function ac(){ calcDisplay.value = ''; calcDisplay.focus(); }
+
+  // eenvoudige rekenparser: × en ÷ vóór + en −, ondersteunt , . π × ÷ − +
+  function compute(expr){
+    if (!expr || !expr.trim()) return NaN;
+    const norm = expr
+      .replace(/\s+/g,'')
+      .replace(/,/g,'.')
+      .replace(/[x×]/gi,'*')
+      .replace(/[÷:]/g,'/')
+      .replace(/[−–—]/g,'-')
+      .replace(/π/gi, String(Math.PI));
+    const parts = norm.split(/([+\-*/])/).filter(Boolean);
+    if (!parts.length) return NaN;
+    const tokens = parts.map(p => /[+\-*/]/.test(p) ? p : Number(p));
+    if (Number.isNaN(tokens[0])) return NaN;
+    // * en / eerst
+    let stack = [];
+    stack.push(tokens[0]);
+    for (let i=1; i<tokens.length; i+=2){
+      const op = tokens[i], rhs = tokens[i+1];
+      if (typeof rhs !== 'number' || Number.isNaN(rhs)) return NaN;
+      const lhs = stack[stack.length-1];
+      if (op === '*' || op === '/'){
+        stack[stack.length-1] = (op === '*') ? (lhs * rhs) : (lhs / rhs);
+      } else {
+        stack.push(op, rhs);
+      }
+    }
+    // dan + en -
+    let result = stack[0];
+    for (let i=1; i<stack.length; i+=2){
+      const op = stack[i], rhs = stack[i+1];
+      result = (op === '+') ? (result + rhs) : (result - rhs);
+    }
+    return result;
+  }
+  function doEquals(){
+    const r = compute(calcDisplay.value);
+    if (Number.isNaN(r)) return;
+    calcDisplay.value = String(Math.round(r*100)/100).replace('.', ','); // 2 dec
+  }
+
+  calcKeys.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.ckey'); if(!btn) return;
+    const act = btn.dataset.act;
+    const ch  = btn.dataset.k;
+    if (act === 'ac') return ac();
+    if (act === 'bksp') return bksp();
+    if (act === 'eq') return doEquals();
+    if (act === 'paste'){
+      const r = compute(calcDisplay.value);
+      if (!Number.isNaN(r)){
+        const pasteInt = Math.round(r);      // spel verwacht geheel getal
+        buf = String(pasteInt); renderBuf(); setLCD(); lcd.scrollIntoView({behavior:'smooth', block:'center'});
+        toggleCalc(false);
+      }
+      return;
+    }
+    if (ch !== undefined) return insertToDisplay(ch);
+  });
+
+  calcDisplay.addEventListener('keydown', (e)=>{
+    const okKeys = '0123456789+-/*,:.()';
+    if (e.key === 'Enter'){ e.preventDefault(); return doEquals(); }
+    if (e.key === 'Escape'){ e.preventDefault(); return ac(); }
+    if (e.key === 'Backspace'){ return; }
+    if (!okKeys.includes(e.key)){ e.preventDefault(); return; }
+    if (e.key === '.'){ e.preventDefault(); insertToDisplay(','); }
+  });
+
+  // Start in oefenmodus
+  document.getElementById('btnOefen').click();
+})();
+</script>
+</body>
+</html>

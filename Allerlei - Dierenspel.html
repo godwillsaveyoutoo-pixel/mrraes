@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mr Raes: Dierenspel</title>
+  <!-- Voor Spel-ID op bewijsje -->
+  <meta name="x-game-id" content="Allerlei — Dierenspel (2B)">
+  <script>window.GAME_ID = 'allerlei_dierenspel_2b';</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f7f9fc; --card:#fff; --ink:#0b132b; --muted:#6b7280; --ring:#e6ecf8; --ring2:#dfe6f6;
+      --shadow:0 10px 28px rgba(15,23,42,.06); --good:#10b981; --bad:#ef4444; --accent:#ffffff;
+      --radius-board:24px; --radius-chip:999px; --radius-tile:14px;
+      --control-h:56px; --control-h-lg:64px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--ink); font-family:Inter,system-ui,Arial,sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, #eef3ff 0%, #f7f9fc 50%, #fbfdff 100%);
+    }
+    .wrap{width:min(1200px,96vw); padding:1rem; margin:0 auto}
+    .topbar{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem}
+    .chip{
+      background:#fff; border:1px solid var(--ring2); border-radius:var(--radius-chip);
+      padding:.35rem .7rem; box-shadow:var(--shadow); display:inline-flex; gap:.5rem; align-items:center; font-weight:800;
+    }
+    .chip.btn{cursor:pointer}
+    .chip.ok{color:var(--good); background:#eafaf4; border-color:#c4eedc}
+    .chip.bad{color:var(--bad); background:#fdeeee; border-color:#ffd7d7}
+    .spacer{flex:1}
+
+    .board{
+      background:#fff; border:1px solid var(--ring); border-radius:var(--radius-board); box-shadow:var(--shadow);
+      padding:1rem; display:grid; grid-template-columns:420px 1fr; gap:1rem; align-items:stretch;
+      min-height:clamp(560px,78vh,920px);
+    }
+    .board.flash-ok{background:#f4fdf8!important; border-color:#c4eedc!important; transition:background .25s,border-color .25s}
+    .board.flash-err{background:#fff6f6!important; border-color:#ffd7d7!important; transition:background .25s,border-color .25s}
+
+    .leftCol{
+      background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow);
+      display:flex; flex-direction:column; height:100%;
+    }
+    .imgbox{
+      flex:1; min-height:0; border-radius:16px; overflow:hidden; background:#fff; border:1px solid var(--ring);
+      display:flex; align-items:center; justify-content:center; height:100%;
+    }
+    .imgbox img{width:100%; height:100%; object-fit:contain}
+    .meta{display:none}
+
+    .rightCol{display:grid; grid-template-rows:1fr auto; gap:.75rem; min-height:0}
+    .qCard{display:grid; grid-template-rows:1fr auto; min-height:0}
+    .qa{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.9rem; padding:.2rem 0; min-height:0}
+    .qText{text-align:center; font-weight:900; font-size:clamp(20px,2.2vw,24px); line-height:1.35}
+    .row{display:flex; align-items:center; justify-content:center; gap:.8rem; flex-wrap:wrap}
+    .status{align-self:center; text-align:center; min-height:28px; font-weight:800}
+
+    .ibox{
+      height:var(--control-h); min-width:360px; padding:0 16px; font:900 20px Inter,sans-serif; text-align:center;
+      border-radius:12px; background:#fff; border:1px solid var(--ring2); color:var(--ink); outline:none;
+    }
+    .btn{background:var(--accent); color:#000; border:0; border-radius:12px; padding:10px 14px; font-weight:900; cursor:pointer; box-shadow:var(--shadow)}
+    .okTxt{color:var(--good)} .errTxt{color:var(--bad)}
+
+    .padwrap{align-self:auto; background:#fff; border:1px solid var(--ring2); border-radius:18px; padding:1rem; box-shadow:var(--shadow)}
+    .keypad{display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem}
+    .key{
+      user-select:none; cursor:pointer; text-align:center; font-weight:900; font-size:clamp(18px,3.2vw,22px); padding:1rem 0;
+      border-radius:14px; background:#f7faff; border:1px solid var(--ring2);
+      box-shadow:0 6px 16px rgba(15,23,42,.06); transition:transform .06s, box-shadow .12s, background .12s;
+    }
+    .key.wide{grid-column:1 / -1}
+    .key:active{transform:translateY(1px); box-shadow:0 4px 12px rgba(15,23,42,.08)}
+    .key.ok{background:#eafaf4; border-color:#c4eedc}
+    .key.bad{background:#fdeeee; border-color:#ffd7d7}
+
+    @media (max-width:980px){
+      .board{grid-template-columns:1fr; min-height:unset}
+      .leftCol{height:auto}
+      .imgbox{height:420px}
+      .padwrap{align-self:stretch}
+    }
+    #checkBtn{height:var(--control-h-lg); padding:0 28px; font-size:20px; border-radius:14px}
+  </style>
+</head>
+<body>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button id="startTaak" class="chip btn">📝 Start taak (30)</button>
+    <button id="startToets" class="chip btn">🧪 Start toets (30 / 15 min)</button>
+    <button id="fullBtn" class="chip btn">⤢ Volledig scherm</button>
+    <div class="spacer"></div>
+    <span class="chip">⏱ Tijd: <strong id="timeDisp">—</strong></span>
+    <span class="chip ok">✅ Juist: <span id="okCount">0</span></span>
+    <span class="chip bad">❌ Fout: <span id="errCount">0</span></span>
+  </div>
+
+  <div class="wrap">
+    <div class="board" id="board">
+      <!-- LINKS -->
+      <div class="leftCol">
+        <div class="imgbox"><img id="animalImg" alt="Dierenkaart" /></div>
+        <div class="meta">
+          <span id="animalName"></span>
+          <span id="massInfo"></span>
+          <span id="lengthInfo"></span>
+          <span id="ageInfo"></span>
+          <span id="threatDots"></span>
+        </div>
+      </div>
+
+      <!-- RECHTS -->
+      <div class="rightCol">
+        <div class="qCard">
+          <div class="qa">
+            <div id="question" class="qText">Klik op “Start taak/toets” of oefen vrij.</div>
+            <div class="row">
+              <input id="answer" class="ibox" type="text" placeholder="jouw antwoord…" inputmode="decimal" />
+              <button id="checkBtn" class="key" data-act="enter">Ok</button>
+            </div>
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+
+        <div class="padwrap">
+          <div class="keypad" id="pad">
+            <!-- rij 1 -->
+            <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key" data-act="bksp">←</div>
+            <!-- rij 2 -->
+            <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">,</div>
+            <!-- rij 3 -->
+            <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">0</div>
+            <!-- rij 4 -->
+            <div class="key wide" id="okKey" data-act="enter">OK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- shared helpers (naam, sessie, timer, bewijsje) -->
+  <script src="mrraes-shared.js"></script>
+
+  <script>
+  /* ====== Data ====== */
+  const PLURALS = {
+    'aardvarken':'aardvarkens','afrikaanse olifant':'afrikaanse olifanten','boomkangoeroe':'boomkangoeroes',
+    'doegong':'doegongs','dwerghert':'dwergherten',"echidna":"echidna's",'hirola':"hirola's",'honingdas':'honingdassen',
+    'kolibrivleermuis':'kolibrivleermuizen','linsang':'linsangs','luiaard':'luiaards','maleise honingbeer':'maleise honingberen',
+    'manenwolf':'manenwolven','markhor':'markhors','naakte molrat':'naakte molratten','neusaap':'neusapen',
+    'stermol':'stermollen','tapir':'tapirs','tasmaanse duivel':'tasmaanse duivels','vingerdier':'vingerdieren','vogelbekdier':'vogelbekdieren'
+  };
+  const pluralizeAnimal = (a) => PLURALS[a.name] || (a.name.toLowerCase() + 's');
+
+
+  const ANIMALS = [
+    {"name":"aardvarken","imgCandidates":["aardvarken.png","Aardvarken.png"],"mass":{"min":60.0,"max":80.0,"unit":"kg"},"length":{"min":1.0,"max":1.3,"unit":"m"},"ageYears":23,"threat":0,"weetje":"slaapt tot 80 % van de dag"},
+    {"name":"afrikaanse olifant","imgCandidates":["afrikaanseOlifant.png","Afrikaanse olifant.png"],"mass":{"min":2.7,"max":6.0,"unit":"ton"},"length":{"min":6.0,"max":7.5,"unit":"m"},"ageYears":70,"threat":-3,"weetje":"verliezen meer dan 90% leefgebied"},
+    {"name":"boomkangoeroe","imgCandidates":["boomkangoeroe.png","Boomkangoeroe.png"],"mass":{"min":7.0,"max":14.0,"unit":"kg"},"length":{"min":50.0,"max":80.0,"unit":"cm"},"ageYears":14,"threat":-3,"weetje":"leeft 90% van de tijd in bomen"},
+    {"name":"doegong","imgCandidates":["doegong.png","Doegong.png"],"mass":{"min":250.0,"max":900.0,"unit":"kg"},"length":{"min":2.5,"max":3.0,"unit":"m"},"ageYears":70,"threat":-2,"weetje":"eet 10% van zijn gewicht in zeegras dagelijks"},
+    {"name":"dwerghert","imgCandidates":["dwerghert.png","Dwerghert.png"],"mass":{"min":2.0,"max":5.0,"unit":"kg"},"length":{"min":45.0,"max":80.0,"unit":"cm"},"ageYears":12,"threat":0,"weetje":"is 10% de massa van een ree"},
+    {"name":"echidna","imgCandidates":["echidna.png","Echidna.png"],"mass":{"min":2.0,"max":7.0,"unit":"kg"},"length":{"min":35.0,"max":50.0,"unit":"cm"},"ageYears":50,"threat":-2,"weetje":"behoort tot 0,2 % van de zoogdieren die eieren leggen"},
+    {"name":"hirola","imgCandidates":["hirola.png","Hirola.png"],"mass":{"min":70.0,"max":118.0,"unit":"kg"},"length":{"min":1.1,"max":1.4,"unit":"m"},"ageYears":15,"threat":-4,"weetje":"populatie afgenomen met > 95 procent"},
+    {"name":"honingdas","imgCandidates":["honingdas.png","Honingdas.png"],"mass":{"min":9.0,"max":16.0,"unit":"kg"},"length":{"min":60.0,"max":70.0,"unit":"cm"},"ageYears":24,"threat":0,"weetje":"immuun tegen 80% van slangengif"},
+    {"name":"kolibrivleermuis","imgCandidates":["kolibrivleermuis.png","Kolibrivleermuis.png"],"mass":{"min":1.6,"max":2.0,"unit":"g"},"length":{"min":29.0,"max":33.0,"unit":"mm"},"ageYears":10,"threat":-2,"weetje":"minder dan 20% van de dag actief"},
+    {"name":"linsang","imgCandidates":["linsang.png","Linsang.png"],"mass":{"min":1.0,"max":3.0,"unit":"kg"},"length":{"min":60.0,"max":75.0,"unit":"cm"},"ageYears":15,"threat":0,"weetje":"brengt bijna 80% van de tijd in bomen door"},
+    {"name":"luiaard","imgCandidates":["luiaard.png","Luiaard.png"],"mass":{"min":4.0,"max":9.0,"unit":"kg"},"length":{"min":50.0,"max":70.0,"unit":"cm"},"ageYears":40,"threat":-2,"weetje":"hangt bijna 90% van zijn leven ondersteboven"},
+    {"name":"maleise honingbeer","imgCandidates":["maleiseHoningbeer.png","maleisehoningbeer.png","maleise-honingbeer.png","maleise_honingbeer.png","Maleise honingbeer.png"],"mass":{"min":25.0,"max":65.0,"unit":"kg"},"length":{"min":1.2,"max":1.5,"unit":"m"},"ageYears":25,"threat":-2,"weetje":"zijn tong is tot 30% van de lichaamslengte"},
+    {"name":"manenwolf","imgCandidates":["manenwolf.png","Manenwolf.png"],"mass":{"min":20.0,"max":30.0,"unit":"kg"},"length":{"min":0.9,"max":1.2,"unit":"m"},"ageYears":15,"threat":-1,"weetje":"dieet is 50% plantaardig"},
+    {"name":"markhor","imgCandidates":["markhor.png","Markhor.png"],"mass":{"min":32.0,"max":110.0,"unit":"kg"},"length":{"min":1.3,"max":1.8,"unit":"m"},"ageYears":15,"threat":-2,"weetje":"sinds 1990 is populatie met 80% afgenomen"},
+    {"name":"naakte molrat","imgCandidates":["naakteMolrat.png","naaktemolrat.png","naakte-molrat.png","naakte_molrat.png","Naakte molrat.png"],"mass":{"min":30.0,"max":50.0,"unit":"g"},"length":{"min":8.0,"max":10.0,"unit":"cm"},"ageYears":30,"threat":0,"weetje":"100% eusociaal"},
+    {"name":"neusaap","imgCandidates":["neusaap.png","Neusaap.png"],"mass":{"min":16.0,"max":24.0,"unit":"kg"},"length":{"min":60.0,"max":75.0,"unit":"cm"},"ageYears":20,"threat":-3,"weetje":"80% van een groep bestaat uit vrouwtjes"},
+    {"name":"stermol","imgCandidates":["stermol.png","Stermol.png"],"mass":{"min":46.0,"max":55.0,"unit":"g"},"length":{"min":15.0,"max":24.0,"unit":"cm"},"ageYears":4,"threat":0,"weetje":"gevoeligheid neus is 600% die van menselijke vingertoppen"},
+    {"name":"tapir","imgCandidates":["tapir.png","Tapir.png"],"mass":{"min":150.0,"max":300.0,"unit":"kg"},"length":{"min":1.8,"max":2.4,"unit":"m"},"ageYears":30,"threat":-3,"weetje":"100% wordt geboren met streepjes-camouflage"},
+    {"name":"tasmaanse duivel","imgCandidates":["tasmaanseDuivel.png","tasmaanseduivel.png","tasmaanse-duivel.png","tasmaanse_duivel.png","Tasmaanse duivel.png"],"mass":{"min":8.0,"max":14.0,"unit":"kg"},"length":{"min":57.0,"max":65.0,"unit":"cm"},"ageYears":6,"threat":-3,"weetje":"populatie afgenomen met bijna 80% door tumoren"},
+    {"name":"vingerdier","imgCandidates":["vingerdier.png","Vingerdier.png"],"mass":{"min":2.0,"max":3.0,"unit":"kg"},"length":{"min":30.0,"max":40.0,"unit":"cm"},"ageYears":23,"threat":-3,"weetje":"70% van dieet halen ze met vingers uit de bomen"},
+    {"name":"vogelbekdier","imgCandidates":["vogelbekdier.png","Vogelbekdier.png"],"mass":{"min":1.0,"max":2.5,"unit":"kg"},"length":{"min":40.0,"max":60.0,"unit":"cm"},"ageYears":17,"threat":-2,"weetje":"Mannetje heeft gif aan de poten. 1% zoogdieren is giftig"}
+  ];
+
+  /* ====== Helpers ====== */
+  const goals = (...codes) => codes;
+
+  let runLog = [];
+  let runStartedAt = null;
+  let timerId = null;
+
+  const mmss = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  const LEN = { mm:1, cm:10, dm:100, m:1000, km:1_000_000 }; // in mm
+  const MASS = { mg:0.001, g:1, kg:1000, ton:1_000_000 };    // in g
+  const fLen = (from,to)=> LEN[from]/LEN[to];
+  const fMass= (from,to)=> MASS[from]/MASS[to];
+  const $ = s=>document.querySelector(s);
+  const byId=id=>document.getElementById(id);
+  const rnd = n=>Math.floor(Math.random()*n);
+  const pick= arr=>arr[rnd(arr.length)];
+  const randint=(a,b,step=1)=>{ const k=Math.floor((b-a)/step)+1; return a + step*Math.floor(Math.random()*k); };
+  const prettyC = (n)=>{ const s=(Math.abs(n-Math.round(n))<1e-9? String(Math.round(n)) : String(+n.toFixed(6)).replace(/\.?0+$/,'')); return s.replace('.',','); };
+  const parseNum = (s)=>{ if(typeof s!=='string') s=String(s); s=s.replace(/\./g,',').replace(/[^\d,]/g,''); const first=s.indexOf(','); if(first!==-1) s=s.slice(0,first+1)+s.slice(first+1).replace(/,/g,''); return Number(s.replace(',', '.')); };
+
+  const $ans = byId('answer');
+  $ans.addEventListener('input', ()=>{
+    let v = $ans.value;
+    v = v.replace(/\./g,',').replace(/[^\d,]/g,'');
+    const i = v.indexOf(',');
+    if(i!==-1) v = v.slice(0,i+1) + v.slice(i+1).replace(/,/g,'');
+    $ans.value = v;
+  });
+
+ // Zet bovenaan (of vlak boven resolveImage) — trailing slash laten staan
+const IMG_BASE = 'dieren/';
+
+// VERVANG je huidige resolveImage door deze:
+async function resolveImage(cands){
+  for (const name of (cands || [])) {
+    const candidatePath = IMG_BASE + name;           // prepend submap
+    try {
+      await new Promise((res, rej) => {
+        const im = new Image();
+        im.onload = () => res(candidatePath);
+        im.onerror = rej;
+        im.src = encodeURI(candidatePath);           // veilig voor spaties/diakritische tekens
+      });
+      return encodeURI(candidatePath);
+    } catch(e) {}
+  }
+  return (cands && cands[0]) ? encodeURI(IMG_BASE + cands[0]) : "";
+}
+
+  /* ====== UI refs ====== */
+  const checkBtn = byId('checkBtn');
+  const board = byId('board');
+  const okEl = byId('okCount');
+  const errEl = byId('errCount');
+  const timeDisp = byId('timeDisp');
+  const startTaak = byId('startTaak');
+  const startToets = byId('startToets');
+  const fullBtn = byId('fullBtn');
+
+  const $img = byId('animalImg'), $name = byId('animalName');
+  const $massInfo = byId('massInfo'), $lengthInfo = byId('lengthInfo');
+  const $ageInfo = byId('ageInfo'), $threatDots = byId('threatDots');
+
+  const $q = byId('question'), $status = byId('status');
+  const pad = byId('pad'), okKey = byId('okKey');
+
+  /* ====== State ====== */
+  let mode = 'oefen'; // 'oefen'|'taak'|'toets'
+  let total = 0, idx = 0;
+  let ok = 0, err = 0;
+  let current = null, correct = null, unitOut = null;
+
+  function ensureIdentity(){
+    let nm = localStorage.getItem('mr_name') || '';
+    let kl = localStorage.getItem('mr_class') || '';
+    if(!nm){ nm = prompt('Naam leerling? (voor bewijsje)') || ''; localStorage.setItem('mr_name', nm); }
+    if(!kl){ kl = prompt('Klas (optioneel)') || ''; localStorage.setItem('mr_class', kl); }
+  }
+
+  function flashBoard(okay){
+    board.classList.remove('flash-ok','flash-err'); void board.offsetWidth;
+    board.classList.add(okay ? 'flash-ok' : 'flash-err');
+    setTimeout(()=>board.classList.remove('flash-ok','flash-err'), 420);
+  }
+  function animateOK(okay, after){
+    const els=[okKey,checkBtn];
+    els.forEach(el=>{ el.classList.remove('ok','bad'); void el.offsetWidth; el.classList.add(okay?'ok':'bad'); });
+    setTimeout(()=>{ els.forEach(el=>el.classList.remove('ok','bad')); after && after(); }, 320);
+  }
+
+  async function showAnimal(a){
+    const src = await resolveImage(a.imgCandidates||[]);
+    $img.src = src; $img.alt = a.name;
+    if($name) $name.textContent = a.name;
+    if($massInfo) $massInfo.textContent = `massa: ${prettyC(a.mass.min)}–${prettyC(a.mass.max)} ${a.mass.unit}`;
+    if($lengthInfo) $lengthInfo.textContent = `lengte: ${prettyC(a.length.min)}–${prettyC(a.length.max)} ${a.length.unit}`;
+    if($ageInfo) $ageInfo.textContent = `leeftijd: ${a.ageYears} jaar`;
+    if($threatDots) $threatDots.textContent = String(a.threat);
+  }
+
+  const LEN_UNITS = ['mm','cm','dm','m'];
+  function massUnitsFor(a){
+    const kgMax = a.mass.max * fMass(a.mass.unit,'kg');
+    const arr = ['g','kg']; if(kgMax>10) arr.push('ton'); return arr;
+  }
+
+  /* ====== Vraagtypes ====== */
+  function Q_len_convert(a){
+    const fromU = a.length.unit;
+    const outs = ['mm','cm','dm','m'].filter(u => u!==fromU);
+    unitOut = outs[rnd(outs.length)];
+    const useMin = Math.random() < .5;
+    const base = useMin ? a.length.min : a.length.max;
+    const ans = base * fLen(fromU, unitOut);
+    const which = useMin ? 'minimum' : 'maximum';
+    return { txt:`Zet de ${which} lengte van de ${a.name} om naar ${unitOut}.`, ans, goals:goals('BV1_06.06.06','BV1_06.06.05','BV1_06.02.08') };
+  }
+  function Q_mass_convert(a){
+    const fromU = a.mass.unit;
+    const kgMax = a.mass.max * fMass(fromU,'kg');
+    let outs = ['g','kg']; if(kgMax > 1) outs.push('ton'); else outs.unshift('mg');
+    outs = outs.filter(u => u!==fromU);
+    unitOut = outs[rnd(outs.length)];
+    const useMin = Math.random() < .5;
+    const base = useMin ? a.mass.min : a.mass.max;
+    const ans = base * fMass(fromU, unitOut);
+    const which = useMin ? 'minimum' : 'maximum';
+    return { txt:`Zet de ${which} massa van een ${a.name} om naar ${unitOut}.`, ans, goals:goals('BV1_06.02.07','BV1_06.02.08') };
+  }
+  function Q_len_range(a){
+    unitOut = ['mm','cm','dm','m'][rnd(4)];
+    const diff = (a.length.max - a.length.min) * fLen(a.length.unit, unitOut);
+    return { txt:`Wat is het verschil tussen de maximale en minimale lengte van een ${a.name} in ${unitOut}?`, ans:diff, goals:goals('BV1_06.11.05','BV1_06.06.05','BV1_06.02.08') };
+  }
+  function Q_mass_range(a){
+    const kgMax = a.mass.max * fMass(a.mass.unit,'kg');
+    const opts = kgMax > 1 ? ['g','kg','ton'] : ['g','kg'];
+    unitOut = opts[rnd(opts.length)];
+    const diff = (a.mass.max - a.mass.min) * fMass(a.mass.unit, unitOut);
+    return { txt:`Wat is het verschil tussen de maximale en minimale massa van een ${a.name} in ${unitOut}?`, ans:diff, goals:goals('BV1_06.11.05','BV1_06.02.07','BV1_06.02.08') };
+  }
+  function Q_len_avg(a){
+    if (a.length.min === a.length.max) return null;
+    unitOut = ['mm','cm','dm','m'][rnd(4)];
+    const avg = ((a.length.min + a.length.max) / 2) * fLen(a.length.unit, unitOut);
+    return { txt:`Wat is de gemiddelde lengte van een ${a.name} in ${unitOut}?`, ans:avg, goals:goals('BV1_06.11.03','BV1_06.06.05','BV1_06.02.08') };
+  }
+  function Q_mass_avg(a){
+    if (a.mass.min === a.mass.max) return null;
+    const kgMax = a.mass.max * fMass(a.mass.unit,'kg');
+    const opts = kgMax > 1 ? ['g','kg','ton'] : ['g','kg'];
+    unitOut = opts[rnd(opts.length)];
+    const avg = ((a.mass.min + a.mass.max) / 2) * fMass(a.mass.unit, unitOut);
+    return { txt:`Wat is de gemiddelde massa van een ${a.name} in ${unitOut}?`, ans:avg, goals:goals('BV1_06.11.03','BV1_06.02.07','BV1_06.02.08') };
+  }
+  function Q_mass_multi(a){
+    const n = 2 + Math.floor(Math.random()*9);
+    const useMin = Math.random() < .5;
+    const which = useMin ? 'minimaal' : 'maximaal';
+    const base = useMin ? a.mass.min : a.mass.max;
+    const kgMax = a.mass.max * fMass(a.mass.unit,'kg');
+    const opts = kgMax > 1 ? ['g','kg','ton'] : ['g','kg'];
+    unitOut = opts[rnd(opts.length)];
+    const val = n * base * fMass(a.mass.unit, unitOut);
+    const species = pluralizeAnimal(a);
+    return { txt:`Hoeveel wegen ${n} ${species} ${which} in ${unitOut}?`, ans:val, goals:goals('BV1_06.02.07','BV1_06.02.08') };
+  }
+
+  /* ====== Weetjes ====== */
+  function factGeneratorsFor(a){
+    const N = a.name;
+    const out = [];
+    const GO = {
+      PCT:"BV1_06.02.01", CALC:"BV1_06.02.08", MT:"BV1_06.02.07", RND:"BV1_06.03.02", LEN:"BV1_06.06.05"
+    };
+    switch(N){
+      case 'aardvarken':
+        out.push(()=>{ unitOut='uur'; const hours=+(24*0.8).toFixed(1);
+          return { txt:`Als je weet dat het aardvarken tot 80 procent van de dag slaapt, tot hoeveel uur is dat dan? (één decimaal)`, ans:hours, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        out.push(()=>{ unitOut='uur'; const hours=+(24*(1-0.8)).toFixed(1);
+          return { txt:`Hoeveel uur is het aardvarken minimaal wakker? (één decimaal)`, ans:hours, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        break;
+      case 'afrikaanse olifant':
+        out.push(()=>{ unitOut=''; const dec=+(0.9).toFixed(1);
+          return { txt:`Olifanten verliezen meer dan 90 procent van hun leefgebied, schrijf dit percentage als een kommagetal.`, ans:dec, goals:[GO.PCT,GO.CALC] }; });
+        break;
+      case 'boomkangoeroe':
+        out.push(()=>{ unitOut='uur'; const h=+(24*0.9).toFixed(1);
+          return { txt:`De boomkangoeroe leeft tot 90 procent van zijn leven in de bomen, hoeveel uur per dag is dat?`, ans:h, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        out.push(()=>{ unitOut='uur'; const h=+((24*(1-0.9))).toFixed(1);
+          return { txt:`Hoeveel uur van de dag is de boomkangoeroe minimaal op de grond? (één decimaal)`, ans:h, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        break;
+      case 'doegong':
+        out.push(()=>{ const w=randint(250,900,10);
+          if(Math.random()<.5){ unitOut='g'; return { txt:`Als een doegong ${w} kg weegt, hoeveel gram eet hij dan maximaal per dag aan zeegras?`, ans:w*0.1*1000, goals:[GO.PCT,GO.MT,GO.CALC] }; }
+          unitOut='kg'; return { txt:`Als een doegong ${w} kg weegt, hoeveel kg eet hij dan maximaal per dag aan zeegras?`, ans:w*0.1, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        break;
+      case 'dwerghert':
+        out.push(()=>{ const m=randint(2,5); const kg=10*m;
+          if(Math.random()<.5){ unitOut='g'; return { txt:`De massa van een dwerghert van ${m} kg is 10 procent de massa van een ree. Hoeveel weegt de ree in gram?`, ans:kg*1000, goals:[GO.PCT,GO.MT,GO.CALC] }; }
+          unitOut='kg'; return { txt:`De massa van een dwerghert van ${m} kg is 10 procent de massa van een ree. Hoeveel weegt de ree in kg?`, ans:kg, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        break;
+      case 'echidna':
+        out.push(()=>{ const Ntot=pick([10000,15000,20000,25000,30000]); const eggs=Math.round(Ntot*0.002); unitOut='';
+          return { txt:`De echidna behoort tot de zoogdieren die eieren leggen. Stel, er zijn ${Ntot} zoogdieren, hoeveel daarvan leggen eieren? (natuurlijk getal)`, ans:eggs, goals:[GO.PCT,GO.CALC,GO.RND] }; });
+        break;
+      case 'hirola':
+        out.push(()=>{ const N0=pick([10000,20000,30000]); const now=Math.round(N0*0.05); unitOut='';
+          return { txt:`Voordien bestond de populatie uit ${N0} hirola’s. Hoeveel zijn er nog maximaal over? (natuurlijk getal)`, ans:now, goals:[GO.PCT,GO.CALC,GO.RND] }; });
+        break;
+      case 'honingdas':
+        out.push(()=>{ const Nsnake=pick([100,200,300]); unitOut='';
+          return { txt:`Er zijn ${Nsnake} soorten slangen, voor hoeveel slangen is de honingdas immuun? (natuurlijk getal)`, ans:Math.round(Nsnake*0.8), goals:[GO.PCT,GO.CALC] }; });
+        break;
+      case 'kolibrivleermuis':
+        out.push(()=>{ unitOut='uur'; const h=+(24*0.2).toFixed(1);
+          return { txt:`Tot hoeveel uren per dag is de kolibrivleermuis actief?`, ans:h, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        out.push(()=>{ unitOut='uur'; const h=+((24*0.2)*7).toFixed(1);
+          return { txt:`Hoeveel uren is de kolibrivleermuis per week maximaal actief?`, ans:h, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        break;
+      case 'linsang':
+        out.push(()=>{ unitOut='uur'; const h=+(24*0.8).toFixed(1);
+          return { txt:`Linsang brengt bijna hoeveel uur per dag in de bomen door?`, ans:h, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        out.push(()=>{ unitOut='uur'; const h=+((24*0.8)*7).toFixed(1);
+          return { txt:`Tot hoeveel uur per week brengt de linsang in de bomen door?`, ans:h, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        break;
+      case 'luiaard':
+        out.push(()=>{ unitOut='uur'; const h=+(24*0.9).toFixed(1);
+          return { txt:`Hoeveel uur brengt de luiaard bijna per dag ondersteboven door? (één cijfer na de komma)`, ans:h, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        out.push(()=>{ unitOut='uur'; const h=+(24*(1-0.9)).toFixed(1);
+          return { txt:`Hoeveel uur per dag brengt de luiaard minimaal niet ondersteboven door? (één cijfer na de komma)`, ans:h, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        break;
+      case 'maleise honingbeer':
+        out.push(()=>{ const Lcm=pick([120,130,140,150]); const tongue=Math.round(Lcm*0.3); unitOut='';
+          return { txt:`Stel dat de honingbeer ${Lcm} cm is, hoe lang kan zijn tong dan zijn (in cm)?`, ans:tongue, goals:[GO.PCT,GO.LEN,GO.CALC] }; });
+        break;
+      case 'manenwolf':
+        out.push(()=>{ const eat=pick([2,4,6]); unitOut='kg';
+          return { txt:`Stel dat een manenwolf ${eat} kg eet per dag. Hoeveel daarvan is plantaardig (in kg)?`, ans:eat/2, goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        break;
+      case 'markhor':
+        out.push(()=>{ const N0=pick([10000,15000,20000,30000]); unitOut='';
+          return { txt:`In 1990 waren er ${N0} markhors. Hoeveel markhors zijn er nu minimaal?`, ans:Math.round(N0*0.2), goals:[GO.PCT,GO.CALC] }; });
+        break;
+      case 'naakte molrat':
+        break;
+      case 'neusaap':
+        out.push(()=>{ const g=pick([10,15,20,25,30,40,50]); unitOut='';
+          return { txt:`Stel dat een groep uit ${g} neusapen bestaat, hoeveel neusapen zijn dan minimaal vrouwtjes? (natuurlijk getal)`, ans:Math.round(g*0.8), goals:[GO.PCT,GO.CALC,GO.RND] }; });
+        break;
+      case 'stermol':
+        out.push(()=>({ txt:`Wat is 600 procent geschreven als natuurlijk getal?`, ans:6, unitOut:'', goals:[GO.PCT,GO.CALC] }));
+        break;
+      case 'tapir':
+        out.push(()=>({ txt:`Wat is 100 procent geschreven als natuurlijk getal?`, ans:1, unitOut:'', goals:[GO.PCT,GO.CALC] }));
+        break;
+      case 'tasmaanse duivel':
+        out.push(()=>{ const N0=pick([1000,2000,5000,10000]); unitOut='';
+          return { txt:`De populatie was voordien ${N0}. Met hoeveel dieren is de populatie bijna afgenomen? (natuurlijk getal)`, ans:Math.round(N0*0.8), goals:[GO.PCT,GO.CALC] }; });
+        break;
+      case 'vingerdier':
+        out.push(()=>{ if(Math.random()<.5){ const g=pick([500,1000,1500,2000,2500]); unitOut='g';
+            return { txt:`Stel dat een vingerdier ${g} gram eet per dag, hoeveel daarvan hebben ze uit de bomen gehaald (in gram)?`, ans:Math.round(g*0.7), goals:[GO.PCT,GO.MT,GO.CALC,GO.RND] }; }
+          const kg=pick([1,2,3,4,5]); unitOut='kg';
+          return { txt:`Stel dat een vingerdier ${kg} kg eet per dag, hoeveel daarvan hebben ze uit de bomen gehaald (in kg)?`, ans:+(kg*0.7).toFixed(1), goals:[GO.PCT,GO.MT,GO.CALC] }; });
+        break;
+      case 'vogelbekdier':
+        out.push(()=>{ const Nsp=pick([1000,2000,5000,10000]); unitOut='';
+          return { txt:`Stel dat er ${Nsp} soorten zoogdieren zijn, hoeveel soorten zijn dan giftig?`, ans:Math.round(Nsp*0.01), goals:[GO.PCT,GO.CALC] }; });
+        break;
+    }
+    return out;
+  }
+
+  const Q_FUNCS_BASE = [ Q_len_convert, Q_mass_convert, Q_len_range, Q_mass_range, Q_len_avg, Q_mass_avg, Q_mass_multi ];
+
+  async function newQuestion(){
+    const a = ANIMALS[rnd(ANIMALS.length)];
+    await showAnimal(a);
+
+    const facts = factGeneratorsFor(a);
+    const pool = Q_FUNCS_BASE.concat(facts);
+
+    let q=null, tries=0;
+    while(!q && tries<80){
+      const qf = pool[rnd(pool.length)];
+      const cand = typeof qf==='function' ? qf(a) : null;
+      if(cand) q=cand;
+      tries++;
+    }
+    if(!q) q = Q_len_convert(a);
+
+    current = { a, q }; correct = q.ans;
+    $q.textContent = q.txt;
+    $status.textContent = ''; $status.className = 'status';
+    $ans.value=''; $ans.focus();
+  }
+
+  function check(){
+    if(!current) return;
+    const userRaw = $ans.value;
+    const v = parseNum(userRaw);
+    if(Number.isNaN(v)){
+      $status.textContent = '⚠️ Vul een getal in met een komma.';
+      $status.className = 'status errTxt';
+      return;
+    }
+    const tol = Math.max(0.001, Math.abs(correct)*0.001);
+    const oky = Math.abs(v - correct) <= tol;
+
+    $status.textContent = oky ? '✅ Juist!' : '❌ Fout!';
+    $status.className = oky ? 'status okTxt' : 'status errTxt';
+
+    // log
+    runLog.push({
+      i: runLog.length+1,
+      q: current.q.txt,
+      given: userRaw,
+      correct: (unitOut ? `${prettyC(correct)} ${unitOut}` : prettyC(correct)),
+      ok: oky,
+      goals: current.q.goals || []
+    });
+
+    animateOK(oky, ()=>{
+      flashBoard(oky);
+      if(oky){ ok++; okEl.textContent=ok; } else { err++; errEl.textContent=err; }
+      if(mode==='oefen'){ if(oky) newQuestion(); }
+      else { idx++; if(idx>=total){ finishRun(); } else { newQuestion(); } }
+    });
+  }
+
+  // keypad
+  pad.addEventListener('click', e=>{
+    const k = e.target.closest('.key'); if(!k) return;
+    const act = k.dataset.act || '';
+    const put = t=>{ $ans.value = ($ans.value||'') + t; $ans.dispatchEvent(new Event('input')); $ans.focus(); };
+    if(!act){
+      const t = k.textContent.trim();
+      if(/^[0-9]$/.test(t)){ put(t); return; }
+      if(t===','){ put(','); return; }
+      return;
+    }
+    if(act==='bksp'){ $ans.value = ($ans.value||'').slice(0,-1); $ans.focus(); return; }
+    if(act==='enter'){ check(); return; }
+  });
+  byId('checkBtn').onclick = check;
+  $ans.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } });
+
+  /* ====== Timer ====== */
+  function startTimer(countdownSec){
+    stopTimer();
+    if(mode==='oefen'){ timeDisp.textContent = '—'; return; }
+    timerId = setInterval(()=>{
+      if(mode==='toets' && countdownSec!=null){
+        const spent = Math.floor((Date.now()-runStartedAt)/1000);
+        const rem = Math.max(0, countdownSec - spent);
+        timeDisp.textContent = mmss(rem);
+        if(rem<=0){ stopTimer(); finishRun(); }
+      } else if(mode==='taak'){
+        const spent = Math.floor((Date.now()-runStartedAt)/1000);
+        timeDisp.textContent = mmss(spent);
+      }
+    }, 200);
+  }
+  function stopTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
+
+  /* ====== Run lifecycle (oefen lokaal, taak/toets → bewijsje) ====== */
+  function startRun(newMode){
+    mode = newMode; idx=0; ok=0; err=0; total = (mode==='oefen'? 0 : 30);
+    runLog = []; runStartedAt = Date.now();
+    okEl.textContent='0'; errEl.textContent='0';
+    newQuestion();
+    if(mode==='toets'){ startTimer(15*60); } else { startTimer(null); }
+  }
+
+  function finishRun(){
+    stopTimer();
+    const spent = Math.max(0, Math.round((Date.now()-runStartedAt)/1000));
+
+    const summary = {
+      name: localStorage.getItem('mr_name')||'',
+      class: localStorage.getItem('mr_class')||'',
+      gameId: window.GAME_ID || '',
+      mode,
+      seconds: spent,
+      score: ok,
+      total: ok+err,
+      questions: runLog.map((r,i)=>({ q:r.q, correct:r.correct, given:r.given, ok:r.ok }))
+    };
+
+    let did = false;
+    try{ if(window.MR_SHARED && MR_SHARED.trySharedProof){ did = MR_SHARED.trySharedProof(summary); } }catch(e){ console.warn(e); }
+    if(!did && window.MR_SHARED && MR_SHARED.cert && MR_SHARED.cert.downloadTable){
+      MR_SHARED.cert.downloadTable({
+        meta: summary,
+        table: {
+          columns: ['#','Vraag','Correct','Gegeven','✓/✗'],
+          rows: runLog.map((r,i)=>[i+1, r.q, r.correct, r.given, r.ok?'✓':'✗'])
+        }
+      });
+      did = true;
+    }
+
+    alert(`Klaar!\nScore: ${ok}/${ok+err}`);
+    startRun('oefen');
+  }
+
+  // Volledig scherm
+  fullBtn.onclick = ()=>{ if(!document.fullscreenElement){ document.documentElement.requestFullscreen?.(); } else { document.exitFullscreen?.(); } };
+
+  // ===== Topbar knoppen (zonder extra MR helper) =====
+  document.addEventListener('DOMContentLoaded', ()=>{
+    startTaak.onclick = ()=>{ ensureIdentity(); startRun('taak'); };
+    startToets.onclick= ()=>{ ensureIdentity(); startRun('toets'); };
+
+    // Start standaard in oefenen
+    startRun('oefen');
+  });
+  </script>
+</body>
+</html>
