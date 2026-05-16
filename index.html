@@ -1,341 +1,391 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mr Raes — Spellenoverzicht</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wiskundespellen - Mr. Raes</title>
   <style>
-    :root{
-      --bg:#f7f9fc; --card:#fff; --ink:#0b132b; --muted:#6b7280; --ring:#e6ecf8; --ring2:#dfe6f6;
-      --shadow:0 10px 28px rgba(15,23,42,.06); --good:#10b981; --bad:#ef4444; --accent:#2563eb;
-      --tile-h: 320px; --tile-r:16px;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; font-family:Inter,system-ui,Arial,sans-serif; color:var(--ink);
-      background: radial-gradient(1200px 600px at 80% -10%, #eef3ff 0%, #f7f9fc 50%, #fbfdff 100%);
-    }
-    .wrap{width:min(1200px,96vw); margin:0 auto; padding:14px}
 
-    /* Topbar */
-    .topbar{
-      position:sticky; top:0; z-index:50;
-      background:rgba(255,255,255,.95); backdrop-filter:saturate(140%) blur(6px);
-      border-bottom:1px solid var(--ring2); box-shadow:var(--shadow);
-      padding:10px 14px; display:flex; flex-wrap:wrap; gap:.6rem; align-items:center;
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
     }
-    .spacer{flex:1}
-    .chip{display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--ring2); background:#fff;
-      border-radius:999px; padding:.35rem .7rem; font-weight:800; box-shadow:var(--shadow)}
-    .chip input{border:none; outline:none; font:inherit}
-    .ghostbtn{border:1px solid var(--ring2); background:#fff; border-radius:12px; padding:.55rem .8rem; font-weight:800; cursor:pointer}
-    .ghostbtn:active{transform:translateY(1px)}
-    .pill{display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--ring2); border-radius:999px; padding:.35rem .7rem; background:#fff; font-weight:800}
-    .pill.good{ color:var(--good); background:#eafaf4; border-color:#c4eedc }
-    .pill.bad{  color:var(--bad);  background:#fdeeee; border-color:#ffd7d7 }
 
-    /* Section heading */
-    h2.sec{margin:16px 0 10px; font-size:1.1rem; color:#111827}
-    .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
-    @media (max-width:1020px){ .grid{grid-template-columns:repeat(2,1fr)} }
-    @media (max-width:680px){ .grid{grid-template-columns:1fr} }
-
-    /* Tile */
-    .tile{
-      background:#fff; border:1px solid var(--ring); border-radius:18px; box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column;
-      min-height:var(--tile-h);
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    .preview{
-      position:relative; height:200px; border-bottom:1px solid var(--ring2); background:#fff; overflow:hidden;
-    }
-    .preview iframe{
-      /* schaal de hele game in het mini-kadertje */
-      --scale:.35;
-      width: calc(100% / var(--scale));
-      height: calc(100% / var(--scale));
-      transform: scale(var(--scale));
-      transform-origin: 0 0;
-      border:0; pointer-events:none;    /* tiles blijven click-through naar de knoppen */
-    }
-    .tile-body{padding:10px 12px; display:flex; flex-direction:column; gap:8px}
-    .ttl{font-weight:900; line-height:1.15}
-    .meta{display:flex; flex-wrap:wrap; gap:6px}
-    .tag{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--ring2); border-radius:999px; padding:.2rem .5rem; background:#fff; font-weight:800; color:#374151}
-    .goals{display:flex; gap:6px; flex-wrap:wrap}
-    .tile-actions{margin-top:auto; display:flex; gap:8px}
-    .btn{border:1px solid var(--ring2); background:#fff; padding:.5rem .7rem; border-radius:10px; font:800 .95rem Inter; cursor:pointer}
-    .btn.primary{background:#2563eb; color:#fff; border-color:#215bd9}
-    .muted{color:#6b7280; font-weight:700}
 
-    .empty{padding:18px; border:1px dashed var(--ring2); border-radius:12px; text-align:center; color:#6b7280}
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 50px;
+      animation: fadeInDown 0.6s ease;
+    }
 
-    /* Lazy loading */
-    .preview[data-state="idle"]{background:linear-gradient(90deg,#f6f8fc 0%,#eef2ff 50%,#f6f8fc 100%); background-size:200% 100%; animation:sh 1.2s infinite}
-    @keyframes sh{0%{background-position:0 0}100%{background-position:200% 0}}
+    header h1 {
+      font-size: 3em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    header p {
+      font-size: 1.2em;
+      opacity: 0.95;
+    }
+
+    .search-box {
+      margin: 30px 0;
+      text-align: center;
+    }
+
+    .search-box input {
+      width: 100%;
+      max-width: 400px;
+      padding: 12px 20px;
+      font-size: 1em;
+      border: none;
+      border-radius: 25px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      border: 2px solid white;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9em;
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active {
+      background: white;
+      color: #667eea;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 25px;
+      margin-bottom: 50px;
+    }
+
+    .game-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      animation: fadeInUp 0.6s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .game-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+    }
+
+    .game-card-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      color: white;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .game-card-body {
+      padding: 20px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .game-card-title {
+      font-size: 1.1em;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .game-card-desc {
+      font-size: 0.9em;
+      color: #666;
+      margin-bottom: 15px;
+      flex-grow: 1;
+    }
+
+    .game-card-meta {
+      font-size: 0.8em;
+      color: #999;
+      margin-bottom: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: #f0f0f0;
+      border-radius: 12px;
+      font-size: 0.8em;
+    }
+
+    .badge.level1 { background: #d4edda; color: #155724; }
+    .badge.level2 { background: #fff3cd; color: #856404; }
+
+    .play-btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      font-size: 1em;
+    }
+
+    .play-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .empty-state {
+      text-align: center;
+      color: white;
+      padding: 50px 20px;
+    }
+
+    .empty-state h2 {
+      font-size: 1.5em;
+      margin-bottom: 10px;
+    }
+
+    footer {
+      text-align: center;
+      color: white;
+      padding: 30px;
+      opacity: 0.8;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      margin-top: 50px;
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .stats {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+
+    @media (max-width: 768px) {
+      header h1 {
+        font-size: 2em;
+      }
+
+      .game-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        flex-direction: column;
+      }
+
+      .filter-btn {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <strong style="font-size:1.05rem">🎮 Mr Raes — Spellen</strong>
-    <span class="chip">🔎 <input id="q" placeholder="Zoeken op titel, doel, graad…" size="26" /></span>
-    <button id="forceRefresh" class="ghostbtn" title="Cache wissen + opnieuw laden">⟳ Vernieuwen</button>
-    <div class="spacer"></div>
-    <span class="pill good" id="countChip">0 spellen</span>
-    <span class="pill" id="modeChip">Bron: <strong id="sourceMode">games.json</strong></span>
-  </div>
+  <div class="container">
+    <header>
+      <h1>🎮 Wiskundespellen</h1>
+      <p>Leren door te spelen - Mr. Raes</p>
+    </header>
 
-  <div class="wrap" id="content">
-    <div class="empty">Even laden…</div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="🔍 Zoek een spel...">
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">Alle spellen</button>
+      <button class="filter-btn" data-filter="1ljb">1LJB</button>
+      <button class="filter-btn" data-filter="2b">2B</button>
+      <button class="filter-btn" data-filter="mixed">Gemengd</button>
+    </div>
+
+    <div class="stats">
+      <span id="gameCount">20+ spellen</span> beschikbaar
+    </div>
+
+    <div class="game-grid" id="gameGrid"></div>
+
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <h2>Geen spellen gevonden</h2>
+      <p>Probeer een ander zoekwoord of filter</p>
+    </div>
+
+    <footer>
+      <p>© 2026 Mr. Raes - Wiskundespellen Platform</p>
+      <p><small>Gemaakt met ❤️ voor beter leren</small></p>
+    </footer>
   </div>
 
   <script>
-  // ====== Instellingen (pas aan indien nodig) ======
-  const ORDER = [
-    "Lengte en Oppervlakte",
-    "Afronden en schatten",
-    "Rekenen",
-    "Procenten",
-    "Getallen",
-    "Breuken",
-    "Allerlei",
-    "Context",
-    "Overig"
-  ];
-  // Als OWNER/REPO niet uit de URL te halen zijn, zet ze hier:
-  let OWNER = null;   // bv. "mrraes"
-  let REPO  = null;   // bv. "mrraes-math"
-  let BRANCH = "main"; // of "gh-pages" als je die gebruikt
+    const games = [
+      // Getallen (1LJB)
+      { id: 1, name: "Getallen - Afronden", file: "Getallen - Afronden (1LJB).html", category: "Getallen", level: "1LJB", tags: ["1ljb", "getallen", "afronden"] },
+      { id: 2, name: "Getallenas", file: "Getallen - Getallenas (1LJB).html", category: "Getallen", level: "1LJB", tags: ["1ljb", "getallen", "tellen"] },
+      { id: 3, name: "Munten", file: "Getallen - Munten (1LJB).html", category: "Getallen", level: "1LJB", tags: ["1ljb", "getallen", "munten"] },
+      { id: 4, name: "Getallen Vergelijken", file: "Getallen - Vergelijken (1LJB).html", category: "Getallen", level: "1LJB", tags: ["1ljb", "getallen", "vergelijken"] },
 
-  // ====== Helpers ======
-  const $ = sel => document.querySelector(sel);
-  const el = (tag, props={}, ...kids) => {
-    const n = document.createElement(tag);
-    Object.assign(n, props);
-    for (const k of kids) n.append(k);
-    return n;
-  };
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
+      // Breuken (2B)
+      { id: 5, name: "Breuken Optellen", file: "Breuken - Breuken optellen (2B).html", category: "Breuken", level: "2B", tags: ["2b", "breuken", "optellen"] },
+      { id: 6, name: "Gelijkwaardig, Vereenvoudigen & Deel Van", file: "Breuken - Gelijkwaardig, Vereenvoudigen en Deel Van (2B).html", category: "Breuken", level: "2B", tags: ["2b", "breuken", "gelijkwaardig"] },
 
-  function repoFromLocation(){
-    try{
-      const host = location.hostname;         // bv. mrraes.github.io
-      const parts = location.pathname.replace(/^\/+/,'').split('/'); // ["repoName", ...]
-      if (!OWNER && host.endsWith('.github.io')) OWNER = host.replace(/\.github\.io$/,'');
-      if (!REPO) REPO = parts[0] || OWNER;
-    }catch(e){}
-  }
-  repoFromLocation();
+      // Delers & Veelvouden (2B)
+      { id: 7, name: "Delers en Veelvouden", file: "Delers en Veelvouden - delers en veelvouden (2B).html", category: "Delers & Veelvouden", level: "2B", tags: ["2b", "delers", "veelvouden"] },
 
-  function deriveCategory(filename, titleText){
-    // Pak prefix vóór " - " als categorie; fallback op 1e woord van titel
-    const base = filename.replace(/\.html?$/,'');
-    const byDash = base.split(' - ')[0];
-    if (byDash && /[A-Za-zÀ-ÿ]/.test(byDash)) return byDash.trim();
-    if (titleText && titleText.includes('—')){
-      return titleText.split('—')[0].trim();
+      // Lengte & Oppervlakte (gemengd)
+      { id: 8, name: "Het Grote Lengtespel", file: "Lengte en Oppervlakte - Het Grote Lengtespel (2B - 1LJB).html", category: "Lengte & Oppervlakte", level: "Gemengd", tags: ["mixed", "lengte", "omzetten"] },
+      { id: 9, name: "Omtrek & Oppervlaktespel", file: "Lengte en Oppervlakte - Het grote omtrek- en oppervlaktespel  (2B).html", category: "Lengte & Oppervlakte", level: "2B", tags: ["2b", "oppervlakte", "omtrek"] },
+      { id: 10, name: "Lengte Omzetten", file: "Lengte en Oppervlakte - Lengte Omzetten  (2B - 1LJB).html", category: "Lengte & Oppervlakte", level: "Gemengd", tags: ["mixed", "lengte", "omzetten"] },
+      { id: 11, name: "Omtrek & Oppervlakte Maken", file: "Lengte en Oppervlakte - Omtrek en Oppervlakte maken  (2B).html", category: "Lengte & Oppervlakte", level: "2B", tags: ["2b", "oppervlakte"] },
+      { id: 12, name: "Oppervlakte Omzetten", file: "Lengte en Oppervlakte - Oppervlakte Omzetten  (2B).html", category: "Lengte & Oppervlakte", level: "2B", tags: ["2b", "oppervlakte"] },
+
+      // Procenten (2B)
+      { id: 13, name: "Procenten Omzetten", file: "Procenten - Omzetten (2B).html", category: "Procenten", level: "2B", tags: ["2b", "procenten", "omzetten"] },
+      { id: 14, name: "Procentenspel", file: "Procenten - Procentenspel (2B).html", category: "Procenten", level: "2B", tags: ["2b", "procenten"] },
+
+      // Rekenen (1LJB)
+      { id: 15, name: "Rekenmix", file: "Rekenen - Rekenmix (1LJB).html", category: "Rekenen", level: "1LJB", tags: ["1ljb", "rekenen", "mix"] },
+      { id: 16, name: "Schatten", file: "Rekenen - Schatten (1LJB).html", category: "Rekenen", level: "1LJB", tags: ["1ljb", "rekenen", "schatten"] },
+      { id: 17, name: "Zinvol Afronden", file: "Rekenen - Zinvol afronden (1LJB).html", category: "Rekenen", level: "1LJB", tags: ["1ljb", "rekenen", "afronden"] },
+
+      // Overig
+      { id: 18, name: "Allerlei - Dierenspel", file: "Allerlei - Dierenspel.html", category: "Overig", level: "Gemengd", tags: ["mixed", "dieren"] },
+      { id: 19, name: "Inhoud", file: "inhoud (1LJB).html", category: "Overig", level: "1LJB", tags: ["1ljb", "inhoud"] },
+    ];
+
+    let currentFilter = 'all';
+
+    const gameGrid = document.getElementById('gameGrid');
+    const searchInput = document.getElementById('searchInput');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const emptyState = document.getElementById('emptyState');
+
+    function renderGames(filtered = games) {
+      gameGrid.innerHTML = '';
+      emptyState.style.display = filtered.length === 0 ? 'block' : 'none';
+
+      filtered.forEach((game, index) => {
+        const card = document.createElement('div');
+        card.className = 'game-card';
+        card.style.animationDelay = `${index * 0.05}s`;
+
+        const levelBadge = game.level === '1LJB' ? 'level1' : game.level === '2B' ? 'level2' : '';
+
+        card.innerHTML = `
+          <div class="game-card-header">
+            <div class="game-card-title">${game.name}</div>
+          </div>
+          <div class="game-card-body">
+            <div class="game-card-meta">
+              <span class="badge ${levelBadge}">${game.level}</span>
+              <span class="badge">${game.category}</span>
+            </div>
+            <a href="${game.file}" class="play-btn">▶️ Speel Nu</a>
+          </div>
+        `;
+
+        gameGrid.appendChild(card);
+      });
     }
-    return "Overig";
-  }
-  function deriveStreamFromName(nameOrTitle){
-    const m = String(nameOrTitle||'').match(/\(([^)]+)\)\s*$/);
-    return m ? m[1] : "";
-  }
 
-  function parseGoalsFromHtml(html){
-    // Zoekt bv. const GOALS = ['BV1_06.02','06.02.01', ...];
-    const m = html.match(/GOALS?\s*=\s*\[([^\]]*)\]/i);
-    if (!m) return [];
-    const inside = m[1];
-    // Extracteer strings of losse codes
-    const arr = Array.from(inside.matchAll(/['"]([^'"]+)['"]/g)).map(x=>x[1].trim());
-    // Fallback: cijfers/letters zonder quotes
-    if (!arr.length){
-      return inside.split(/[,\s]+/).map(s=>s.replace(/['"]/g,'').trim()).filter(Boolean);
-    }
-    return arr;
-  }
-  function parseMeta(html, filename){
-    const title = (html.match(/<title>([^<]+)<\/title>/i)?.[1]||'').trim();
-    const metaId = (html.match(/<meta\s+name=["']x-game-id["']\s+content=["']([^"']+)/i)?.[1]||'').trim();
-    const goals = parseGoalsFromHtml(html);
-    const stream = deriveStreamFromName(metaId || title || filename);
-    const cat = deriveCategory(filename, title||metaId);
-    const niceTitle = metaId || title || filename.replace(/\.html?$/,'');
-    return { title: niceTitle, goals, stream, category: cat };
-  }
+    function filterGames() {
+      let filtered = games;
 
-  // ---- Data laden: eerst games.json, dan GitHub API fallback ----
-  async function tryGamesJson(){
-    try{
-      const r = await fetch('games.json', {cache:'no-store'});
-      if (!r.ok) throw new Error('no games.json');
-      const data = await r.json();
-      $('#sourceMode').textContent = 'games.json';
-      return data;
-    }catch(e){ return null; }
-  }
-
-  async function listViaGitHubAPI(){
-    if (!OWNER || !REPO) throw new Error('OWNER/REPO onbekend; zet ze bovenaan in het script.');
-    // Probeer main én gh-pages als fallback
-    for (const br of [BRANCH, BRANCH==='main'?'gh-pages':'main']){
-      try{
-        const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/?ref=${encodeURIComponent(br)}`;
-        const r = await fetch(url, {headers:{'Accept':'application/vnd.github.v3+json'}});
-        if (!r.ok) continue;
-        const items = await r.json();
-        const files = items.filter(it => it.type==='file' && /\.html?$/.test(it.name) && !/^index\.html?$/i.test(it.name) && !/mrraes-shared/i.test(it.name));
-        $('#sourceMode').textContent = 'GitHub API';
-        return files.map(f => ({ file: f.name }));
-      }catch(e){}
-    }
-    throw new Error('Kon repo-inhoud niet ophalen via GitHub API.');
-  }
-
-  async function enrichFiles(entries){
-    // Voor elke file: fetch de HTML en haal metadata
-    const out = [];
-    for (const ent of entries){
-      const name = ent.file;
-      try{
-        const resp = await fetch(name, {cache:'no-store'});
-        const html = await resp.text();
-        const meta = parseMeta(html, name);
-        out.push({ file:name, ...meta });
-        // Kleine pauze om burst te temperen
-        await sleep(40);
-      }catch(e){
-        out.push({ file:name, title:name.replace(/\.html?$/,''), category:deriveCategory(name), goals:[], stream:'' });
+      // Filter op categorie
+      if (currentFilter !== 'all') {
+        filtered = filtered.filter(game => game.tags.includes(currentFilter));
       }
+
+      // Filter op zoekterm
+      const searchTerm = searchInput.value.toLowerCase();
+      if (searchTerm) {
+        filtered = filtered.filter(game =>
+          game.name.toLowerCase().includes(searchTerm) ||
+          game.category.toLowerCase().includes(searchTerm) ||
+          game.tags.some(tag => tag.includes(searchTerm))
+        );
+      }
+
+      renderGames(filtered);
+      document.getElementById('gameCount').textContent = `${filtered.length} spel${filtered.length !== 1 ? 'len' : ''}`;
     }
-    return out;
-  }
 
-  function groupByCategory(items){
-    const map = new Map();
-    for (const it of items){
-      const k = it.category || 'Overig';
-      if (!map.has(k)) map.set(k, []);
-      map.get(k).push(it);
-    }
-    // sorteer binnen categorie op titel
-    for (const arr of map.values()){ arr.sort((a,b)=>a.title.localeCompare(b.title,'nl')) }
-    return map;
-  }
-
-  function render(all){
-    const q = ($('#q').value||'').toLowerCase().trim();
-    const filtered = q ? all.filter(it => (
-      it.title.toLowerCase().includes(q) ||
-      it.file.toLowerCase().includes(q) ||
-      (it.stream||'').toLowerCase().includes(q) ||
-      (it.goals||[]).join(' ').toLowerCase().includes(q))) : all;
-
-    $('#countChip').innerHTML = `${filtered.length} spellen`;
-
-    const byCat = groupByCategory(filtered);
-    const container = $('#content');
-    container.innerHTML = '';
-
-    // Sorteer categorie-volgorde zoals ORDER
-    const cats = Array.from(byCat.keys()).sort((a,b)=>{
-      const ia = Math.max(ORDER.indexOf(a), 999), ib = Math.max(ORDER.indexOf(b), 999);
-      return ia===ib ? a.localeCompare(b,'nl') : ia-ib;
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        filterGames();
+      });
     });
 
-    for (const cat of cats){
-      container.append(el('h2',{className:'sec'}, document.createTextNode(cat)));
-      const grid = el('div',{className:'grid'});
-      container.append(grid);
+    searchInput.addEventListener('input', filterGames);
 
-      for (const it of byCat.get(cat)){
-        const tile = el('div',{className:'tile'});
-
-        // preview (lazy iframe)
-        const prev = el('div',{className:'preview','data-state':'idle'});
-        const iframe = el('iframe',{loading:'lazy',sandbox:'allow-same-origin', title:`Preview ${it.title}`});
-        // Lazy: enkel src zetten als in viewport
-        prev.append(iframe);
-        tile.append(prev);
-
-        const body = el('div',{className:'tile-body'});
-        body.append(el('div',{className:'ttl'}, document.createTextNode(it.title)));
-        const meta = el('div',{className:'meta'});
-        if (it.stream) meta.append(el('span',{className:'tag'}, `🎓 ${it.stream}`));
-        meta.append(el('span',{className:'tag muted'}, `📄 ${it.file}`));
-        body.append(meta);
-
-        if (it.goals?.length){
-          const goals = el('div',{className:'goals'});
-          it.goals.slice(0,6).forEach(g => goals.append(el('span',{className:'tag'}, g)));
-          if (it.goals.length>6) goals.append(el('span',{className:'tag muted'}, `+${it.goals.length-6}`));
-          body.append(goals);
-        }
-
-        const actions = el('div',{className:'tile-actions'});
-        const openBtn = el('button',{className:'btn primary', onclick:()=>window.open(it.file,'_blank')}, 'Open spel');
-        const miniBtn = el('button',{className:'btn', onclick:()=>{ iframe.style.setProperty('--scale', iframe.style.getPropertyValue('--scale')==='.35' ? '.28' : '.35'); }}, 'Zoom mini');
-        actions.append(openBtn, miniBtn);
-        body.append(actions);
-
-        tile.append(body);
-        grid.append(tile);
-
-        // IntersectionObserver voor echte lazy load
-        observe(prev, ()=>{ iframe.src = it.file; prev.dataset.state='ready'; });
-      }
-    }
-  }
-
-  // Simple IO for lazy iframes
-  const IO = new IntersectionObserver((entries)=>{
-    for (const e of entries){
-      if (e.isIntersecting){
-        const cb = e.target.__onEnter;
-        if (cb){ cb(); e.target.__onEnter = null; IO.unobserve(e.target); }
-      }
-    }
-  }, {rootMargin:'200px'});
-  function observe(elm, onEnter){ elm.__onEnter = onEnter; IO.observe(elm); }
-
-  // ====== Start ======
-  (async function init(){
-    $('#q').addEventListener('input', ()=>render(window.__GAMES||[]));
-    $('#forceRefresh').addEventListener('click', ()=>{
-      localStorage.removeItem('mr_index_cache');
-      location.reload();
-    });
-
-    // Cache (5 min)
-    const cached = localStorage.getItem('mr_index_cache');
-    if (cached){
-      try{
-        const {ts, data} = JSON.parse(cached);
-        if (Date.now()-ts < 5*60*1000){
-          window.__GAMES = data;
-          render(data);
-        }
-      }catch{}
-    }
-
-    // 1) Probeer games.json
-    let entries = await tryGamesJson();
-    if (!entries){
-      // 2) Anders: GitHub API → lijst
-      const list = await listViaGitHubAPI();
-      // 3) Verrijk met metadata door file te lezen
-      entries = await enrichFiles(list);
-    }
-
-    window.__GAMES = entries;
-    localStorage.setItem('mr_index_cache', JSON.stringify({ts:Date.now(), data:entries}));
-    render(entries);
-  })();
+    // Initial render
+    renderGames();
   </script>
 </body>
 </html>
